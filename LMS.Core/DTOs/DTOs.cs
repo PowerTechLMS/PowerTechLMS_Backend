@@ -3,6 +3,9 @@ namespace LMS.Core.DTOs;
 // ===== Auth DTOs =====
 public record LoginRequest(string Email, string Password);
 public record RegisterRequest(string FullName, string Email, string Password, string? Role);
+// Email Jobs
+public record MailJob(string To, string Subject, string Body, int RetryCount = 0);
+
 public record AuthResponse(int Id, string FullName, string Email, string Role, string Token, List<string> Roles, List<string> Permissions, string? Avatar = null);
 
 // ===== User DTOs =====

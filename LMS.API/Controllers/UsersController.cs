@@ -20,6 +20,24 @@ public class UsersController : ControllerBase
     public async Task<ActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         => Ok(await _userService.GetUsersAsync(page, pageSize, search));
 
+    [HttpPost]
+    public async Task<ActionResult> CreateUser([FromBody] UpdateUserRequest request)
+    {
+        try
+        {
+            var user = await _userService.CreateUserAsync(request);
+            return Ok(user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
     [HttpGet("{id}")]
     public async Task<ActionResult> GetUserById(int id)
     {

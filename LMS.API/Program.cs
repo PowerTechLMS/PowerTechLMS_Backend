@@ -95,8 +95,11 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
-builder.Services.AddScoped<IReportService, ReportService>();
+
+// Email Services
+builder.Services.AddSingleton<IMailQueue, MailQueue>();
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddHostedService<MailBackgroundService>();
 
 // CORS
 builder.Services.AddCors(options =>
