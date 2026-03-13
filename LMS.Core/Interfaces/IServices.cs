@@ -22,6 +22,7 @@ public interface IUserService
     Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
     Task<UserResponse> UpdateUserAsync(int userId, UpdateUserRequest request);
     Task<UserResponse> CreateUserAsync(UpdateUserRequest request);
+    Task<ImportResultResponse> ImportUsersAsync(Stream fileStream);
 }
 
 public interface IGroupService

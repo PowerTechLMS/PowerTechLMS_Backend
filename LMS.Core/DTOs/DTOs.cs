@@ -25,6 +25,15 @@ public record UpdateUserRequest(
     string? Password
 );
 
+public class UserImportRow
+{
+    public string FullName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Password { get; set; }
+    public string? Role { get; set; }
+}
+public record ImportResultResponse(int SuccessCount, List<string> Errors);
+
 // ===== Group DTOs =====
 public record UserGroupRequest(string Name, string? Description);
 public record UserGroupResponse(
