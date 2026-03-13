@@ -3,6 +3,7 @@ using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using MiniExcelLibs;
 
 namespace LMS.Infrastructure.Services;
 
@@ -186,5 +187,45 @@ public class UserService : IUserService
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
         await _db.SaveChangesAsync();
+    }
+    public async Task<ImportResultResponse> ImportUsersAsync(Stream fileStream)
+    {
+        var rows = MiniExcel.Query<UserImportRow>(fileStream).ToList();
+        int successCount = 0;
+        var errors = new List<string>();
+
+        foreach (var row in rows)
+        {
+            if (string.IsNullOrWhiteSpace(row.Email) || string.IsNullOrWhiteSpace(row.FullName))
+            {
+                errors.Add($"Dòng lỗi: Thiếu Họ tên hoặc Email.");
+                continue;
+            }
+
+            if (await _db.Users.AnyAsync(u => u.Email == row.Email))
+            {
+                errors.Add($"Email trùng lặp: {row.Email}");
+                continue;
+            }
+
+            var password = !string.IsNullOrWhiteSpace(row.Password) ? row.Password : "123456";
+            var role = !string.IsNullOrWhiteSpace(row.Role) ? row.Role : "Employee";
+
+            var user = new User
+            {
+                FullName = row.FullName,
+                Email = row.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                Role = role,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.Users.Add(user);
+            successCount++;
+        }
+
+        await _db.SaveChangesAsync();
+        return new ImportResultResponse(successCount, errors);
     }
 }

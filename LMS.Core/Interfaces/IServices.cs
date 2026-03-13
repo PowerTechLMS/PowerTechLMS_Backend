@@ -21,6 +21,7 @@ public interface IUserService
     Task UpdateAvatarAsync(int userId, string avatarUrl);
     Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
     Task UpdateUserAsync(int userId, UpdateUserRequest request);
+    Task<ImportResultResponse> ImportUsersAsync(Stream fileStream);
 }
 
 public interface IGroupService

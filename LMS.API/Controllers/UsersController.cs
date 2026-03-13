@@ -3,6 +3,7 @@ using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LMS.Core.DTOs;
+using Microsoft.AspNetCore.Http;
 
 namespace LMS.API.Controllers;
 
@@ -70,5 +71,14 @@ public class UsersController : ControllerBase
             return NoContent();
         }
         catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPost("import")]
+    public async Task<ActionResult> ImportUsers(IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("Vui lòng chọn file Excel.");
+        using var stream = file.OpenReadStream();
+        var result = await _userService.ImportUsersAsync(stream);
+        return Ok(result);
     }
 }
