@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    container_name: lms-sqlserver-2025
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=LmsPassword@123
+      - MSSQL_PID=H62HC-BCYXW-PP88N-PXPV3-BHD6H
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-2025-data:/var/opt/mssql
+    restart: unless-stopped
+
+volumes:
+  sqlserver-2025-data:
