@@ -24,9 +24,8 @@ Mở một terminal mới, thiết lập đường dẫn và chạy Backend:
 # Thiết lập PATH cho dotnet (nếu chưa có)
 export PATH="$HOME/.dotnet:$PATH"
 
-# Di chuyển vào thư mục API và chạy
-cd backend/LMS.API
-dotnet run --urls "http://localhost:5100"
+# Chạy dự án
+dotnet watch --project "LMS.API\LMS.API.csproj" --launch-profile "http"
 ```
 
 _Backend sẽ chạy tại: http://localhost:5100_

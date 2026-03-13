@@ -10,7 +10,15 @@ namespace LMS.Infrastructure.Services;
 public class UserService : IUserService
 {
     private readonly AppDbContext _db;
-    public UserService(AppDbContext db) => _db = db;
+    private readonly IAuthService _authService;
+    private readonly IEmailService _emailService;
+
+    public UserService(AppDbContext db, IAuthService authService, IEmailService emailService)
+    {
+        _db = db;
+        _authService = authService;
+        _emailService = emailService;
+    }
 
     public async Task<PagedResponse<UserResponse>> GetUsersAsync(int page, int pageSize, string? search)
     {
@@ -143,7 +151,7 @@ public class UserService : IUserService
         user.Avatar = avatarUrl;
         await _db.SaveChangesAsync();
     }
-    public async Task UpdateUserAsync(int userId, UpdateUserRequest request)
+    public async Task<UserResponse> UpdateUserAsync(int userId, UpdateUserRequest request)
     {
         var user = await _db.Users.FindAsync(userId)
             ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
@@ -177,6 +185,51 @@ public class UserService : IUserService
         }
 
         await _db.SaveChangesAsync();
+        return await GetUserProfileAsync(userId);
+    }
+
+    public async Task<UserResponse> CreateUserAsync(UpdateUserRequest request)
+    {
+        if (await _db.Users.AnyAsync(u => u.Email == request.Email))
+            throw new InvalidOperationException("Email đã tồn tại.");
+
+        var user = new User
+        {
+            FullName = request.FullName,
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password ?? "123456"),
+            Role = request.Role,
+            IsActive = request.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        // Gán role trong RBAC system nếu có
+        var role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
+        if (role != null)
+        {
+            _db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = role.Id });
+        }
+
+        if (request.GroupId.HasValue)
+        {
+            _db.UserGroupMembers.Add(new UserGroupMember
+            {
+                UserId = user.Id,
+                GroupId = request.GroupId.Value,
+                AddedAt = DateTime.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        // Gửi mail chào mừng
+        _emailService.QueueEmail(user.Email, "Chào mừng bạn đến với hệ thống!", 
+            $"Xin chào {user.FullName}, tài khoản của bạn đã được khởi tạo bởi Admin.<br/>Email: {user.Email}<br/>Mật khẩu: {request.Password ?? "123456"}");
+
+        return await GetUserProfileAsync(user.Id);
     }
     public async Task UpdatePasswordAsync(int userId, string newPassword)
     {

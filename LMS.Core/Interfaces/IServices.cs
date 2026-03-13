@@ -20,7 +20,8 @@ public interface IUserService
     Task<UserResponse> UpdateProfileAsync(int userId, UpdateProfileRequest request);
     Task UpdateAvatarAsync(int userId, string avatarUrl);
     Task ChangePasswordAsync(int userId, ChangePasswordRequest request);
-    Task UpdateUserAsync(int userId, UpdateUserRequest request);
+    Task<UserResponse> UpdateUserAsync(int userId, UpdateUserRequest request);
+    Task<UserResponse> CreateUserAsync(UpdateUserRequest request);
     Task<ImportResultResponse> ImportUsersAsync(Stream fileStream);
 }
 
@@ -198,4 +199,16 @@ public record PermissionDto(int Id, string Code, string Name, string? Category);
 public interface IDashboardService
 {
     Task<LearnerDashboardResponse> GetLearnerDashboardAsync(int userId);
+}
+
+public interface IEmailService
+{
+    Task SendEmailAsync(string to, string subject, string body);
+    void QueueEmail(string to, string subject, string body);
+}
+
+public interface IMailQueue
+{
+    void Enqueue(MailJob job);
+    Task<MailJob> DequeueAsync(CancellationToken cancellationToken);
 }

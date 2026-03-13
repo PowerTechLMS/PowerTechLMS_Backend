@@ -15,11 +15,13 @@ public class AuthService : IAuthService
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IEmailService _emailService;
 
-    public AuthService(AppDbContext db, IConfiguration config)
+    public AuthService(AppDbContext db, IConfiguration config, IEmailService emailService)
     {
         _db = db;
         _config = config;
+        _emailService = emailService;
     }
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
@@ -64,6 +66,9 @@ public class AuthService : IAuthService
             _db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = defaultRole.Id });
             await _db.SaveChangesAsync();
         }
+
+        // --- GỬI MAIL CHÀO MỪNG ---
+        _emailService.QueueEmail(user.Email, "Chào mừng bạn gia nhập hệ thống!", $"Chào mừng {user.FullName}! Tài khoản của bạn đã được khởi tạo.");
 
         var (roles, permissions) = await GetUserRolesAndPermissionsAsync(user.Id);
         if (!roles.Any()) roles = new List<string> { user.Role };
