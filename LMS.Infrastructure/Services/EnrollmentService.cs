@@ -69,7 +69,7 @@ public class EnrollmentService : IEnrollmentService
     {
         var enrollments = await _db.Enrollments
             .Include(e => e.User).Include(e => e.Course)
-            .Where(e => e.UserId == userId && (e.Status == "Approved" || e.Status == "Pending"))
+            .Where(e => e.UserId == userId && (e.Status == "Approved" || e.Status == "Pending" || e.Status == "Completed"))
             .OrderByDescending(e => e.EnrolledAt)
             .ToListAsync();
 
