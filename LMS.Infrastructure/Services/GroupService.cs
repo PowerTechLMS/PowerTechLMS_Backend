@@ -64,7 +64,12 @@ public class GroupService : IGroupService
                 m.AddedAt))
             .ToList();
 
-        return new UserGroupDetailResponse(group.Id, group.Name, group.Description, members, group.CreatedAt, group.UpdatedAt, group.IsDeleted);
+        var courseGroupIds = await _db.DepartmentCourseGroups
+            .Where(dcg => dcg.DepartmentId == groupId)
+            .Select(dcg => dcg.CourseGroupId)
+            .ToListAsync();
+
+        return new UserGroupDetailResponse(group.Id, group.Name, group.Description, members, courseGroupIds, group.CreatedAt, group.UpdatedAt, group.IsDeleted);
     }
 
     public async Task<UserGroupResponse> CreateUserGroupAsync(UserGroupRequest request, int adminId)
@@ -150,7 +155,7 @@ public class GroupService : IGroupService
                         Status = "Approved",
                         IsMandatory = true,
                         AssignedById = addedById,
-                        GroupEnrollId = groupId,
+                        GroupEnrollId = groupId, // Gán Id của UserGroup này vào
                         EnrolledAt = DateTime.UtcNow,
                         ApprovedAt = DateTime.UtcNow
                     });
@@ -219,7 +224,7 @@ public class GroupService : IGroupService
                         Status = "Approved",
                         IsMandatory = true,
                         AssignedById = adminId,
-                        GroupEnrollId = departmentId,
+                        GroupEnrollId = departmentId, // Đây là Id của UserGroup (Phòng ban)
                         EnrolledAt = DateTime.UtcNow,
                         ApprovedAt = DateTime.UtcNow
                     });
@@ -229,6 +234,23 @@ public class GroupService : IGroupService
 
         // Cuối cùng mới Save
         await _db.SaveChangesAsync();
+    }
+
+    public async Task RemoveCourseGroupFromDepartmentAsync(int departmentId, int courseGroupId)
+    {
+        var mapping = await _db.DepartmentCourseGroups
+            .FirstOrDefaultAsync(d => d.DepartmentId == departmentId && d.CourseGroupId == courseGroupId);
+
+        if (mapping != null)
+        {
+            _db.DepartmentCourseGroups.Remove(mapping);
+
+            // Tùy chọn: Xóa ghi danh của các thành viên (nhưng user nói "Các khóa học hiện tại sẽ không bị xóa" khi gỡ thành viên, 
+            // có lẽ không nên xóa ghi danh của toàn phòng ban khi gỡ lộ trình để tránh mất tiến độ?)
+            // Ở đây ta chỉ gỡ mapping giữa Phòng ban và Lộ trình.
+
+            await _db.SaveChangesAsync();
+        }
     }
     // ==========================================
     // Course Groups
@@ -280,7 +302,8 @@ public class GroupService : IGroupService
                 c.Course.CompletionDeadlineDays, c.Course.CompletionEndDate,
                 c.Course.RequiresApproval, null,
                 c.Course.CategoryId,
-                c.Course.Category != null ? c.Course.Category.Name : null)) // Đã thêm đủ 2 trường Category
+                c.Course.Category != null ? c.Course.Category.Name : null,
+                c.Course.Level)) // Đã thêm đủ các trường bao gồm Level
             .ToList();
 
         return new CourseGroupDetailResponse(group.Id, group.Name, group.Description, courses, group.CreatedAt);

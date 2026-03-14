@@ -36,6 +36,7 @@ public interface IGroupService
     Task AddUserToGroupAsync(int groupId, int userId, int adminId);
     Task RemoveUserFromGroupAsync(int groupId, int userId);
     Task AssignCourseGroupToDepartmentAsync(int departmentId, int courseGroupId, int adminId);
+    Task RemoveCourseGroupFromDepartmentAsync(int departmentId, int courseGroupId);
     // Course Groups
     Task<PagedResponse<CourseGroupResponse>> GetCourseGroupsAsync(int page, int pageSize, string? search);
     Task<CourseGroupDetailResponse?> GetCourseGroupDetailAsync(int groupId);
@@ -49,10 +50,10 @@ public interface IGroupService
 public interface ICourseService
 {
     // Dùng đúng 1 hàm này để lấy danh sách (Đã xóa bỏ GetAllCoursesAsync thừa ở dưới)
-    Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null);
+    Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null, int? userId = null, int? level = null);
 
-    Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId);
-    Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId);
+    Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId);
+    Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId, int? userId = null);
     Task<CourseResponse> CreateCourseAsync(CreateCourseRequest request, int userId);
     Task<CourseResponse> UpdateCourseAsync(int courseId, UpdateCourseRequest request);
     Task DeleteCourseAsync(int courseId);

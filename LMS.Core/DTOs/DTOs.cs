@@ -44,7 +44,7 @@ public record UserGroupResponse(
     int CourseGroupCount, // Bắt buộc thêm dòng này
     DateTime CreatedAt
 ); public record UserGroupMemberResponse(int UserId, string FullName, string Email, string Role, bool IsActive, string? Avatar, DateTime AddedAt);
-public record UserGroupDetailResponse(int Id, string Name, string? Description, List<UserGroupMemberResponse> Members, DateTime CreatedAt, DateTime UpdatedAt, bool IsDeleted);
+public record UserGroupDetailResponse(int Id, string Name, string? Description, List<UserGroupMemberResponse> Members, List<int> CourseGroupIds, DateTime CreatedAt, DateTime UpdatedAt, bool IsDeleted);
 
 public record CourseGroupRequest(string Name, string? Description);
 public record CourseGroupResponse(
@@ -60,10 +60,10 @@ public record CourseGroupDetailResponse(int Id, string Name, string? Description
 // ===== Course DTOs =====
 public record CreateCourseRequest(string Title, string Description, int PassScore = 8,
     DateTime? EnrollStartDate = null, DateTime? EnrollEndDate = null, int? CategoryId = null,
-    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null);
+    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3);
 public record UpdateCourseRequest(string Title, string Description, int PassScore, bool IsPublished,
     DateTime? EnrollStartDate = null, DateTime? EnrollEndDate = null, int? CategoryId = null,
-    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null);
+    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3);
 public record CourseResponse(
     int Id,
     string Title,
@@ -84,7 +84,8 @@ public record CourseResponse(
     int? FinalQuizId,
     // --- 2 TRƯỜNG BỔ SUNG CHO DANH MỤC ---
     int? CategoryId,
-    string? CategoryName
+    string? CategoryName,
+    int Level
 );
 public record CourseDetailResponse(
     int Id,
@@ -105,7 +106,8 @@ public record CourseDetailResponse(
     int? FinalQuizId,      // Vị trí 16: int?
                            // --- THÊM VÀO CUỐI CÙNG ĐỂ TRÁNH LỖI LỆCH THỨ TỰ ---
     int? CategoryId,       // Vị trí 17
-    string? CategoryName   // Vị trí 18
+    string? CategoryName,   // Vị trí 18
+    int Level              // Vị trí 19
 );
 
 
@@ -168,7 +170,10 @@ public record EnrollmentResponse(
     double ProgressPercent,
     bool IsOverdue,
     int TotalLessons,      // <-- THÊM MỚI
-    int CompletedLessons   // <-- THÊM MỚI
+    int CompletedLessons,  // <-- THÊM MỚI
+    bool IsLocked = false,  // <-- MỚI: Trạng thái bị khoá do flow (Level 2 chưa xong Level 1)
+    int CourseLevel = 3,    // <-- MỚI: Để frontend biết cấp độ khoá học
+    int? GroupEnrollId = null // <-- MỚI: Để debug nguồn gốc ghi danh (theo phòng ban nào)
 );
 // ===== Progress DTOs =====
 public record CompleteLessonRequest(int LessonId);

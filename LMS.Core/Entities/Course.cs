@@ -32,4 +32,6 @@ public class Course : BaseEntity
 
     // 2. Thuộc tính điều hướng (Navigation Property) để nối bảng - THÊM DÒNG NÀY VÀO
     public Category? Category { get; set; }
+    
+    public int Level { get; set; } = 3; // 1: Bắt buộc, 2: Chuyên ngành, 3: Khác
 }

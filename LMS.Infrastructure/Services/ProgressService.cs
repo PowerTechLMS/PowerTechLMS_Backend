@@ -118,8 +118,27 @@ public class ProgressService : IProgressService
         if (lesson == null || lesson.IsFreePreview) return true;
         var user = await _db.Users.FindAsync(userId);
         if (user?.Role == "Admin") return true;
-        var enrollment = await _db.Enrollments.AnyAsync(e => e.UserId == userId && e.CourseId == lesson.Module.CourseId && (e.Status == "Approved" || e.Status == "Completed"));
-        if (!enrollment) return false;
+        var enrollment = await _db.Enrollments
+            .FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == lesson.Module.CourseId && (e.Status == "Approved" || e.Status == "Completed"));
+        if (enrollment == null) return false;
+
+        // [MỚI] Chặn học Level 2 nếu chưa xong Level 1 (Trừ khi Admin gán lẻ trực tiếp)
+        var course = await _db.Courses.FindAsync(lesson.Module.CourseId);
+        if (course != null && course.Level == 2 && (enrollment.AssignedById == null || enrollment.GroupEnrollId != null))
+        {
+            var level1CourseIds = await _db.Courses
+                .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (level1CourseIds.Any())
+            {
+                var completedLevel1Count = await _db.Enrollments
+                    .CountAsync(e => e.UserId == userId && level1CourseIds.Contains(e.CourseId) && e.Status == "Completed");
+
+                if (completedLevel1Count < level1CourseIds.Count) return false;
+            }
+        }
         var allLessons = await _db.Lessons.Where(l => l.Module.CourseId == lesson.Module.CourseId).OrderBy(l => l.Module.SortOrder).ThenBy(l => l.SortOrder).ToListAsync();
         var idx = allLessons.FindIndex(l => l.Id == lessonId);
         if (idx == 0) return true;

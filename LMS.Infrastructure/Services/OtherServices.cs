@@ -393,17 +393,14 @@ public class DocumentService : IDocumentService
             .Include(d => d.CurrentVersion)
             .AsQueryable();
 
-        // 1. TÌM KIẾM CƠ BẢN & THEO TAG
-        if (!string.IsNullOrWhiteSpace(search))
+      if (!string.IsNullOrWhiteSpace(search))
         {
-            // (Tính năng Full-text search PDF sẽ được bổ sung sau nếu bạn tích hợp thư viện)
-            query = query.Where(d => d.Title.Contains(search) || d.Description.Contains(search));
+            query = query.Where(d => (d.Title != null && d.Title.Contains(search)) || (d.Description != null && d.Description.Contains(search)));
         }
 
         if (!string.IsNullOrWhiteSpace(tag))
         {
-            // Lọc những tài liệu có chứa Tag này
-            query = query.Where(d => d.Tags.Contains(tag));
+            query = query.Where(d => d.Tags != null && d.Tags.Contains(tag));
         }
 
         // 2. LOGIC PHÂN QUYỀN (Nếu KHÔNG phải Admin)

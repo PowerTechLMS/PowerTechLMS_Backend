@@ -70,7 +70,7 @@ public class ProfileController : ControllerBase
     }
 
     [HttpPost("avatar")]
-    public async Task<ActionResult> UploadAvatar([FromForm] IFormFile file)
+    public async Task<ActionResult> UploadAvatar(IFormFile file)
     {
         try
         {

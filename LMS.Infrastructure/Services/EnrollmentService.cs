@@ -25,6 +25,46 @@ public class EnrollmentService : IEnrollmentService
         if (course.EnrollEndDate != null && now > course.EnrollEndDate)
             throw new InvalidOperationException($"Đã hết thời hạn đăng ký (hạn chót: {course.EnrollEndDate:dd/MM/yyyy}).");
 
+        // [MỚI] Kiểm tra điều kiện Cấp 1 (Bắt buộc) nếu đăng ký Cấp 2
+        if (course.Level == 2)
+        {
+            // 1. Phải thuộc phòng ban có gán khoá học này (Trừ khi được Admin gán lẻ - nhưng ở đây là user tự đăng ký)
+            var allowedCourseGroupIds = await _db.CourseGroupCourses
+                .Where(cgc => cgc.CourseId == courseId && !cgc.IsDeleted)
+                .Select(cgc => cgc.GroupId)
+                .ToListAsync();
+            
+            var userDepartmentIds = await _db.UserGroupMembers
+                .Where(ugm => ugm.UserId == userId && !ugm.IsDeleted)
+                .Select(ugm => ugm.GroupId)
+                .ToListAsync();
+
+            var isDepartmentMatch = await _db.DepartmentCourseGroups
+                .AnyAsync(dcg => userDepartmentIds.Contains(dcg.DepartmentId) && allowedCourseGroupIds.Contains(dcg.CourseGroupId));
+
+            if (!isDepartmentMatch)
+            {
+                throw new InvalidOperationException("Khoá học chuyên ngành này không thuộc phòng ban của bạn.");
+            }
+
+            // 2. Phải hoàn thành Level 1
+            var level1CourseIds = await _db.Courses
+                .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (level1CourseIds.Any())
+            {
+                var completedLevel1Count = await _db.Enrollments
+                    .CountAsync(e => e.UserId == userId && level1CourseIds.Contains(e.CourseId) && e.Status == "Completed");
+
+                if (completedLevel1Count < level1CourseIds.Count)
+                {
+                    throw new InvalidOperationException("Bạn cần hoàn thành TOÀN BỘ các khóa học Bắt buộc (Cấp 1) trước khi đăng ký khóa học này.");
+                }
+            }
+        }
+
         var enrollment = new Enrollment
         {
             UserId = userId,
@@ -67,15 +107,98 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<List<EnrollmentResponse>> GetUserEnrollmentsAsync(int userId)
     {
+        // 1. Get all basic enrollments
         var enrollments = await _db.Enrollments
             .Include(e => e.User).Include(e => e.Course)
             .Where(e => e.UserId == userId && (e.Status == "Approved" || e.Status == "Pending" || e.Status == "Completed"))
             .OrderByDescending(e => e.EnrolledAt)
             .ToListAsync();
 
+        // [AUTO-ENROLL LEVEL 1]: Đảm bảo tất cả user luôn được gán khoá Cấp 1 (Người mới)
+        var level1CourseIds = await _db.Courses
+            .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (level1CourseIds.Any())
+        {
+            var myLevel1EnrollmentCourseIds = enrollments
+                .Where(e => e.Course.Level == 1)
+                .Select(e => e.CourseId)
+                .ToList();
+
+            var missingLevel1Ids = level1CourseIds.Except(myLevel1EnrollmentCourseIds).ToList();
+
+            if (missingLevel1Ids.Any())
+            {
+                foreach (var courseId in missingLevel1Ids)
+                {
+                    var newEnroll = new Enrollment
+                    {
+                        UserId = userId,
+                        CourseId = courseId,
+                        Status = "Approved",
+                        IsMandatory = true,
+                        EnrolledAt = DateTime.UtcNow,
+                        ApprovedAt = DateTime.UtcNow
+                    };
+                    _db.Enrollments.Add(newEnroll);
+                    
+                    // Thêm vào list local để render luôn không cần fetch lại
+                    await _db.Entry(newEnroll).Reference(x => x.Course).LoadAsync();
+                    enrollments.Add(newEnroll);
+                }
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        // 2. Fetch user's current department memberships
+        var myDepartmentIds = await _db.UserGroupMembers
+            .Where(m => m.UserId == userId)
+            .Select(m => m.GroupId)
+            .ToListAsync();
+
+        // 3. Fetch all current CourseId assignments for these departments
+        var activeCourseIdsForMyDepartments = await _db.DepartmentCourseGroups
+            .Where(dcg => myDepartmentIds.Contains(dcg.DepartmentId))
+            .Join(_db.CourseGroupCourses.Where(cgc => !cgc.IsDeleted), 
+                  dcg => dcg.CourseGroupId, 
+                  cgc => cgc.GroupId, 
+                  (dcg, cgc) => cgc.CourseId)
+            .Distinct()
+            .ToListAsync();
+
+        // 4. Calculate Level 1 Completion Status
+        bool isLevel1Completed = true;
+        if (level1CourseIds.Any())
+        {
+            var completedCount = await _db.Enrollments
+                .CountAsync(enroll => enroll.UserId == userId && level1CourseIds.Contains(enroll.CourseId) && enroll.Status == "Completed");
+            isLevel1Completed = completedCount >= level1CourseIds.Count;
+        }
+
         var result = new List<EnrollmentResponse>();
         foreach (var e in enrollments)
+        {
+            // [MỚI]: Ẩn hoàn toàn khoá Cấp 2 nếu chưa xong Cấp 1
+            if (e.Course.Level == 2 && !isLevel1Completed)
+            {
+                continue;
+            }
+
+            // [SYNC LOGIC]: If this was an auto-enrollment via a group/department
+            if (e.GroupEnrollId.HasValue)
+            {
+                // Kiểm tra xem User còn ở trong phòng ban đó không VÀ Khoá học đó còn thuộc phòng ban đó không
+                if (!myDepartmentIds.Contains(e.GroupEnrollId.Value) || !activeCourseIdsForMyDepartments.Contains(e.CourseId))
+                {
+                    // Skip if the association is no longer valid
+                    continue;
+                }
+            }
+
             result.Add(await MapEnrollmentAsync(e));
+        }
         return result;
     }
 
@@ -119,11 +242,31 @@ public class EnrollmentService : IEnrollmentService
         var progress = totalLessons > 0 ? (double)completedLessons / totalLessons * 100 : 0;
         var isOverdue = e.Deadline.HasValue && e.Deadline.Value < DateTime.UtcNow && progress < 100;
 
-        // Truyền thêm TotalLessons và CompletedLessons vào
+        // [MỚI] Tính toán trạng thái Khoá (Locked)
+        bool isLocked = false;
+        if (e.Course.Level == 2 && (e.AssignedById == null || e.GroupEnrollId != null))
+        {
+            var level1CourseIds = await _db.Courses
+                .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (level1CourseIds.Any())
+            {
+                var completedLevel1Count = await _db.Enrollments
+                    .CountAsync(enroll => enroll.UserId == e.UserId && level1CourseIds.Contains(enroll.CourseId) && enroll.Status == "Completed");
+                
+                if (completedLevel1Count < level1CourseIds.Count)
+                {
+                    isLocked = true;
+                }
+            }
+        }
+
         return new EnrollmentResponse(
             e.Id, e.UserId, e.User.FullName, e.User.Avatar, e.CourseId, e.Course.Title,
             e.Status, e.Deadline, e.IsMandatory, e.EnrolledAt, Math.Round(progress, 1), isOverdue,
-            totalLessons, completedLessons);
+            totalLessons, completedLessons, isLocked, e.Course.Level, e.GroupEnrollId);
     }
 
     // ĐÂY LÀ HÀM ĐÃ ĐƯỢC TỐI ƯU HÓA (CHỐNG LỖI 500)

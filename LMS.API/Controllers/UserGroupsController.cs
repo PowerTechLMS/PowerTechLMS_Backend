@@ -85,4 +85,18 @@ public class UserGroupsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    [HttpDelete("{id}/course-groups/{courseGroupId}")]
+    public async Task<ActionResult> RemoveCourseGroup(int id, int courseGroupId)
+    {
+        try
+        {
+            await _groupService.RemoveCourseGroupFromDepartmentAsync(id, courseGroupId);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }
