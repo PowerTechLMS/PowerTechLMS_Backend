@@ -25,7 +25,7 @@ Mở một terminal mới, thiết lập đường dẫn và chạy Backend:
 export PATH="$HOME/.dotnet:$PATH"
 
 # Chạy dự án
-dotnet watch --project "LMS.API\LMS.API.csproj" --launch-profile "http"
+dotnet run --project "LMS.API\LMS.API.csproj" --launch-profile "http"
 ```
 
 _Backend sẽ chạy tại: http://localhost:5100_
@@ -56,3 +56,5 @@ Tạo file appsettings.Development.json (nếu cần):
 ```
 Copy-Item appsettings.Template.Development.json appsettings.Development.json
 ```
+
+Sau đó thì điền thông tin vào trong file appsettings.json và appsettings.Development.json để chạy dự án

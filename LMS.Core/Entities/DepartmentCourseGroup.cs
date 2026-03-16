@@ -11,8 +11,8 @@ public class DepartmentCourseGroup
     public int? AssignedById { get; set; }
 
     [ForeignKey("DepartmentId")]
-    public UserGroup Department { get; set; }
+    public UserGroup Department { get; set; } = null!;
 
     [ForeignKey("CourseGroupId")]
-    public CourseGroup CourseGroup { get; set; }
+    public CourseGroup CourseGroup { get; set; } = null!;
 }

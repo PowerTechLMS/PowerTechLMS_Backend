@@ -21,4 +21,8 @@
     <ProjectReference Include="..\LMS.Infrastructure\LMS.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Watch Remove="wwwroot\uploads\**" />
+  </ItemGroup>
+
 </Project>

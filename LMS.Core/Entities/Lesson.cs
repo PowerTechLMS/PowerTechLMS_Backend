@@ -17,13 +17,14 @@ public class Lesson : BaseEntity
     public string? VideoProvider { get; set; }  // YouTube | S3 | Azure | Vimeo
     public string? VideoThumbnailUrl { get; set; }
     public int VideoDurationSeconds { get; set; } = 0;
+    public string VideoStatus { get; set; } = "Ready"; // Processing | Ready | Failed
     public int SortOrder { get; set; }
     public bool IsFreePreview { get; set; } = false;
 
     public int? QuizId { get; set; }
 
     [ForeignKey("QuizId")] // <--- THÊM DÒNG NÀY ĐỂ FIX LỖI QuizId1
-    public virtual Quiz Quiz { get; set; }
+    public virtual Quiz Quiz { get; set; } = null!;
 
     public Module Module { get; set; } = null!;
     public ICollection<LessonAttachment> Attachments { get; set; } = new List<LessonAttachment>();

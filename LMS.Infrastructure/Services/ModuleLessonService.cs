@@ -33,8 +33,9 @@ public class ModuleService : IModuleService
 
         return new ModuleResponse(module.Id, module.Title, module.SortOrder,
             module.Lessons.Select(l => new LessonResponse(l.Id, l.Title, l.Type, l.Content, l.VideoStorageUrl ?? l.VideoUrl,
-                l.VideoDurationSeconds, l.SortOrder, l.IsFreePreview,
-                l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList()
+                l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
+                l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
+                l.QuizId
             )).ToList());
     }
 
@@ -103,12 +104,13 @@ public class LessonService : ILessonService
             Content = request.Content,
             VideoUrl = request.VideoUrl,
             SortOrder = request.SortOrder,
-            IsFreePreview = request.IsFreePreview
+            IsFreePreview = request.IsFreePreview,
+            VideoStatus = request.VideoStatus
         };
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
         return new LessonResponse(lesson.Id, lesson.Title, lesson.Type, lesson.Content, lesson.VideoStorageUrl ?? lesson.VideoUrl,
-            lesson.VideoDurationSeconds, lesson.SortOrder, lesson.IsFreePreview, new List<AttachmentResponse>());
+            lesson.VideoDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview, new List<AttachmentResponse>(), lesson.QuizId);
     }
 
     public async Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request)
@@ -155,11 +157,13 @@ public class LessonService : ILessonService
         lesson.SortOrder = request.SortOrder;
         lesson.IsFreePreview = request.IsFreePreview;
         lesson.VideoDurationSeconds = request.VideoDurationSeconds;
+        lesson.VideoStatus = request.VideoStatus;
         await _db.SaveChangesAsync();
 
         return new LessonResponse(lesson.Id, lesson.Title, lesson.Type, lesson.Content, lesson.VideoStorageUrl ?? lesson.VideoUrl,
-            lesson.VideoDurationSeconds, lesson.SortOrder, lesson.IsFreePreview,
-            lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList());
+            lesson.VideoDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview,
+            lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
+            lesson.QuizId);
     }
 
     public async Task DeleteLessonAsync(int lessonId)
@@ -228,6 +232,19 @@ public class LessonService : ILessonService
 
         await _db.SaveChangesAsync();
         return lesson.VideoStorageUrl;
+    }
+
+    public async Task UpdateVideoMetadataAsync(int lessonId, string storageKey, string storageUrl)
+    {
+        var lesson = await _db.Lessons.FindAsync(lessonId)
+            ?? throw new KeyNotFoundException("Không tìm thấy bài học.");
+
+        lesson.VideoProvider = "Local";
+        lesson.VideoStorageKey = storageKey;
+        lesson.VideoStorageUrl = storageUrl;
+        lesson.VideoUrl = null;
+
+        await _db.SaveChangesAsync();
     }
 
     public async Task DeleteAttachmentAsync(int attachmentId)

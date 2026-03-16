@@ -142,11 +142,11 @@ public record UpdateModuleRequest(string Title, int SortOrder);
 public record ModuleResponse(int Id, string Title, int SortOrder, List<LessonResponse> Lessons);
 
 // ===== Lesson DTOs =====
-public record CreateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview);
-public record UpdateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, int VideoDurationSeconds);
+public record CreateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, string VideoStatus = "Ready");
+public record UpdateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, int VideoDurationSeconds, string VideoStatus = "Ready");
 public record LessonResponse(
     int Id, string Title, string Type, string? Content, string? VideoUrl,
-    int VideoDurationSeconds, int SortOrder, bool IsFreePreview,
+    int VideoDurationSeconds, string VideoStatus, int SortOrder, bool IsFreePreview,
     List<AttachmentResponse> Attachments,
     int? QuizId = null // BẮT BUỘC THÊM DÒNG NÀY
 );

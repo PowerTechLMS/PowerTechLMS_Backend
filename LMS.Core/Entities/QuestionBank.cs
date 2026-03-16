@@ -15,6 +15,6 @@ public class QuestionBank : BaseEntity
     public decimal Points { get; set; } = 1.0m; // Trọng số câu hỏi
 
     [ForeignKey("QuizId")]
-    public Quiz Quiz { get; set; }
+    public Quiz Quiz { get; set; } = null!;
     public ICollection<QuizAnswer> Answers { get; set; } = new List<QuizAnswer>();
 }

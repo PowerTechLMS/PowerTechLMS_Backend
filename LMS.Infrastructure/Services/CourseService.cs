@@ -188,7 +188,7 @@ public class CourseService : ICourseService
                     l.Id, l.Title, l.Type, 
                     (isEnrolled || isAdmin || l.IsFreePreview) ? l.Content : null, // Ẩn content nếu chưa ghi danh
                     (isEnrolled || isAdmin || l.IsFreePreview) ? (l.VideoStorageUrl ?? l.VideoUrl) : null, // Ẩn video nếu chưa ghi danh
-                    l.VideoDurationSeconds, l.SortOrder, l.IsFreePreview,
+                    l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
                     (isEnrolled || isAdmin) ? l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList() : new List<AttachmentResponse>(),
                     l.QuizId
                 )).ToList()
@@ -259,7 +259,7 @@ public class CourseService : ICourseService
                     l.Id, l.Title, l.Type,
                     l.IsFreePreview ? l.Content : null,
                     l.IsFreePreview ? (l.VideoStorageUrl ?? l.VideoUrl) : null,
-                    l.VideoDurationSeconds, l.SortOrder, l.IsFreePreview,
+                    l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
                     new List<AttachmentResponse>(),
                     l.QuizId
                 )).ToList()

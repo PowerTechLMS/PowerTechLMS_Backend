@@ -79,6 +79,7 @@ public interface ILessonService
     Task UpdateSortOrderAsync(List<SortOrderItem> items);
     Task<AttachmentResponse> UploadAttachmentAsync(int lessonId, Stream fileStream, string fileName, long fileSize);
     Task<string> UploadVideoAsync(int lessonId, Stream fileStream, string fileName);
+    Task UpdateVideoMetadataAsync(int lessonId, string storageKey, string storageUrl);
     Task<(Stream stream, string fileName, string contentType)> GetAttachmentFileAsync(int attachmentId);
     Task DeleteAttachmentAsync(int attachmentId);
 

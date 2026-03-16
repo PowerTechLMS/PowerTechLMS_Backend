@@ -2,6 +2,7 @@ using System.Text;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Data;
 using LMS.Infrastructure.Services;
+using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -12,15 +13,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Use port 5100 to avoid macOS AirPlay conflict on port 5000
 builder.WebHost.UseUrls("http://localhost:5100");
 
-// Increase upload limits to 100MB
+// Increase upload limits to 2GB
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.MaxRequestBodySize = 104857600; // 100MB
+    options.Limits.MaxRequestBodySize = 2147483648; // 2GB
 });
 
 builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104857600; // 100MB
+    options.MultipartBodyLengthLimit = 2147483648; // 2GB
+    options.ValueLengthLimit = int.MaxValue;
+    options.MemoryBufferThreshold = int.MaxValue;
 });
 
 // Database
@@ -93,8 +96,14 @@ builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
-builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IRbacService, RbacService>();
+
+// Video Processing Services
+builder.Services.AddSingleton<IFFmpegDownloader, FFmpegDownloader>();
+builder.Services.AddSingleton<IVideoProcessingQueue, VideoProcessingQueue>();
+builder.Services.AddHostedService<VideoProcessingWorker>();
+builder.Services.AddSignalR();
 
 // Email Services
 builder.Services.AddSingleton<IMailQueue, MailQueue>();
@@ -155,16 +164,25 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowFrontend");
 
 // Setup uploads directory in wwwroot
-var uploadsPath = Path.Combine(builder.Environment.WebRootPath, "uploads");
+var wwwroot = builder.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+if (!Directory.Exists(wwwroot)) Directory.CreateDirectory(wwwroot);
+var uploadsPath = Path.Combine(wwwroot, "uploads");
 if (!Directory.Exists(uploadsPath)) Directory.CreateDirectory(uploadsPath);
 
-app.UseStaticFiles(); // Phục vụ toàn bộ wwwroot bao gồm cả wwwroot/uploads
+var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+provider.Mappings[".m3u8"] = "application/x-mpegURL";
+provider.Mappings[".ts"] = "video/MP2T";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider
+});
 
 app.UseAuthentication();
-app.UseStaticFiles();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<VideoHub>("/hubs/video");
 
 // Auto-migrate database (simple version for dev)
 try
