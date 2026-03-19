@@ -58,3 +58,14 @@ Copy-Item appsettings.Template.Development.json appsettings.Development.json
 ```
 
 Sau đó thì điền thông tin vào trong file appsettings.json và appsettings.Development.json để chạy dự án
+
+## 6. Cấu hình gửi Mail (Gmail)
+
+Trong file `appsettings.Development.json` hoặc `appsettings.json`, tìm đến phần `EmailSettings` và điền thông tin:
+
+- **SmtpHost**: Mặc định là `smtp.gmail.com`.
+- **SmtpPort**: Mặc định là `587`.
+- **SmtpUser**: Địa chỉ Gmail của bạn (VD: `example@gmail.com`).
+- **SmtpPass**: Mật khẩu ứng dụng (App Password).
+  - _Lưu ý_: Không dùng mật khẩu đăng nhập Gmail thông thường. Bạn cần bật Xác minh 2 lớp và tạo [Mật khẩu ứng dụng](https://myaccount.google.com/apppasswords).
+- **FromEmail**: Địa chỉ email hiển thị khi gửi (thường trùng với `SmtpUser`).
