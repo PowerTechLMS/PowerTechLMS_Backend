@@ -1,4 +1,4 @@
-using LMS.Core.DTOs;
+﻿using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +14,18 @@ public class QuizzesController : ControllerBase
     private readonly IQuizService _quizService;
     public QuizzesController(IQuizService quizService) => _quizService = quizService;
 
-    private int UserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub")
+                     ?? User.FindFirst("id")
+                     ?? User.FindFirst("UserId");
+            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            return int.Parse(claim.Value);
+        }
+    }
 
     [HttpGet("{id}")]
     [AllowAnonymous]

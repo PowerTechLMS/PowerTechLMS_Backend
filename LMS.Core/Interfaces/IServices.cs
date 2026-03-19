@@ -39,49 +39,50 @@ public interface IGroupService
     Task RemoveCourseGroupFromDepartmentAsync(int departmentId, int courseGroupId);
     // Course Groups
     Task<PagedResponse<CourseGroupResponse>> GetCourseGroupsAsync(int page, int pageSize, string? search);
-    Task<CourseGroupDetailResponse?> GetCourseGroupDetailAsync(int groupId);
+    Task<CourseGroupDetailResponse?> GetCourseGroupDetailAsync(int groupId, int? userId = null);
     Task<CourseGroupResponse> CreateCourseGroupAsync(CourseGroupRequest request, int adminId);
     Task<CourseGroupResponse> UpdateCourseGroupAsync(int groupId, CourseGroupRequest request);
     Task DeleteCourseGroupAsync(int groupId);
     Task AddCourseToGroupAsync(int groupId, int courseId, int? sortOrder = null);
     Task RemoveCourseFromGroupAsync(int groupId, int courseId);
+    Task<List<CourseGroupResponse>> GetMyCourseGroupsAsync(int userId);
 }
 
 public interface ICourseService
 {
-    // Dùng đúng 1 hàm này để lấy danh sách (Đã xóa bỏ GetAllCoursesAsync thừa ở dưới)
-    Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null, int? userId = null, int? level = null);
+    // Dùng đúng 1 hàm này để lấy danh sách
+    Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null, int? userId = null, int? level = null, bool isInstructorManagement = false, bool isAdmin = false);
 
     Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId);
     Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId, int? userId = null);
     Task<CourseResponse> CreateCourseAsync(CreateCourseRequest request, int userId);
-    Task<CourseResponse> UpdateCourseAsync(int courseId, UpdateCourseRequest request);
-    Task DeleteCourseAsync(int courseId);
-    Task<string> UploadCoverImageAsync(int courseId, Stream fileStream, string fileName);
+    Task<CourseResponse> UpdateCourseAsync(int courseId, UpdateCourseRequest request, int userId, bool isAdmin = false);
+    Task DeleteCourseAsync(int courseId, int userId, bool isAdmin = false);
+    Task<string> UploadCoverImageAsync(int courseId, Stream fileStream, string fileName, int userId, bool isAdmin = false);
     Task<CertificateTemplateDto?> GetCourseCertificateTemplateAsync(int courseId);
-    Task<CertificateTemplateDto> SaveCourseCertificateTemplateAsync(int courseId, CertificateTemplateDto request);
+    Task<CertificateTemplateDto> SaveCourseCertificateTemplateAsync(int courseId, CertificateTemplateDto request, int userId, bool isAdmin = false);
 }
 
 public interface IModuleService
 {
-    Task<ModuleResponse> CreateModuleAsync(int courseId, CreateModuleRequest request);
-    Task<ModuleResponse> UpdateModuleAsync(int moduleId, UpdateModuleRequest request);
-    Task DeleteModuleAsync(int moduleId);
-    Task UpdateSortOrderAsync(List<SortOrderItem> items);
+    Task<ModuleResponse> CreateModuleAsync(int courseId, CreateModuleRequest request, int userId, bool isAdmin = false);
+    Task<ModuleResponse> UpdateModuleAsync(int courseId, int moduleId, UpdateModuleRequest request, int userId, bool isAdmin = false);
+    Task DeleteModuleAsync(int courseId, int moduleId, int userId, bool isAdmin = false);
+    Task UpdateSortOrderAsync(int courseId, List<SortOrderItem> items, int userId, bool isAdmin = false);
 }
 
 public interface ILessonService
 {
-    Task<LessonResponse> CreateLessonAsync(int moduleId, CreateLessonRequest request);
+    Task<LessonResponse> CreateLessonAsync(int moduleId, CreateLessonRequest request, int userId, bool isAdmin = false);
     Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request); 
-    Task<LessonResponse> UpdateLessonAsync(int lessonId, UpdateLessonRequest request);
-    Task DeleteLessonAsync(int lessonId);
-    Task UpdateSortOrderAsync(List<SortOrderItem> items);
-    Task<AttachmentResponse> UploadAttachmentAsync(int lessonId, Stream fileStream, string fileName, long fileSize);
+    Task<LessonResponse> UpdateLessonAsync(int moduleId, int lessonId, UpdateLessonRequest request, int userId, bool isAdmin = false);
+    Task DeleteLessonAsync(int moduleId, int lessonId, int userId, bool isAdmin = false);
+    Task UpdateSortOrderAsync(int moduleId, List<SortOrderItem> items, int userId, bool isAdmin = false);
+    Task<string> UploadAttachmentAsync(int moduleId, int lessonId, Stream fileStream, string fileName, int userId, bool isAdmin = false);
     Task<string> UploadVideoAsync(int lessonId, Stream fileStream, string fileName);
     Task UpdateVideoMetadataAsync(int lessonId, string storageKey, string storageUrl);
     Task<(Stream stream, string fileName, string contentType)> GetAttachmentFileAsync(int attachmentId);
-    Task DeleteAttachmentAsync(int attachmentId);
+    Task DeleteAttachmentAsync(int moduleId, int attachmentId, int userId, bool isAdmin = false);
 
 }
 
@@ -92,13 +93,13 @@ public interface IEnrollmentService
     Task<EnrollmentResponse> ApproveEnrollmentAsync(int enrollmentId, bool approved);
     Task<List<EnrollmentResponse>> GetUserEnrollmentsAsync(int userId);
     Task<List<EnrollmentResponse>> GetCourseEnrollmentsAsync(int courseId);
-    Task<List<EnrollmentResponse>> GetPendingEnrollmentsAsync();
-    Task<object> GetAllEnrollmentsAsync(int page, int pageSize);
+    Task<List<EnrollmentResponse>> GetPendingEnrollmentsAsync(int userId, bool isAdmin = false);
+    Task<object> GetAllEnrollmentsAsync(int page, int pageSize, int userId, bool isAdmin = false);
 }
 
 public interface IProgressService
 {
-    Task<ProgressResponse> CompleteLessonAsync(int userId, int lessonId);
+    Task<ProgressResponse> CompleteLessonAsync(int userId, int lessonId, bool isQuizPassed = false);
     Task<ProgressResponse> UpdateVideoPositionAsync(int userId, int lessonId, int positionSeconds, int watchedPercent);
     Task<CourseProgressResponse> GetCourseProgressAsync(int userId, int courseId);
     Task<List<CourseProgressResponse>> GetUserProgressAsync(int userId);
@@ -122,8 +123,8 @@ public interface ICertificateService
 {
     Task<CertificateResponse?> IssueCertificateAsync(int userId, int courseId);
     Task<List<CertificateResponse>> GetUserCertificatesAsync(int userId);
-    Task<CertificateResponse?> VerifyCertificateAsync(string code);
-    Task<PagedResponse<AdminCertificateResponse>> GetCertificatesAsync(int page, int pageSize, string? search);
+    Task<CertificateResponse?> VerifyCertificateAsync(string code, System.Security.Claims.ClaimsPrincipal user);
+    Task<PagedResponse<AdminCertificateResponse>> GetCertificatesAsync(int page, int pageSize, string? search, System.Security.Claims.ClaimsPrincipal user);
     Task RevokeCertificateAsync(int id, string reason, int adminId);
 }
 
@@ -154,16 +155,15 @@ public interface ILeaderboardService
 
 public interface IDocumentService
 {
-    // THÊM int? userId = null VÀO CUỐI DÒNG NÀY
-    Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(int page, int pageSize, string? search, string? tag, bool isAdmin = false, int? userId = null);
+    Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(int page, int pageSize, string? search, string? tag, bool isAdmin = false, int? userId = null, bool isInstructorManagement = false);
 
     Task<DocumentResponse> CreateDocumentAsync(CreateDocumentRequest request, int userId, Stream fileStream, string fileName, long fileSize);
-    Task<DocumentResponse> UpdateDocumentAsync(int documentId, UpdateDocumentRequest request);
-    Task<DocumentResponse> AddVersionAsync(int documentId, int userId, Stream fileStream, string fileName, long fileSize, string? changeNote);
+    Task<DocumentResponse> UpdateDocumentAsync(int documentId, UpdateDocumentRequest request, int userId, bool isAdmin = false);
+    Task<DocumentResponse> AddVersionAsync(int documentId, int userId, Stream fileStream, string fileName, long fileSize, string? changeNote, bool isAdmin = false);
     Task<List<DocumentVersionResponse>> GetVersionsAsync(int documentId);
     Task<(Stream stream, string fileName, string contentType)> GetFileAsync(int documentId);
     Task<(Stream stream, string fileName, string contentType)> GetVersionFileAsync(int versionId);
-    Task DeleteDocumentAsync(int documentId);
+    Task DeleteDocumentAsync(int documentId, int userId, bool isAdmin = false);
     Task<DocumentConfigResponse?> GetDocumentConfigAsync(int documentId);
     Task<List<DocumentPermissionResponse>> GetDocumentPermissionsAsync(int documentId);
     Task UpdateDocumentPermissionsAsync(int documentId, UpdatePermissionRequest request);
@@ -171,11 +171,9 @@ public interface IDocumentService
 }
 public interface IReportService
 {
-    Task<List<TrainingReportResponse>> GetTrainingReportAsync(int? courseId);
-    // Đổi InactiveUserReport thành InactiveUserResponse
-    Task<List<InactiveUserResponse>> GetInactiveUsersAsync(int days = 30);
-    Task<List<QuizAnalyticsResponse>> GetQuizAnalyticsAsync(int quizId);
-
+    Task<List<TrainingReportResponse>> GetTrainingReportAsync(int? courseId, int userId, bool isAdmin = false);
+    Task<List<InactiveUserResponse>> GetInactiveUsersAsync(int days = 30, int? userId = null, bool isAdmin = false);
+    Task<List<QuizAnalyticsResponse>> GetQuizAnalyticsAsync(int quizId, int userId, bool isAdmin = false);
 }
 
 // ===== RBAC Management =====

@@ -7,7 +7,7 @@ namespace LMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "RoleManage")]
+[Authorize]
 public class RbacController : ControllerBase
 {
     private readonly IRbacService _rbacService;
@@ -16,14 +16,17 @@ public class RbacController : ControllerBase
     // ===== Roles =====
 
     [HttpGet("roles")]
+    [Authorize(Policy = "RoleView")]
     public async Task<ActionResult> GetRoles()
         => Ok(await _rbacService.GetRolesAsync());
 
     [HttpPost("roles")]
+    [Authorize(Policy = "RoleManage")]
     public async Task<ActionResult> CreateRole([FromBody] CreateRoleRequest request)
         => Ok(await _rbacService.CreateRoleAsync(request));
 
     [HttpPut("roles/{id}/permissions")]
+    [Authorize(Policy = "RoleManage")]
     public async Task<ActionResult> UpdateRolePermissions(int id, [FromBody] AssignPermissionsRequest request)
     {
         try { return Ok(await _rbacService.UpdateRolePermissionsAsync(id, request)); }
@@ -31,6 +34,7 @@ public class RbacController : ControllerBase
     }
 
     [HttpDelete("roles/{id}")]
+    [Authorize(Policy = "RoleManage")]
     public async Task<ActionResult> DeleteRole(int id)
     {
         try { await _rbacService.DeleteRoleAsync(id); return NoContent(); }
@@ -41,12 +45,14 @@ public class RbacController : ControllerBase
     // ===== Permissions =====
 
     [HttpGet("permissions")]
+    [Authorize(Policy = "RoleView")]
     public async Task<ActionResult> GetPermissions()
         => Ok(await _rbacService.GetPermissionsAsync());
 
     // ===== User Roles =====
 
     [HttpGet("users/{id}/roles")]
+    [Authorize(Policy = "RoleView")]
     public async Task<ActionResult> GetUserRoles(int id)
     {
         try { return Ok(await _rbacService.GetUserRolesAsync(id)); }
@@ -54,6 +60,7 @@ public class RbacController : ControllerBase
     }
 
     [HttpPut("users/{id}/roles")]
+    [Authorize(Policy = "RoleManage")]
     public async Task<ActionResult> UpdateUserRoles(int id, [FromBody] AssignRolesRequest request)
     {
         try { return Ok(await _rbacService.UpdateUserRolesAsync(id, request)); }

@@ -9,26 +9,78 @@ namespace LMS.Infrastructure.Services;
 public class EnrollmentService : IEnrollmentService
 {
     private readonly AppDbContext _db;
-    public EnrollmentService(AppDbContext db) => _db = db;
+    private readonly INotificationService _notificationService;
+    public EnrollmentService(AppDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
     public async Task<EnrollmentResponse> EnrollAsync(int userId, int courseId)
     {
         var existing = await _db.Enrollments.FirstOrDefaultAsync(e => e.UserId == userId && e.CourseId == courseId);
-        if (existing != null) throw new InvalidOperationException("Bạn đã ghi danh khóa học này.");
-
-        // Validate thời hạn đăng ký
         var course = await _db.Courses.FindAsync(courseId)
             ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        var user = await _db.Users.FindAsync(userId);
+        bool isAdmin = user?.Role == "Admin";
+
+        if (existing != null)
+        {
+            if (existing.Status == "Rejected")
+            {
+                // Vẫn phải kiểm tra điều kiện nếu không phải Admin
+                if (!isAdmin) await ValidateEnrollmentInternalAsync(userId, courseId, course);
+
+                existing.Status = course.RequiresApproval ? "Pending" : "Approved";
+                existing.EnrolledAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                return await MapEnrollmentAsync(existing);
+            }
+            throw new InvalidOperationException("Bạn đã ghi danh khóa học này.");
+        }
+
+        // Validate thời hạn và điều kiện
+        if (!isAdmin) await ValidateEnrollmentInternalAsync(userId, courseId, course);
+
+        var enrollment = new Enrollment
+        {
+            UserId = userId,
+            CourseId = courseId,
+            Status = course.RequiresApproval ? "Pending" : "Approved"
+        };
+        _db.Enrollments.Add(enrollment);
+        await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify Admin if pending
+        if (enrollment.Status == "Pending")
+        {
+            var admins = await _db.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    admin.Id,
+                    "Yêu cầu phê duyệt ghi danh",
+                    $"Người dùng {user?.FullName} yêu cầu tham gia khóa học: {course.Title}",
+                    "/admin/enrollments",
+                    "EnrollmentRequest"
+                );
+            }
+        }
+
+        return await MapEnrollmentAsync(enrollment);
+    }
+
+    private async Task ValidateEnrollmentInternalAsync(int userId, int courseId, Course course)
+    {
         var now = DateTime.UtcNow;
         if (course.EnrollStartDate != null && now < course.EnrollStartDate)
             throw new InvalidOperationException($"Khóa học chưa mở đăng ký. Bắt đầu từ {course.EnrollStartDate:dd/MM/yyyy}.");
         if (course.EnrollEndDate != null && now > course.EnrollEndDate)
             throw new InvalidOperationException($"Đã hết thời hạn đăng ký (hạn chót: {course.EnrollEndDate:dd/MM/yyyy}).");
 
-        // [MỚI] Kiểm tra điều kiện Cấp 1 (Bắt buộc) nếu đăng ký Cấp 2
         if (course.Level == 2)
         {
-            // 1. Phải thuộc phòng ban có gán khoá học này (Trừ khi được Admin gán lẻ - nhưng ở đây là user tự đăng ký)
+            // 1. Phải thuộc phòng ban có gán khoá học này
             var allowedCourseGroupIds = await _db.CourseGroupCourses
                 .Where(cgc => cgc.CourseId == courseId && !cgc.IsDeleted)
                 .Select(cgc => cgc.GroupId)
@@ -43,9 +95,7 @@ public class EnrollmentService : IEnrollmentService
                 .AnyAsync(dcg => userDepartmentIds.Contains(dcg.DepartmentId) && allowedCourseGroupIds.Contains(dcg.CourseGroupId));
 
             if (!isDepartmentMatch)
-            {
                 throw new InvalidOperationException("Khoá học chuyên ngành này không thuộc phòng ban của bạn.");
-            }
 
             // 2. Phải hoàn thành Level 1
             var level1CourseIds = await _db.Courses
@@ -59,21 +109,9 @@ public class EnrollmentService : IEnrollmentService
                     .CountAsync(e => e.UserId == userId && level1CourseIds.Contains(e.CourseId) && e.Status == "Completed");
 
                 if (completedLevel1Count < level1CourseIds.Count)
-                {
                     throw new InvalidOperationException("Bạn cần hoàn thành TOÀN BỘ các khóa học Bắt buộc (Cấp 1) trước khi đăng ký khóa học này.");
-                }
             }
         }
-
-        var enrollment = new Enrollment
-        {
-            UserId = userId,
-            CourseId = courseId,
-            Status = course.RequiresApproval ? "Pending" : "Approved"
-        };
-        _db.Enrollments.Add(enrollment);
-        await _db.SaveChangesAsync();
-        return await MapEnrollmentAsync(enrollment);
     }
 
     public async Task<EnrollmentResponse> AdminEnrollAsync(AdminEnrollRequest request, int assignedById)
@@ -92,6 +130,16 @@ public class EnrollmentService : IEnrollmentService
         };
         _db.Enrollments.Add(enrollment);
         await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify User they were enrolled
+        await _notificationService.CreateNotificationAsync(
+            request.UserId,
+            "Bạn đã được ghi danh vào khóa học mới",
+            $"Quản trị viên đã ghi danh bạn vào khóa học: {enrollment.Course?.Title ?? "Khóa học mới"}",
+            $"/courses/{request.CourseId}",
+            "EnrollmentStatus"
+        );
+
         return await MapEnrollmentAsync(enrollment);
     }
 
@@ -102,6 +150,18 @@ public class EnrollmentService : IEnrollmentService
 
         enrollment.Status = approved ? "Approved" : "Rejected";
         await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify User
+        await _notificationService.CreateNotificationAsync(
+            enrollment.UserId,
+            approved ? "Yêu cầu ghi danh được chấp nhận" : "Yêu cầu ghi danh bị từ chối",
+            approved 
+                ? $"Yêu cầu tham gia khóa học {enrollment.Course?.Title} của bạn đã được phê duyệt."
+                : $"Yêu cầu tham gia khóa học {enrollment.Course?.Title} của bạn không được chấp nhận.",
+            approved ? $"/courses/{enrollment.CourseId}" : null,
+            "EnrollmentStatus"
+        );
+
         return await MapEnrollmentAsync(enrollment);
     }
 
@@ -216,13 +276,17 @@ public class EnrollmentService : IEnrollmentService
         return result;
     }
 
-    public async Task<List<EnrollmentResponse>> GetPendingEnrollmentsAsync()
+    public async Task<List<EnrollmentResponse>> GetPendingEnrollmentsAsync(int userId, bool isAdmin = false)
     {
-        var enrollments = await _db.Enrollments
+        var query = _db.Enrollments
             .Include(e => e.User).Include(e => e.Course)
             .Where(e => e.Status == "Pending")
-            .OrderByDescending(e => e.EnrolledAt)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (!isAdmin)
+            query = query.Where(e => e.Course.CreatedById == userId);
+
+        var enrollments = await query.OrderByDescending(e => e.EnrolledAt).ToListAsync();
 
         var result = new List<EnrollmentResponse>();
         foreach (var e in enrollments)
@@ -235,9 +299,14 @@ public class EnrollmentService : IEnrollmentService
         await _db.Entry(e).Reference(x => x.User).LoadAsync();
         await _db.Entry(e).Reference(x => x.Course).LoadAsync();
 
-        var totalLessons = await _db.Lessons.CountAsync(l => l.Module.CourseId == e.CourseId);
-        var completedLessons = await _db.LessonProgresses
-            .CountAsync(lp => lp.UserId == e.UserId && lp.IsCompleted && lp.Lesson.Module.CourseId == e.CourseId);
+        var lessonIds = await _db.Lessons
+            .Where(l => l.Module.CourseId == e.CourseId && !l.IsDeleted)
+            .Select(l => l.Id)
+            .ToListAsync();
+
+        int totalLessons = lessonIds.Count;
+        int completedLessons = await _db.LessonProgresses
+            .CountAsync(lp => lp.UserId == e.UserId && lp.IsCompleted && lessonIds.Contains(lp.LessonId));
 
         var progress = totalLessons > 0 ? (double)completedLessons / totalLessons * 100 : 0;
         var isOverdue = e.Deadline.HasValue && e.Deadline.Value < DateTime.UtcNow && progress < 100;
@@ -263,20 +332,30 @@ public class EnrollmentService : IEnrollmentService
             }
         }
 
+        // [MỚI] Lấy tên phòng ban
+        var deptName = await _db.UserGroupMembers
+            .Where(m => m.UserId == e.UserId)
+            .Select(m => m.Group.Name)
+            .FirstOrDefaultAsync();
+
         return new EnrollmentResponse(
             e.Id, e.UserId, e.User.FullName, e.User.Avatar, e.CourseId, e.Course.Title,
             e.Status, e.Deadline, e.IsMandatory, e.EnrolledAt, Math.Round(progress, 1), isOverdue,
-            totalLessons, completedLessons, isLocked, e.Course.Level, e.GroupEnrollId);
+            totalLessons, completedLessons, isLocked, e.Course.Level, e.GroupEnrollId, deptName);
     }
 
     // ĐÂY LÀ HÀM ĐÃ ĐƯỢC TỐI ƯU HÓA (CHỐNG LỖI 500)
-    public async Task<object> GetAllEnrollmentsAsync(int page, int pageSize)
+    public async Task<object> GetAllEnrollmentsAsync(int page, int pageSize, int userId, bool isAdmin = false)
     {
         var query = _db.Enrollments
             .Include(e => e.Course)
                 .ThenInclude(c => c.Modules)
                     .ThenInclude(m => m.Lessons)
-            .Where(e => !e.IsDeleted);
+            .Where(e => !e.IsDeleted)
+            .AsQueryable();
+
+        if (!isAdmin)
+            query = query.Where(e => e.Course.CreatedById == userId);
 
         var total = await query.CountAsync();
 

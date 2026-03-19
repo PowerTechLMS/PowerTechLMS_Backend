@@ -8,30 +8,53 @@ namespace LMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "GroupManage")]
+[Authorize]
 public class CourseGroupsController : ControllerBase
 {
     private readonly IGroupService _groupService;
     public CourseGroupsController(IGroupService groupService) => _groupService = groupService;
 
     private int AdminId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub")
+                     ?? User.FindFirst("id")
+                     ?? User.FindFirst("UserId");
+            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            return int.Parse(claim.Value);
+        }
+    }
+
+    [HttpGet("my")]
+    public async Task<ActionResult> GetMyGroups()
+        => Ok(await _groupService.GetMyCourseGroupsAsync(UserId));
 
     [HttpGet]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> GetGroups([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         => Ok(await _groupService.GetCourseGroupsAsync(page, pageSize, search));
 
     [HttpGet("{id}")]
     public async Task<ActionResult> GetGroup(int id)
     {
-        var group = await _groupService.GetCourseGroupDetailAsync(id);
+        // Thử lấy UserId từ token, nếu có -> truyền vào để tính tiến độ
+        int? userId = null;
+        try { userId = UserId; } catch { /* Ignore if guest */ }
+
+        var group = await _groupService.GetCourseGroupDetailAsync(id, userId);
         return group == null ? NotFound() : Ok(group);
     }
 
     [HttpPost]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Create([FromBody] CourseGroupRequest request)
         => Ok(await _groupService.CreateCourseGroupAsync(request, AdminId));
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Update(int id, [FromBody] CourseGroupRequest request)
     {
         try { return Ok(await _groupService.UpdateCourseGroupAsync(id, request)); }
@@ -39,6 +62,7 @@ public class CourseGroupsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Delete(int id)
     {
         try
@@ -50,6 +74,7 @@ public class CourseGroupsController : ControllerBase
     }
 
     [HttpPost("{groupId}/courses/{courseId}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> AddCourse(int groupId, int courseId, [FromQuery] int? sortOrder = null)
     {
         try
@@ -61,6 +86,7 @@ public class CourseGroupsController : ControllerBase
     }
 
     [HttpDelete("{groupId}/courses/{courseId}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> RemoveCourse(int groupId, int courseId)
     {
         try

@@ -9,7 +9,7 @@ public record MailJob(string To, string Subject, string Body, int RetryCount = 0
 public record AuthResponse(int Id, string FullName, string Email, string Role, string Token, List<string> Roles, List<string> Permissions, string? Avatar = null);
 
 // ===== User DTOs =====
-public record UserResponse(int Id, string FullName, string Email, string Role, bool IsActive, string? Phone, string? Address, string? Bio, string? Avatar, DateTime CreatedAt, string? GroupName = null);
+public record UserResponse(int Id, string FullName, string Email, string Role, bool IsActive, string? Phone, string? Address, string? Bio, string? Avatar, DateTime CreatedAt, string? GroupName = null, int? GroupId = null);
 
 public record UpdateProfileRequest(string FullName, string? Phone, string? Address, string? Bio, string? Avatar);
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
@@ -52,18 +52,23 @@ public record CourseGroupResponse(
     string Name,
     string? Description,
     int CourseCount,
-    int DepartmentCount, // <-- BẮT BUỘC THÊM DÒNG NÀY
-    DateTime CreatedAt
+    int DepartmentCount, 
+    DateTime CreatedAt,
+    double ProgressPercent = 0,
+    int PendingCertCount = 0,
+    int TotalHours = 0         // MỚI
 ); 
-public record CourseGroupDetailResponse(int Id, string Name, string? Description, List<CourseResponse> Courses, DateTime CreatedAt);
+public record CourseGroupDetailResponse(int Id, string Name, string? Description, List<CourseResponse> Courses, DateTime CreatedAt, double ProgressPercent = 0, int TotalHours = 0);
 
 // ===== Course DTOs =====
-public record CreateCourseRequest(string Title, string Description, int PassScore = 8,
+public record CreateCourseRequest(string Title, string Description, int PassScore = 8, bool IsPublished = false,
     DateTime? EnrollStartDate = null, DateTime? EnrollEndDate = null, int? CategoryId = null,
-    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3);
+    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3,
+    int QuizRetakeWaitTimeMinutes = 5, int QuizMaxRetakesPerDay = 3);
 public record UpdateCourseRequest(string Title, string Description, int PassScore, bool IsPublished,
     DateTime? EnrollStartDate = null, DateTime? EnrollEndDate = null, int? CategoryId = null,
-    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3);
+    int? CompletionDeadlineDays = null, DateTime? CompletionEndDate = null, int Level = 3,
+    int QuizRetakeWaitTimeMinutes = 5, int QuizMaxRetakesPerDay = 3);
 public record CourseResponse(
     int Id,
     string Title,
@@ -85,7 +90,9 @@ public record CourseResponse(
     // --- 2 TRƯỜNG BỔ SUNG CHO DANH MỤC ---
     int? CategoryId,
     string? CategoryName,
-    int Level
+    int Level,
+    int QuizRetakeWaitTimeMinutes,
+    int QuizMaxRetakesPerDay
 );
 public record CourseDetailResponse(
     int Id,
@@ -107,18 +114,25 @@ public record CourseDetailResponse(
                            // --- THÊM VÀO CUỐI CÙNG ĐỂ TRÁNH LỖI LỆCH THỨ TỰ ---
     int? CategoryId,       // Vị trí 17
     string? CategoryName,   // Vị trí 18
-    int Level              // Vị trí 19
+    int Level,              // Vị trí 19
+    List<QuizSummaryResponse>? ExtraQuizzes = null, // Vị trí 20
+    int QuizRetakeWaitTimeMinutes = 5,
+    int QuizMaxRetakesPerDay = 3
 );
+
+public record QuizSummaryResponse(int Id, string Title);
 
 
 
 public record QuizDetailResponse(
     int Id, string Title, int? TimeLimitMinutes, int PassScore, int QuestionCount,
-    List<QuestionBankResponse> Questions
+    List<QuestionBankResponse> Questions,
+    int? RetakeWaitTimeMinutes = null,
+    int? MaxRetakesPerDay = null
 );
 
 public record QuestionBankResponse(
-    int Id, string QuestionText, string OptionA, string OptionB, string OptionC, string OptionD, string CorrectAnswer, decimal Points
+    int Id, string QuestionText, string OptionA, string OptionB, string OptionC, string OptionD, string CorrectAnswer, decimal Points, string? Explanation = null
 );
 
 // ===== Certificate Template DTOs =====
@@ -142,13 +156,13 @@ public record UpdateModuleRequest(string Title, int SortOrder);
 public record ModuleResponse(int Id, string Title, int SortOrder, List<LessonResponse> Lessons);
 
 // ===== Lesson DTOs =====
-public record CreateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, string VideoStatus = "Ready");
-public record UpdateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, int VideoDurationSeconds, string VideoStatus = "Ready");
+public record CreateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, int VideoDurationSeconds = 0, int ReadingDurationSeconds = 0, string VideoStatus = "Ready");
+public record UpdateLessonRequest(string Title, string Type, string? Content, string? VideoUrl, int SortOrder, bool IsFreePreview, int VideoDurationSeconds, int ReadingDurationSeconds = 0, string VideoStatus = "Ready");
 public record LessonResponse(
     int Id, string Title, string Type, string? Content, string? VideoUrl,
-    int VideoDurationSeconds, string VideoStatus, int SortOrder, bool IsFreePreview,
+    int VideoDurationSeconds, int ReadingDurationSeconds, string VideoStatus, int SortOrder, bool IsFreePreview,
     List<AttachmentResponse> Attachments,
-    int? QuizId = null // BẮT BUỘC THÊM DÒNG NÀY
+    int? QuizId = null
 );
 public record AttachmentResponse(int Id, string FileName, long FileSize);
 
@@ -173,15 +187,18 @@ public record EnrollmentResponse(
     int CompletedLessons,  // <-- THÊM MỚI
     bool IsLocked = false,  // <-- MỚI: Trạng thái bị khoá do flow (Level 2 chưa xong Level 1)
     int CourseLevel = 3,    // <-- MỚI: Để frontend biết cấp độ khoá học
-    int? GroupEnrollId = null // <-- MỚI: Để debug nguồn gốc ghi danh (theo phòng ban nào)
+    int? GroupEnrollId = null, // <-- MỚI: Để debug nguồn gốc ghi danh (theo phòng ban nào)
+    string? DepartmentName = null // <-- MỚI: Để hiển thị thông tin học viên đầy đủ
 );
 // ===== Progress DTOs =====
-public record CompleteLessonRequest(int LessonId);
+public record CompleteLessonRequest(int LessonId, bool IsQuizPassed = false);
 public record UpdateVideoPositionRequest(int LessonId, int PositionSeconds, int WatchedPercent);
-public record ProgressResponse(int LessonId, bool IsCompleted, int VideoPositionSeconds, int VideoWatchedPercent);
+public record ProgressResponse(int LessonId, bool IsCompleted, int VideoPositionSeconds, int VideoWatchedPercent, bool IsQuizPassed = false, bool HasQuiz = false);
 public record CourseProgressResponse(
     int CourseId, string CourseTitle, double ProgressPercent,
-    int CompletedLessons, int TotalLessons, bool IsCompleted, bool QuizPassed);
+    int CompletedLessons, int TotalLessons, 
+    int PassedQuizzes, int TotalQuizzes,
+    bool IsCompleted, bool QuizPassed, List<int>? PassedQuizIds = null);
 
 // ===== Quiz DTOs =====
 public record CreateQuizRequest(
@@ -189,7 +206,8 @@ public record CreateQuizRequest(
     bool ShuffleQuestions, bool ShuffleAnswers,
     int? MaxAttemptsPerWindow = null, int? AttemptWindowHours = null,
     int? AvailableFromDays = null,
-    DateTime? QuizStartDate = null, DateTime? QuizEndDate = null);
+    DateTime? QuizStartDate = null, DateTime? QuizEndDate = null,
+    int? RetakeWaitTimeMinutes = null, int? MaxRetakesPerDay = null);
 public class CreateQuestionRequest
 {
     public string Content { get; set; } = string.Empty; // Khớp với Frontend gửi lên
@@ -199,6 +217,7 @@ public class CreateQuestionRequest
     public string OptionD { get; set; } = string.Empty;
     public string CorrectAnswer { get; set; } = "A";
     public decimal Points { get; set; } = 1m;
+    public string? Explanation { get; set; }
 }
 public record QuestionResponse(
     int Id,
@@ -210,16 +229,16 @@ public record QuestionResponse(
     string CorrectAnswer,
     double Points
 );
-public record StartQuizResponse(int AttemptId, int? TimeLimitMinutes, DateTime StartedAt,
-    List<QuizQuestionResponse> Questions,
-    Dictionary<int, string>? DraftAnswers = null, int? RemainingSeconds = null);
+public record StartQuizResponse(int AttemptId, int? TimeLimitMinutes, DateTime StartedAt, 
+    List<QuizQuestionResponse> Questions, 
+    Dictionary<int, string>? DraftAnswers = null, int? RemainingSeconds = null, int RemainingAttemptsToday = 0);
 public record QuizQuestionResponse(int QuestionId, string QuestionText, string OptionA, string OptionB, string OptionC, string OptionD);
 public record SubmitQuizRequest(List<QuizAnswerRequest> Answers);
 public record QuizAnswerRequest(int QuestionId, string SelectedAnswer);
 public record SaveDraftRequest(int QuestionId, string? SelectedAnswer);  // [6] Save draft
 public record UpdateTimeRequest(int RemainingSeconds);                    // [5] Update time
-public record QuizResultResponse(int AttemptId, decimal Score, int CorrectAnswers, int TotalQuestions, bool IsPassed, List<QuizAnswerDetailResponse> Details);
-public record QuizAnswerDetailResponse(int QuestionId, string QuestionText, string SelectedAnswer, string CorrectAnswer, bool IsCorrect);
+public record QuizResultResponse(int AttemptId, decimal Score, int CorrectAnswers, int TotalQuestions, bool IsPassed, List<QuizAnswerDetailResponse> Details, int RemainingAttemptsToday = 0, int WaitMinutes = 0);
+public record QuizAnswerDetailResponse(int QuestionId, string QuestionText, string SelectedAnswer, string CorrectAnswer, bool IsCorrect, string? Explanation = null);
 
 // ===== Certificate DTOs =====
 public record CertificateResponse(int Id, string UserName, string CourseTitle, string CertificateCode, string? PdfUrl, DateTime IssuedAt, string Status, DateTime? RevokedAt);
@@ -325,7 +344,7 @@ public class WeeklyMissionDto
     public string StatusType { get; set; } = "ok";
 }
 
-public record DashboardCourseDto(int Id, string Title, string Tag, string Units, string Cups, string ThumbColor, string ThumbColor2, double ProgressPercent, int CompletedLessons, int TotalLessons);
+public record DashboardCourseDto(int Id, string Title, string Tag, string Units, string Cups, string ThumbColor, string ThumbColor2, double ProgressPercent, int CompletedLessons, int TotalLessons, string? NextLessonTitle = null, string? NextLessonDuration = null);
 public record DashboardQuizDto(int Id, string Title, string Subtitle, string Status, string Badge, string Cover);
 
 public class LearningProfileDto

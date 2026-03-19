@@ -77,6 +77,39 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("UserManage", p => p.RequireClaim("permission", "user.manage"));
     options.AddPolicy("RoleManage", p => p.RequireClaim("permission", "role.manage"));
     options.AddPolicy("GroupManage", p => p.RequireClaim("permission", "group.manage"));
+
+    options.AddPolicy("GroupView", p => p.RequireAssertion(context =>
+        context.User.IsInRole("Admin") || context.User.IsInRole("Quản trị viên") ||
+        context.User.IsInRole("Instructor") || context.User.IsInRole("Giảng viên") ||
+        context.User.HasClaim("permission", "group.manage")
+    ));
+
+    options.AddPolicy("RoleView", p => p.RequireAssertion(context =>
+        context.User.IsInRole("Admin") || context.User.IsInRole("Quản trị viên") ||
+        context.User.IsInRole("Instructor") || context.User.IsInRole("Giảng viên") ||
+        context.User.HasClaim("permission", "role.manage")
+    ));
+
+    options.AddPolicy("UserList", p => p.RequireAssertion(context =>
+        context.User.IsInRole("Admin") || context.User.IsInRole("Quản trị viên") ||
+        context.User.IsInRole("Instructor") || context.User.IsInRole("Giảng viên") ||
+        context.User.HasClaim("permission", "user.manage") || 
+        context.User.HasClaim("permission", "enrollment.assign") ||
+        context.User.HasClaim("permission", "enrollment.view") ||
+        context.User.HasClaim("permission", "enrollment.approve") ||
+        context.User.HasClaim("permission", "course.view")
+    ));
+
+    // Certificate Policies
+    options.AddPolicy("CertificateView", p => p.RequireAssertion(context =>
+        context.User.IsInRole("Admin") || 
+        context.User.IsInRole("Quản trị viên") ||
+        context.User.IsInRole("Instructor") || 
+        context.User.IsInRole("Giảng viên") ||
+        context.User.HasClaim("permission", "certificate.view") || 
+        context.User.HasClaim("permission", "certificate.manage")
+    ));
+    options.AddPolicy("CertificateManage", p => p.RequireClaim("permission", "certificate.manage"));
 });
 
 
@@ -97,6 +130,7 @@ builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
 
 // Video Processing Services
@@ -183,6 +217,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<VideoHub>("/hubs/video");
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Auto-migrate database (simple version for dev)
 try
@@ -197,6 +232,41 @@ try
         IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Courses' AND COLUMN_NAME = 'RequiresApproval')
         BEGIN
             ALTER TABLE Courses ADD RequiresApproval BIT NOT NULL DEFAULT 1;
+        END
+
+        IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Lessons' AND COLUMN_NAME = 'ReadingDurationSeconds')
+        BEGIN
+            ALTER TABLE Lessons ADD ReadingDurationSeconds INT NOT NULL DEFAULT 0;
+        END
+
+        -- BÁO CÁO: TỰ ĐỘNG CHÈN QUYỀN XEM CHỨNG CHỈ NẾU CHƯA CÓ
+        IF NOT EXISTS (SELECT * FROM Permissions WHERE Code = 'certificate.view')
+        BEGIN
+            INSERT INTO Permissions (Code, Name, Category, IsDeleted) 
+            VALUES ('certificate.view', N'Xem chứng chỉ', 'Certificate', 0);
+            
+            DECLARE @permId INT = SCOPE_IDENTITY();
+            -- Gán cho Admin (Role 1)
+            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 1 AND PermissionId = @permId)
+                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted) VALUES (1, @permId, 0);
+            -- Gán cho Instructor (Role 2)
+            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 2 AND PermissionId = @permId)
+                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted) VALUES (2, @permId, 0);
+        END
+
+        -- TỰ ĐỘNG CHÈN QUYỀN QUẢN LÝ CHỨNG CHỈ (certificate.manage)
+        IF NOT EXISTS (SELECT * FROM Permissions WHERE Code = 'certificate.manage')
+        BEGIN
+            INSERT INTO Permissions (Code, Name, Category, IsDeleted, CreatedAt, UpdatedAt) 
+            VALUES ('certificate.manage', N'Quản lý chứng chỉ', 'Certificate', 0, GETUTCDATE(), GETUTCDATE());
+            
+            DECLARE @managePermId INT = (SELECT Id FROM Permissions WHERE Code = 'certificate.manage');
+            -- Gán cho Admin (Role 1)
+            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 1 AND PermissionId = @managePermId)
+                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted, GrantedAt) VALUES (1, @managePermId, 0, GETUTCDATE());
+            -- Gán cho Instructor (Role 2)
+            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 2 AND PermissionId = @managePermId)
+                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted, GrantedAt) VALUES (2, @managePermId, 0, GETUTCDATE());
         END
     ");
 }

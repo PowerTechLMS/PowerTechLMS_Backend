@@ -19,6 +19,10 @@ public class Quiz : BaseEntity
     public DateTime? QuizStartDate { get; set; }
     public DateTime? QuizEndDate { get; set; }
 
+    // [MỚI] Ràng buộc làm lại cho riêng bài thi này (Nếu NULL thì lấy theo Course)
+    public int? RetakeWaitTimeMinutes { get; set; }
+    public int? MaxRetakesPerDay { get; set; }
+
     public ICollection<QuestionBank> Questions { get; set; } = new List<QuestionBank>(); 
     public Course Course { get; set; } = null!;
     public ICollection<QuizAttempt> Attempts { get; set; } = new List<QuizAttempt>();

@@ -13,6 +13,7 @@ public class QuestionBank : BaseEntity
     public string OptionD { get; set; } = string.Empty;
     public string CorrectAnswer { get; set; } = "A";
     public decimal Points { get; set; } = 1.0m; // Trọng số câu hỏi
+    public string? Explanation { get; set; } // [MỚI] Giải thích đáp án
 
     [ForeignKey("QuizId")]
     public Quiz Quiz { get; set; } = null!;

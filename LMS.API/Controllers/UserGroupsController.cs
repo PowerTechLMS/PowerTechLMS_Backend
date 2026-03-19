@@ -8,7 +8,7 @@ namespace LMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "GroupManage")]
+[Authorize]
 public class UserGroupsController : ControllerBase
 {
     private readonly IGroupService _groupService;
@@ -17,10 +17,12 @@ public class UserGroupsController : ControllerBase
     private int AdminId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
+    [Authorize(Policy = "GroupView")]
     public async Task<ActionResult> GetGroups([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         => Ok(await _groupService.GetUserGroupsAsync(page, pageSize, search));
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "GroupView")]
     public async Task<ActionResult> GetGroup(int id)
     {
         var group = await _groupService.GetUserGroupDetailAsync(id);
@@ -28,10 +30,12 @@ public class UserGroupsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Create([FromBody] UserGroupRequest request)
         => Ok(await _groupService.CreateUserGroupAsync(request, AdminId));
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Update(int id, [FromBody] UserGroupRequest request)
     {
         try { return Ok(await _groupService.UpdateUserGroupAsync(id, request)); }
@@ -39,6 +43,7 @@ public class UserGroupsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> Delete(int id)
     {
         try
@@ -50,6 +55,7 @@ public class UserGroupsController : ControllerBase
     }
 
     [HttpPost("{groupId}/users/{userId}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> AddUser(int groupId, int userId)
     {
         try
@@ -61,6 +67,7 @@ public class UserGroupsController : ControllerBase
     }
 
     [HttpDelete("{groupId}/users/{userId}")]
+    [Authorize(Policy = "GroupManage")]
     public async Task<ActionResult> RemoveUser(int groupId, int userId)
     {
         try

@@ -15,13 +15,32 @@ public class DocumentsController : ControllerBase
 
     public DocumentsController(IDocumentService docService) => _docService = docService;
 
-    private int UserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub")
+                     ?? User.FindFirst("id")
+                     ?? User.FindFirst("UserId");
+            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            return int.Parse(claim.Value);
+        }
+    }
+
+    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+    private bool IsInstructor => User.IsInRole("Instructor") || User.IsInRole("Giảng viên");
 
     [HttpGet]
-    public async Task<ActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, [FromQuery] string? tag = null)
+    public async Task<ActionResult> GetAll(
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 20, 
+        [FromQuery] string? search = null, 
+        [FromQuery] string? tag = null,
+        [FromQuery] bool manage = false)
     {
-        var isAdmin = User.IsInRole("Admin");
-        return Ok(await _docService.GetDocumentsAsync(page, pageSize, search, tag, isAdmin, UserId));
+        bool isInstructorManagement = manage && (IsAdmin || IsInstructor);
+        return Ok(await _docService.GetDocumentsAsync(page, pageSize, search, tag, IsAdmin, UserId, isInstructorManagement));
     }
 
     [HttpPost]
@@ -36,16 +55,18 @@ public class DocumentsController : ControllerBase
     [Authorize(Policy = "DocUpload")]
     public async Task<ActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
     {
-        try { return Ok(await _docService.UpdateDocumentAsync(id, request)); }
+        try { return Ok(await _docService.UpdateDocumentAsync(id, request, UserId, IsAdmin)); }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "DocDelete")]
     public async Task<ActionResult> Delete(int id)
     {
-        try { await _docService.DeleteDocumentAsync(id); return NoContent(); }
+        try { await _docService.DeleteDocumentAsync(id, UserId, IsAdmin); return NoContent(); }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{id}/versions")]
@@ -55,9 +76,10 @@ public class DocumentsController : ControllerBase
         try
         {
             using var stream = file.OpenReadStream();
-            return Ok(await _docService.AddVersionAsync(id, UserId, stream, file.FileName, file.Length, request.ChangeNote));
+            return Ok(await _docService.AddVersionAsync(id, UserId, stream, file.FileName, file.Length, request.ChangeNote, IsAdmin));
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
     }
 
@@ -69,11 +91,12 @@ public class DocumentsController : ControllerBase
 
     [HttpGet("versions/{versionId}/download")]
     [AllowAnonymous]
-    public async Task<IActionResult> DownloadVersion(int versionId)
+    public async Task<IActionResult> DownloadVersion(int versionId, [FromQuery] bool preview = false)
     {
         try
         {
             var (stream, fileName, contentType) = await _docService.GetVersionFileAsync(versionId);
+            if (preview) return File(stream, contentType);
             return File(stream, contentType, fileName);
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -82,11 +105,12 @@ public class DocumentsController : ControllerBase
 
     [HttpGet("{id}/download")]
     [AllowAnonymous]
-    public async Task<IActionResult> Download(int id)
+    public async Task<IActionResult> Download(int id, [FromQuery] bool preview = false)
     {
         try
         {
             var (stream, fileName, contentType) = await _docService.GetFileAsync(id);
+            if (preview) return File(stream, contentType);
             return File(stream, contentType, fileName);
         }
         catch (KeyNotFoundException) { return NotFound(); }

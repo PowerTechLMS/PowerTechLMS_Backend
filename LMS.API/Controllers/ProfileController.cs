@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -20,7 +20,18 @@ public class ProfileController : ControllerBase
         _environment = environment;
     }
 
-    private int UserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub")
+                     ?? User.FindFirst("id")
+                     ?? User.FindFirst("UserId");
+            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            return int.Parse(claim.Value);
+        }
+    }
 
     [HttpGet]
     public async Task<ActionResult<UserResponse>> GetProfile()

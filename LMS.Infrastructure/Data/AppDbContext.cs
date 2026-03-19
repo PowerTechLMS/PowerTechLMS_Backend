@@ -59,6 +59,9 @@ public class AppDbContext : DbContext
     // Bảng Mapping Phòng Ban & Lộ Trình Đào Tạo
     public DbSet<DepartmentCourseGroup> DepartmentCourseGroups { get; set; }
 
+    // ── Notifications ──────────────────────────
+    public DbSet<Notification> Notifications => Set<Notification>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -95,6 +98,7 @@ public class AppDbContext : DbContext
         m.Entity<Role>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
 
         // ============================================================
         // DepartmentCourseGroup (FIX LỖI COMPOSITE KEY TẠI ĐÂY)
@@ -484,7 +488,9 @@ public class AppDbContext : DbContext
             // RBAC & Users
             new Permission { Id = 15, Code = "user.manage", Name = "Quản lý người dùng", Category = "Admin" },
             new Permission { Id = 16, Code = "role.manage", Name = "Quản lý phân quyền", Category = "Admin" },
-            new Permission { Id = 17, Code = "group.manage", Name = "Quản lý nhóm", Category = "Admin" }
+            new Permission { Id = 17, Code = "group.manage", Name = "Quản lý nhóm", Category = "Admin" },
+            new Permission { Id = 18, Code = "certificate.view", Name = "Xem chứng chỉ", Category = "Certificate" },
+            new Permission { Id = 19, Code = "certificate.manage", Name = "Quản lý chứng chỉ", Category = "Certificate" }
         };
         m.Entity<Permission>().HasData(permissions);
 

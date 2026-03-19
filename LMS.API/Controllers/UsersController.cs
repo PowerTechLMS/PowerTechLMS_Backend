@@ -9,7 +9,7 @@ namespace LMS.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "UserManage")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -18,10 +18,12 @@ public class UsersController : ControllerBase
     private int AdminId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet]
+    [Authorize(Policy = "UserList")]
     public async Task<ActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
         => Ok(await _userService.GetUsersAsync(page, pageSize, search));
 
     [HttpPost]
+    [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> CreateUser([FromBody] UpdateUserRequest request)
     {
         try
@@ -40,6 +42,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "UserList")]
     public async Task<ActionResult> GetUserById(int id)
     {
         try
@@ -50,6 +53,7 @@ public class UsersController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
     }
     [HttpPut("{id}")]
+    [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
     // Lưu ý: Đổi chữ 'UpdateUserRequest' thành tên DTO/Model tương ứng của bạn nếu khác
     {
@@ -70,6 +74,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id}/report")]
+    [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> GetUserReport(int id)
     {
         try
@@ -81,6 +86,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id}/toggle-active")]
+    [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> ToggleActive(int id)
     {
         try
@@ -92,6 +98,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost("import")]
+    [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> ImportUsers(IFormFile file)
     {
         if (file == null || file.Length == 0) return BadRequest("Vui lòng chọn file Excel.");

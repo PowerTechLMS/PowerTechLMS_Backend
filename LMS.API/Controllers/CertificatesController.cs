@@ -34,6 +34,7 @@ public class CertificatesController : ControllerBase
         try
         {
             var cert = await _certService.IssueCertificateAsync(UserId, courseId);
+            if (cert == null) return BadRequest(new { message = "Bạn chưa đủ điều kiện nhận chứng chỉ (Cần hoàn thành bài học và đạt bài tập)." });
             return Ok(cert);
         }
         catch (InvalidOperationException ex)
@@ -47,22 +48,22 @@ public class CertificatesController : ControllerBase
         => Ok(await _certService.GetUserCertificatesAsync(UserId));
 
     [HttpGet("verify/{code}")]
-    [AllowAnonymous]
     public async Task<ActionResult> Verify(string code)
     {
-        var cert = await _certService.VerifyCertificateAsync(code);
-        return cert == null ? NotFound(new { message = "Chứng chỉ không tồn tại." }) : Ok(cert);
+        // [BUSINESS RULE]: Học viên khi chưa đăng nhập thì không có phép xem (Authorize class level đã chặn 401)
+        var cert = await _certService.VerifyCertificateAsync(code, User);
+        return cert == null ? NotFound(new { message = "Chứng chỉ không tồn tại hoặc bạn không có quyền xem." }) : Ok(cert);
     }
 
     [HttpGet("admin")]
-    [Authorize(Policy = "ReportView")]
+    [Authorize(Policy = "CertificateView")]
     public async Task<ActionResult> GetAdminCertificates([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
     {
-        return Ok(await _certService.GetCertificatesAsync(page, pageSize, search));
+        return Ok(await _certService.GetCertificatesAsync(page, pageSize, search, User));
     }
 
     [HttpPut("{id}/revoke")]
-    [Authorize(Policy = "ReportView")]
+    [Authorize(Policy = "CertificateManage")]
     public async Task<ActionResult> RevokeCertificate(int id, [FromBody] RevokeCertificateRequest request)
     {
         try 

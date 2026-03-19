@@ -17,6 +17,7 @@ public class Lesson : BaseEntity
     public string? VideoProvider { get; set; }  // YouTube | S3 | Azure | Vimeo
     public string? VideoThumbnailUrl { get; set; }
     public int VideoDurationSeconds { get; set; } = 0;
+    public int ReadingDurationSeconds { get; set; } = 0; // [MỚI] Thời gian bắt buộc cho bài đọc
     public string VideoStatus { get; set; } = "Ready"; // Processing | Ready | Failed
     public int SortOrder { get; set; }
     public bool IsFreePreview { get; set; } = false;

@@ -38,32 +38,40 @@ public class CertificateService : ICertificateService
                 existing.RevokedAt);
         }
 
-        // 2. TỰ KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH (Thay thế cho ProgressService)
-        // Đếm tổng số bài học
-        var totalLessons = await _db.Lessons
-            .CountAsync(l => l.Module.CourseId == courseId && !l.IsDeleted);
+        // 2. TỰ KIỂM TRA ĐIỀU KIỆN HOÀN THÀNH
+        var lessonIds = await _db.Modules
+            .Where(m => m.CourseId == courseId && !m.IsDeleted)
+            .SelectMany(m => m.Lessons)
+            .Where(l => !l.IsDeleted)
+            .Select(l => l.Id)
+            .ToListAsync();
 
-        // Đếm số bài học đã hoàn thành
-        var completedLessons = await _db.LessonProgresses
-            .CountAsync(lp => lp.UserId == userId && lp.IsCompleted && lp.Lesson.Module.CourseId == courseId);
+        int totalLessons = lessonIds.Count;
+        int completedLessons = await _db.LessonProgresses
+            .CountAsync(lp => lp.UserId == userId && lp.IsCompleted && lessonIds.Contains(lp.LessonId));
 
-        // Kiểm tra bài thi cuối khóa (Final Quiz)
-        var finalQuiz = await _db.Quizzes
-            .Where(q => q.CourseId == courseId && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
-            .FirstOrDefaultAsync();
+        var allCourseQuizzes = await _db.Quizzes
+            .Where(q => q.CourseId == courseId && !q.IsDeleted)
+            .ToListAsync();
 
-        bool quizPassed = true;
-        if (finalQuiz != null)
+        bool allQuizzesPassed = true;
+        foreach (var q in allCourseQuizzes)
         {
-            quizPassed = await _db.QuizAttempts
-                .AnyAsync(qa => qa.UserId == userId && qa.QuizId == finalQuiz.Id && qa.IsPassed);
+            var passedViaAttempt = await _db.QuizAttempts.AnyAsync(qa => qa.UserId == userId && qa.QuizId == q.Id && qa.IsPassed);
+            
+            var passedViaLesson = !passedViaAttempt && await _db.Lessons.AnyAsync(l => l.QuizId == q.Id && 
+                                  _db.LessonProgresses.Any(lp => lp.UserId == userId && lp.LessonId == l.Id && lp.IsCompleted));
+
+            if (!passedViaAttempt && !passedViaLesson)
+            {
+                allQuizzesPassed = false;
+                break;
+            }
         }
 
-        // Kiểm tra logic hoàn thành: Phải xong hết video và đạt bài thi (nếu có)
-        bool isCompleted = (totalLessons == 0 || completedLessons >= totalLessons) && quizPassed;
+        bool isCompleted = allCourseQuizzes.Any() ? allQuizzesPassed : (totalLessons == 0 || completedLessons >= totalLessons);
 
-        if (!isCompleted)
-            throw new InvalidOperationException("Bạn chưa đủ điều kiện nhận chứng chỉ. Cần hoàn thành 100% nội dung và đạt bài thi.");
+        if (!isCompleted) return null; // Trả về null thay vì quăng lỗi để tránh crash flow nộp bài
 
         // 3. TẠO MÃ CHỨNG CHỈ
         var certCode = $"CERT-{userId}-{courseId}-{DateTime.UtcNow:yyyyMMddHHmmss}";
@@ -123,30 +131,95 @@ public class CertificateService : ICertificateService
             .ToListAsync();
     }
 
-    public async Task<CertificateResponse?> VerifyCertificateAsync(string code)
+    public async Task<CertificateResponse?> VerifyCertificateAsync(string code, System.Security.Claims.ClaimsPrincipal user)
     {
-        return await _db.Certificates
+        var certEntity = await _db.Certificates
             .Include(c => c.User)
             .Include(c => c.Course)
-            .Where(c => c.CertificateCode == code)
-            .Select(c => new CertificateResponse(
-                c.Id,
-                c.User != null ? c.User.FullName : "Ẩn danh",
-                c.Course != null ? c.Course.Title : "Khóa học",
-                c.CertificateCode ?? "",
-                c.PdfUrl,
-                c.IssuedAt,
-                c.Status ?? "Issued",
-                c.RevokedAt))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(c => c.CertificateCode == code);
+
+        if (certEntity == null) return null;
+
+        // Extract user claims
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+        {
+            // [BUSINESS RULE]: Học viên chưa đăng nhập không được xem chứng chỉ
+            return null;
+        }
+
+        var roles = user.FindAll(System.Security.Claims.ClaimTypes.Role).Select(r => r.Value).ToList();
+        var permissions = user.FindAll("permission").Select(p => p.Value).ToList();
+
+        // [BUSINESS RULE]: 1. Admin có quyền xem tất cả
+        if (roles.Contains("Admin") || permissions.Contains("certificate.view"))
+        {
+            // Authorized
+        }
+        // [BUSINESS RULE]: 2. Instructor chỉ xem được chứng chỉ khóa học mình đã cấp (CreatedById)
+        else if (roles.Contains("Instructor") && certEntity.Course != null && certEntity.Course.CreatedById == userId)
+        {
+            // Authorized
+        }
+        // [BUSINESS RULE]: 3. Học viên chỉ xem được chứng chỉ của cá nhân
+        else if (certEntity.UserId == userId)
+        {
+            // Authorized
+        }
+        else
+        {
+            return null; // Không có quyền xem
+        }
+        
+        return new CertificateResponse(
+            certEntity.Id,
+            certEntity.User?.FullName ?? "Ẩn danh",
+            certEntity.Course?.Title ?? "Khóa học",
+            certEntity.CertificateCode ?? "",
+            certEntity.PdfUrl,
+            certEntity.IssuedAt,
+            certEntity.Status ?? "Issued",
+            certEntity.RevokedAt);
     }
 
-    public async Task<PagedResponse<AdminCertificateResponse>> GetCertificatesAsync(int page, int pageSize, string? search)
+    public async Task<PagedResponse<AdminCertificateResponse>> GetCertificatesAsync(int page, int pageSize, string? search, System.Security.Claims.ClaimsPrincipal user)
     {
         var query = _db.Certificates
             .Include(c => c.User)
             .Include(c => c.Course)
             .AsQueryable();
+
+        var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        int.TryParse(userIdClaim, out var userId);
+        // [BUSINESS RULE]: Instructor (có quyền certificate.view/manage nhưng không phải Admin)
+        // thì chỉ thấy chứng chỉ thuộc khóa học mình quản lý
+        var roles = user.Claims.Where(c => c.Type == System.Security.Claims.ClaimTypes.Role).Select(c => c.Value).ToList();
+        var permissions = user.Claims.Where(c => c.Type == "permission").Select(c => c.Value).ToList();
+
+        // [BUSINESS RULE]: Instructor (có quyền certificate.view/manage nhưng không phải Admin)
+        // thì chỉ thấy chứng chỉ thuộc khóa học mình quản lý
+        bool hasAdminRole = roles.Any(r => r.Equals("Admin", StringComparison.OrdinalIgnoreCase) || r.Equals("Quản trị viên", StringComparison.OrdinalIgnoreCase));
+        bool hasInstructorRole = roles.Any(r => r.Equals("Instructor", StringComparison.OrdinalIgnoreCase) || r.Equals("Giảng viên", StringComparison.OrdinalIgnoreCase));
+        bool hasManagePerm = permissions.Any(p => p.Equals("user.manage", StringComparison.OrdinalIgnoreCase));
+        bool hasCertPerm = permissions.Any(p => p.Equals("certificate.view", StringComparison.OrdinalIgnoreCase) || p.Equals("certificate.manage", StringComparison.OrdinalIgnoreCase));
+
+        bool isAdmin = hasAdminRole || hasManagePerm;
+
+        // [YÊU CẦU MỚI]: Giảng viên được quản lý chứng chỉ của bản thân mình VÀ của học viên trong khóa họ tạo
+        if ((hasCertPerm || hasInstructorRole) && !isAdmin && userId > 0)
+        {
+            query = query.Where(c => !c.IsDeleted && (c.UserId == userId || (c.Course != null && c.Course.CreatedById == userId)));
+        }
+        else if (isAdmin)
+        {
+            // Admin thấy tất cả (không bị xóa)
+            query = query.Where(c => !c.IsDeleted);
+        }
+        else
+        {
+            // User thường chỉ thấy chứng chỉ của chính mình
+            query = query.Where(c => !c.IsDeleted && c.UserId == userId);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -385,7 +458,7 @@ public class DocumentService : IDocumentService
     private readonly AppDbContext _db;
     public DocumentService(AppDbContext db) => _db = db;
 
-    public async Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(int page, int pageSize, string? search, string? tag, bool isAdmin = false, int? userId = null)
+    public async Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(int page, int pageSize, string? search, string? tag, bool isAdmin = false, int? userId = null, bool isInstructorManagement = false)
     {
         // Bắt đầu query cơ bản
         var query = _db.Documents
@@ -393,7 +466,14 @@ public class DocumentService : IDocumentService
             .Include(d => d.CurrentVersion)
             .AsQueryable();
 
-      if (!string.IsNullOrWhiteSpace(search))
+        // 0. [MỚI] Nếu là màn hình quản lý của Giáo viên -> CHỈ thấy tài liệu của mình
+        // TUY NHIÊN: Admin thì phải thấy hết
+        if (isInstructorManagement && userId.HasValue && !isAdmin)
+        {
+            query = query.Where(d => d.UploadedById == userId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(d => (d.Title != null && d.Title.Contains(search)) || (d.Description != null && d.Description.Contains(search)));
         }
@@ -403,8 +483,8 @@ public class DocumentService : IDocumentService
             query = query.Where(d => d.Tags != null && d.Tags.Contains(tag));
         }
 
-        // 2. LOGIC PHÂN QUYỀN (Nếu KHÔNG phải Admin)
-        if (!isAdmin && userId.HasValue)
+        // 2. LOGIC PHÂN QUYỀN (Nếu KHÔNG phải Admin và KHÔNG phải màn hình quản lý GV)
+        if (!isAdmin && !isInstructorManagement && userId.HasValue)
         {
             var now = DateTime.UtcNow;
 
@@ -491,11 +571,14 @@ public class DocumentService : IDocumentService
             1, doc.AccessStartDate, doc.AccessEndDate);
     }
 
-    public async Task<DocumentResponse> UpdateDocumentAsync(int documentId, UpdateDocumentRequest request)
+    public async Task<DocumentResponse> UpdateDocumentAsync(int documentId, UpdateDocumentRequest request, int userId, bool isAdmin = false)
     {
         var doc = await _db.Documents.Include(d => d.UploadedBy).Include(d => d.CurrentVersion)
             .FirstOrDefaultAsync(d => d.Id == documentId)
             ?? throw new KeyNotFoundException("Không tìm thấy tài liệu.");
+
+        if (!isAdmin && doc.UploadedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa tài liệu này.");
 
         doc.Title = request.Title;
         doc.Description = request.Description;
@@ -513,11 +596,14 @@ public class DocumentService : IDocumentService
             doc.AccessStartDate, doc.AccessEndDate);
     }
 
-    public async Task<DocumentResponse> AddVersionAsync(int documentId, int userId, Stream fileStream, string fileName, long fileSize, string? changeNote)
+    public async Task<DocumentResponse> AddVersionAsync(int documentId, int userId, Stream fileStream, string fileName, long fileSize, string? changeNote, bool isAdmin = false)
     {
-        var doc = await _db.Documents.Include(d => d.Versions)
+        var doc = await _db.Documents.Include(d => d.UploadedBy).Include(d => d.Versions)
             .FirstOrDefaultAsync(d => d.Id == documentId)
             ?? throw new KeyNotFoundException("Không tìm thấy tài liệu.");
+
+        if (!isAdmin && doc.UploadedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền thêm phiên bản cho tài liệu này.");
 
         var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
@@ -527,16 +613,16 @@ public class DocumentService : IDocumentService
         using (var fs = new FileStream(filePath, FileMode.Create))
             await fileStream.CopyToAsync(fs);
 
-        var nextVersion = (doc.Versions.Any() ? doc.Versions.Max(v => v.VersionNumber) : 0) + 1;
+        var nextVersionNum = (doc.Versions.Any() ? doc.Versions.Max(v => v.VersionNumber) : 0) + 1;
         var version = new DocumentVersion
         {
             DocumentId = documentId,
-            VersionNumber = nextVersion,
+            VersionNumber = nextVersionNum,
             FileName = fileName,
             StorageKey = storageKey,
             FileSize = fileSize,
             FileType = ext.TrimStart('.'),
-            ChangeNote = changeNote,
+            ChangeNote = changeNote ?? $"Phiên bản {nextVersionNum}",
             UploadedById = userId
         };
         _db.DocumentVersions.Add(version);
@@ -546,10 +632,9 @@ public class DocumentService : IDocumentService
         doc.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        var user = await _db.Users.FindAsync(userId);
         return new DocumentResponse(doc.Id, doc.Title, doc.Description,
-            version.FileName, version.FileSize, doc.Tags, user!.FullName, doc.CreatedAt,
-            nextVersion, doc.AccessStartDate, doc.AccessEndDate);
+            version.FileName, version.FileSize, doc.Tags, doc.UploadedBy.FullName, doc.CreatedAt,
+            nextVersionNum, doc.AccessStartDate, doc.AccessEndDate);
     }
 
     public async Task<List<DocumentVersionResponse>> GetVersionsAsync(int documentId)
@@ -582,10 +667,14 @@ public class DocumentService : IDocumentService
         return (stream, version.FileName, contentType);
     }
 
-    public async Task DeleteDocumentAsync(int documentId)
+    public async Task DeleteDocumentAsync(int documentId, int userId, bool isAdmin = false)
     {
         var doc = await _db.Documents.FindAsync(documentId)
             ?? throw new KeyNotFoundException("Không tìm thấy tài liệu.");
+
+        if (!isAdmin && doc.UploadedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền xóa tài liệu này.");
+
         doc.IsDeleted = true;
         doc.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -664,12 +753,15 @@ public class ReportService : IReportService
     private readonly AppDbContext _db;
     public ReportService(AppDbContext db) => _db = db;
 
-    public async Task<List<TrainingReportResponse>> GetTrainingReportAsync(int? courseId)
+    public async Task<List<TrainingReportResponse>> GetTrainingReportAsync(int? courseId, int userId, bool isAdmin = false)
     {
         var query = _db.Enrollments
             .Include(e => e.User).Include(e => e.Course)
             .Where(e => e.Status == "Approved")
             .AsQueryable();
+
+        if (!isAdmin)
+            query = query.Where(e => e.Course.CreatedById == userId);
 
         if (courseId.HasValue)
             query = query.Where(e => e.CourseId == courseId.Value);
@@ -679,13 +771,18 @@ public class ReportService : IReportService
 
         foreach (var e in enrollments)
         {
-            var totalLessons = await _db.Lessons.CountAsync(l => l.Module.CourseId == e.CourseId);
-            var completedLessons = await _db.LessonProgresses
-                .CountAsync(lp => lp.UserId == e.UserId && lp.IsCompleted && lp.Lesson.Module.CourseId == e.CourseId);
+            var lessonIds = await _db.Lessons
+                .Where(l => l.Module.CourseId == e.CourseId && !l.IsDeleted)
+                .Select(l => l.Id)
+                .ToListAsync();
 
-            var progress = totalLessons > 0 ? (double)completedLessons / totalLessons * 100 : 0;
+            var totalLessonsInCourse = lessonIds.Count;
+            var completedCount = await _db.LessonProgresses
+                .CountAsync(lp => lp.UserId == e.UserId && lp.IsCompleted && lessonIds.Contains(lp.LessonId));
+
+            var progress = totalLessonsInCourse > 0 ? (double)completedCount / totalLessonsInCourse * 100 : 0;
             var isOverdue = e.Deadline.HasValue && e.Deadline.Value < DateTime.UtcNow && progress < 100;
-            var status = progress >= 100 ? "Hoàn thành" : progress > 0 ? "Đang học" : "Chưa bắt đầu";
+            var status = e.Status == "Completed" ? "Hoàn thành" : (progress > 0 ? "Đang học" : "Chưa bắt đầu");
 
             result.Add(new TrainingReportResponse(e.UserId, e.User.FullName, e.User.Email,
                 e.CourseId, e.Course.Title, Math.Round(progress, 1), status, e.Deadline, isOverdue, e.EnrolledAt));
@@ -695,17 +792,22 @@ public class ReportService : IReportService
     }
 
     // 1. BÁO CÁO LƯỜI HỌC (Đã đăng ký nhưng 30 ngày chưa có hoạt động)
-    public async Task<List<InactiveUserResponse>> GetInactiveUsersAsync(int days = 30)
+    public async Task<List<InactiveUserResponse>> GetInactiveUsersAsync(int days = 30, int? userId = null, bool isAdmin = false)
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-days);
         var result = new List<InactiveUserResponse>();
 
         // Lấy các ghi danh đang được yêu cầu học
-        var activeEnrollments = await _db.Enrollments
+        var query = _db.Enrollments
             .Include(e => e.User)
             .Include(e => e.Course)
             .Where(e => e.Status == "Approved" && !e.IsDeleted)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (!isAdmin && userId.HasValue)
+            query = query.Where(e => e.Course.CreatedById == userId.Value);
+
+        var activeEnrollments = await query.ToListAsync();
 
         foreach (var e in activeEnrollments)
         {
@@ -735,14 +837,22 @@ public class ReportService : IReportService
     }
 
     // 2. PHÂN TÍCH ĐỀ THI (Câu nào sai nhiều nhất)
-    public async Task<List<QuizAnalyticsResponse>> GetQuizAnalyticsAsync(int quizId)
+    public async Task<List<QuizAnalyticsResponse>> GetQuizAnalyticsAsync(int quizId, int userId, bool isAdmin = false)
     {
+        // Kiểm tra quyền sở hữu Quiz (Quản lý khoá học)
+        if (!isAdmin)
+        {
+            var quiz = await _db.Quizzes.Include(q => q.Course).FirstOrDefaultAsync(q => q.Id == quizId);
+            if (quiz != null && quiz.Course != null && quiz.Course.CreatedById != userId)
+                throw new UnauthorizedAccessException("Bạn không có quyền xem phân tích cho bài Quiz này.");
+        }
+
         // Lấy lịch sử chọn đáp án của toàn bộ học viên cho bài Quiz này
         // Tối ưu truy vấn bằng GroupBy thẳng dưới SQL Server
         var analytics = await _db.QuizAnswers
             .Include(qa => qa.Attempt)
             .Where(qa => qa.Attempt.QuizId == quizId && !qa.IsDeleted)
-           .GroupBy(qa => qa.QuestionId) // Sửa lại thành như thế này
+           .GroupBy(qa => qa.QuestionId) 
             .Select(g => new
             {
                 QuestionId = g.Key,

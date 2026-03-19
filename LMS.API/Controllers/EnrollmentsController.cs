@@ -14,12 +14,25 @@ public class EnrollmentsController : ControllerBase
     private readonly IEnrollmentService _enrollmentService;
     public EnrollmentsController(IEnrollmentService enrollmentService) => _enrollmentService = enrollmentService;
 
-    private int UserId => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub")
+                     ?? User.FindFirst("id")
+                     ?? User.FindFirst("UserId");
+            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            return int.Parse(claim.Value);
+        }
+    }
+    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+
     [HttpGet]
     [Authorize] // Yêu cầu có token đăng nhập
     public async Task<ActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 5000)
     {
-        var result = await _enrollmentService.GetAllEnrollmentsAsync(page, pageSize);
+        var result = await _enrollmentService.GetAllEnrollmentsAsync(page, pageSize, UserId, IsAdmin);
         return Ok(result);
     }
     [HttpPost]
@@ -57,5 +70,5 @@ public class EnrollmentsController : ControllerBase
     [HttpGet("pending")]
     [Authorize(Policy = "EnrollmentView")]
     public async Task<ActionResult> GetPending()
-        => Ok(await _enrollmentService.GetPendingEnrollmentsAsync());
+        => Ok(await _enrollmentService.GetPendingEnrollmentsAsync(UserId, IsAdmin));
 }

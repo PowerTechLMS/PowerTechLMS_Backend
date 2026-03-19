@@ -4,6 +4,7 @@ using LMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LMS.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318044441_AddQuizRetakeColumnsToCourse")]
+    partial class AddQuizRetakeColumnsToCourse
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -762,9 +765,6 @@ namespace LMS.Infrastructure.Migrations
                     b.Property<int?>("QuizId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ReadingDurationSeconds")
-                        .HasColumnType("int");
-
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -979,53 +979,6 @@ namespace LMS.Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("LMS.Core.Entities.Notification", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Link")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Notifications");
-                });
-
             modelBuilder.Entity("LMS.Core.Entities.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -1071,170 +1024,170 @@ namespace LMS.Infrastructure.Migrations
                             Id = 1,
                             Category = "Course",
                             Code = "course.view",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5706),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6070),
                             IsDeleted = false,
                             Name = "Xem khóa học",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5707)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6071)
                         },
                         new
                         {
                             Id = 2,
                             Category = "Course",
                             Code = "course.create",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5717),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6077),
                             IsDeleted = false,
                             Name = "Tạo khóa học",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5718)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6077)
                         },
                         new
                         {
                             Id = 3,
                             Category = "Course",
                             Code = "course.edit",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5720),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6079),
                             IsDeleted = false,
                             Name = "Sửa khóa học",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5721)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6079)
                         },
                         new
                         {
                             Id = 4,
                             Category = "Course",
                             Code = "course.delete",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5723),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6080),
                             IsDeleted = false,
                             Name = "Xóa khóa học",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5724)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6080)
                         },
                         new
                         {
                             Id = 5,
                             Category = "Course",
                             Code = "course.publish",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5727),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6082),
                             IsDeleted = false,
                             Name = "Xuất bản khóa học",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5728)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6082)
                         },
                         new
                         {
                             Id = 6,
                             Category = "Enrollment",
                             Code = "enrollment.view",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5756),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6100),
                             IsDeleted = false,
                             Name = "Xem ghi danh",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5757)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6101)
                         },
                         new
                         {
                             Id = 7,
                             Category = "Enrollment",
                             Code = "enrollment.approve",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5759),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6102),
                             IsDeleted = false,
                             Name = "Duyệt ghi danh",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5760)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6102)
                         },
                         new
                         {
                             Id = 8,
                             Category = "Enrollment",
                             Code = "enrollment.assign",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5762),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6103),
                             IsDeleted = false,
                             Name = "Gán học viên",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5789)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6132)
                         },
                         new
                         {
                             Id = 9,
                             Category = "Document",
                             Code = "doc.view",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5793),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6134),
                             IsDeleted = false,
                             Name = "Xem tài liệu",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5794)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6134)
                         },
                         new
                         {
                             Id = 10,
                             Category = "Document",
                             Code = "doc.upload",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5801),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6145),
                             IsDeleted = false,
                             Name = "Tải tài liệu",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5802)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6147)
                         },
                         new
                         {
                             Id = 11,
                             Category = "Document",
                             Code = "doc.delete",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5804),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6149),
                             IsDeleted = false,
                             Name = "Xóa tài liệu",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5805)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6149)
                         },
                         new
                         {
                             Id = 12,
                             Category = "Quiz",
                             Code = "quiz.create",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5808),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6150),
                             IsDeleted = false,
                             Name = "Tạo bài tập",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5809)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6150)
                         },
                         new
                         {
                             Id = 13,
                             Category = "Quiz",
                             Code = "quiz.manage",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5811),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6152),
                             IsDeleted = false,
                             Name = "Quản lý bài tập",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5812)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6152)
                         },
                         new
                         {
                             Id = 14,
                             Category = "Report",
                             Code = "report.view",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5814),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6153),
                             IsDeleted = false,
                             Name = "Xem báo cáo",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5815)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6153)
                         },
                         new
                         {
                             Id = 15,
                             Category = "Admin",
                             Code = "user.manage",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5817),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6154),
                             IsDeleted = false,
                             Name = "Quản lý người dùng",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5818)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6155)
                         },
                         new
                         {
                             Id = 16,
                             Category = "Admin",
                             Code = "role.manage",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5821),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6161),
                             IsDeleted = false,
                             Name = "Quản lý phân quyền",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5822)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6161)
                         },
                         new
                         {
                             Id = 17,
                             Category = "Admin",
                             Code = "group.manage",
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5824),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6162),
                             IsDeleted = false,
                             Name = "Quản lý nhóm",
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(5825)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6162)
                         });
                 });
 
@@ -1300,9 +1253,6 @@ namespace LMS.Infrastructure.Migrations
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Explanation")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -1623,154 +1573,154 @@ namespace LMS.Infrastructure.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 1,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6829),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6828),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6566),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6565),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6830)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6566)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 2,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6835),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6834),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6568),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6568),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6836)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6568)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 3,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6839),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6838),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6569),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6569),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6840)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6569)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 4,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6842),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6841),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6570),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6570),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6843)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6570)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 5,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6846),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6845),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6571),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6571),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6847)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6571)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 6,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6849),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6848),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6572),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6571),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6850)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6572)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 7,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6853),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6852),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6573),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6572),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6854)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6573)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 8,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6856),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6855),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6574),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6573),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6857)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6574)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 9,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6860),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6859),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6574),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6574),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6861)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6575)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 10,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6863),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6862),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6575),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6575),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6864)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6575)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 11,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6867),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6866),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6576),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6576),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6868)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6576)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 12,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6870),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6869),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6711),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6710),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6871)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6711)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 13,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6874),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6873),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6712),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6712),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6875)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6713)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 14,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7072),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7071),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6713),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6713),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7073)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6714)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 15,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7079),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7078),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6714),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6714),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7080)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6715)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 16,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7083),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7082),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6715),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6715),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7084)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6715)
                         },
                         new
                         {
                             RoleId = 1,
                             PermissionId = 17,
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7086),
-                            GrantedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7085),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6716),
+                            GrantedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6716),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(7087)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6716)
                         });
                 });
 
@@ -1850,7 +1800,7 @@ namespace LMS.Infrastructure.Migrations
                             FullName = "Admin",
                             IsActive = true,
                             IsDeleted = false,
-                            PasswordHash = "$2a$11$tD.4bSSWpN0hKzjmhxNGvu9/8lE/4e538qcshGwu9Ew8zgGtboDsO",
+                            PasswordHash = "$2a$11$sK8euPbRGZPJbYeKPbfj3e74vsUx.GL3BC6Xc61mDHAw5MUDi.uZa",
                             Role = "Admin",
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
@@ -2017,9 +1967,9 @@ namespace LMS.Infrastructure.Migrations
                             UserId = 1,
                             RoleId = 1,
                             AssignedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            CreatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6233),
+                            CreatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6369),
                             IsDeleted = false,
-                            UpdatedAt = new DateTime(2026, 3, 18, 9, 15, 48, 381, DateTimeKind.Utc).AddTicks(6234)
+                            UpdatedAt = new DateTime(2026, 3, 18, 4, 44, 40, 619, DateTimeKind.Utc).AddTicks(6369)
                         });
                 });
 
@@ -2308,17 +2258,6 @@ namespace LMS.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Lesson");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("LMS.Core.Entities.Notification", b =>
-                {
-                    b.HasOne("LMS.Core.Entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("User");
                 });

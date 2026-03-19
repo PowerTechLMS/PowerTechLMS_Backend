@@ -9,10 +9,14 @@ namespace LMS.Infrastructure.Services;
 public class GroupService : IGroupService
 {
     private readonly AppDbContext _db;
+    private readonly INotificationService _notificationService;
+    private readonly IProgressService _progressService;
 
-    public GroupService(AppDbContext db)
+    public GroupService(AppDbContext db, INotificationService notificationService, IProgressService progressService)
     {
         _db = db;
+        _notificationService = notificationService;
+        _progressService = progressService;
     }
 
     // ==========================================
@@ -234,6 +238,19 @@ public class GroupService : IGroupService
 
         // Cuối cùng mới Save
         await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify all users in the department
+        var courseGroup = await _db.CourseGroups.FindAsync(courseGroupId);
+        foreach (var userId in userIds)
+        {
+            await _notificationService.CreateNotificationAsync(
+                userId,
+                "Lộ trình học tập mới",
+                $"Phòng ban của bạn vừa được gán lộ trình học tập: {courseGroup?.Name ?? "Lộ trình mới"}",
+                $"/learning-paths",
+                "NewLearningPath"
+            );
+        }
     }
 
     public async Task RemoveCourseGroupFromDepartmentAsync(int departmentId, int courseGroupId)
@@ -276,18 +293,23 @@ public class GroupService : IGroupService
                 g.Description,
                 g.Courses.Count, // Số lượng khóa học trong lộ trình
                 _db.DepartmentCourseGroups.Count(dcg => dcg.CourseGroupId == g.Id), // BỔ SUNG: Số lượng phòng ban áp dụng
-                g.CreatedAt))
+                g.CreatedAt,
+                0, 0, 0)) // Thêm default values
             .ToListAsync();
 
         return new PagedResponse<CourseGroupResponse>(items, total, page, pageSize);
     }
 
-    public async Task<CourseGroupDetailResponse?> GetCourseGroupDetailAsync(int groupId)
+    public async Task<CourseGroupDetailResponse?> GetCourseGroupDetailAsync(int groupId, int? userId = null)
     {
         var group = await _db.CourseGroups
             .Include(g => g.Courses)
                 .ThenInclude(c => c.Course)
                     .ThenInclude(c => c.Category) // Lấy tên Category để gán vào CourseResponse
+            .Include(g => g.Courses)
+                .ThenInclude(c => c.Course)
+                    .ThenInclude(c => c.Modules)
+                        .ThenInclude(m => m.Lessons)
             .FirstOrDefaultAsync(g => g.Id == groupId);
 
         if (group == null) return null;
@@ -297,16 +319,50 @@ public class GroupService : IGroupService
             .Select(c => new CourseResponse(
                 c.Course.Id, c.Course.Title, c.Course.Description, c.Course.CoverImageUrl,
                 c.Course.IsPublished, c.Course.PassScore, "Unknown", c.Course.CreatedAt,
-                0, 0, 0, // Simplified counts
+                c.Course.Modules.Count,
+                c.Course.Modules.Sum(m => m.Lessons.Count),
+                0, // Enrollment count (simplified)
                 c.Course.EnrollStartDate, c.Course.EnrollEndDate,
                 c.Course.CompletionDeadlineDays, c.Course.CompletionEndDate,
                 c.Course.RequiresApproval, null,
                 c.Course.CategoryId,
                 c.Course.Category != null ? c.Course.Category.Name : null,
-                c.Course.Level)) // Đã thêm đủ các trường bao gồm Level
+                c.Course.Level,
+                c.Course.QuizRetakeWaitTimeMinutes,
+                c.Course.QuizMaxRetakesPerDay)) 
             .ToList();
 
-        return new CourseGroupDetailResponse(group.Id, group.Name, group.Description, courses, group.CreatedAt);
+        double progress = 0;
+        int totalHours = 0;
+
+        var courseIds = courses.Select(c => c.Id).ToList();
+
+        if (userId.HasValue && courseIds.Any())
+        {
+            int totalItemsDetail = 0;
+            int completedItemsDetail = 0;
+            foreach (var cId in courseIds)
+            {
+                var p = await _progressService.GetCourseProgressAsync(userId.Value, cId);
+                if (p != null)
+                {
+                    totalItemsDetail += p.TotalLessons + p.TotalQuizzes;
+                    completedItemsDetail += p.CompletedLessons + p.PassedQuizzes;
+                }
+            }
+            progress = totalItemsDetail > 0 ? (double)completedItemsDetail / totalItemsDetail * 100 : 0;
+        }
+
+        // Tính tổng thời lượng của tất cả khoá học trong lộ trình
+        var totalSeconds = await _db.Lessons
+            .Where(l => _db.Modules
+                .Where(m => courseIds.Contains(m.CourseId))
+                .Select(m => m.Id)
+                .Contains(l.ModuleId))
+            .SumAsync(l => l.VideoDurationSeconds + l.ReadingDurationSeconds);
+        totalHours = (int)Math.Ceiling(totalSeconds / 3600.0);
+
+        return new CourseGroupDetailResponse(group.Id, group.Name, group.Description, courses, group.CreatedAt, Math.Round(progress, 1), totalHours);
     }
 
     public async Task<CourseGroupResponse> CreateCourseGroupAsync(CourseGroupRequest request, int adminId)
@@ -321,7 +377,7 @@ public class GroupService : IGroupService
         _db.CourseGroups.Add(group);
         await _db.SaveChangesAsync();
 
-        return new CourseGroupResponse(group.Id, group.Name, group.Description, 0, 0, group.CreatedAt);
+        return new CourseGroupResponse(group.Id, group.Name, group.Description, 0, 0, group.CreatedAt, 0, 0, 0);
     }
 
     public async Task<CourseGroupResponse> UpdateCourseGroupAsync(int groupId, CourseGroupRequest request)
@@ -336,7 +392,7 @@ public class GroupService : IGroupService
         // SỬA TẠI ĐÂY: Đếm số phòng ban đang dùng và truyền vào
         var departmentCount = await _db.DepartmentCourseGroups.CountAsync(d => d.CourseGroupId == groupId);
 
-        return new CourseGroupResponse(group.Id, group.Name, group.Description, group.Courses.Count, departmentCount, group.CreatedAt);
+        return new CourseGroupResponse(group.Id, group.Name, group.Description, group.Courses.Count, departmentCount, group.CreatedAt, 0, 0, 0);
     }
 
     public async Task DeleteCourseGroupAsync(int groupId)
@@ -371,5 +427,94 @@ public class GroupService : IGroupService
 
         _db.CourseGroupCourses.Remove(member);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<CourseGroupResponse>> GetMyCourseGroupsAsync(int userId)
+    {
+        // 1. Tìm các Phòng ban (UserGroups) mà User này tham gia
+        var userGroupIds = await _db.UserGroupMembers
+            .Where(m => m.UserId == userId && !m.IsDeleted)
+            .Select(m => m.GroupId)
+            .ToListAsync();
+
+        if (!userGroupIds.Any()) return new List<CourseGroupResponse>();
+
+        // 2. Tìm các Lộ trình (CourseGroups) được gán cho các Phòng ban đó
+        var courseGroupIds = await _db.DepartmentCourseGroups
+            .Where(dcg => userGroupIds.Contains(dcg.DepartmentId))
+            .Select(dcg => dcg.CourseGroupId)
+            .Distinct()
+            .ToListAsync();
+
+        if (!courseGroupIds.Any()) return new List<CourseGroupResponse>();
+
+        // 3. Trả về thông tin Lộ trình kèm tiến độ thực tế & tổng thời lượng
+        var groups = await _db.CourseGroups
+            .Where(cg => courseGroupIds.Contains(cg.Id))
+            .ToListAsync();
+
+        var result = new List<CourseGroupResponse>();
+        foreach (var cg in groups)
+        {
+            var courseGroupCourses = await _db.CourseGroupCourses
+                .Where(cgc => cgc.GroupId == cg.Id && !cgc.IsDeleted)
+                .Select(cgc => cgc.CourseId)
+                .ToListAsync();
+
+            if (!courseGroupCourses.Any())
+            {
+                result.Add(new CourseGroupResponse(cg.Id, cg.Name, cg.Description, 0, 0, cg.CreatedAt, 0, 0, 0));
+                continue;
+            }
+
+            // Phải lấy danh sách enrollment để phục vụ việc kiểm tra chứng chỉ
+            var enrollments = await _db.Enrollments
+                .Where(e => e.UserId == userId && courseGroupCourses.Contains(e.CourseId) && !e.IsDeleted)
+                .ToListAsync();
+
+            // Lấy tiến độ thực tế theo tỷ lệ (bài học + bài thi) đã xong / tổng toàn bộ bài học + bài thi của mọi khóa trong lộ trình
+            int totalItemsInPath = 0;
+            int completedItemsInPath = 0;
+
+            foreach (var cId in courseGroupCourses)
+            {
+                var p = await _progressService.GetCourseProgressAsync(userId, cId);
+                if (p != null)
+                {
+                    totalItemsInPath += p.TotalLessons + p.TotalQuizzes;
+                    completedItemsInPath += p.CompletedLessons + p.PassedQuizzes;
+                }
+            }
+
+            double avgProgress = totalItemsInPath > 0 ? (double)completedItemsInPath / totalItemsInPath * 100 : 0;
+
+            // Đếm chứng chỉ chờ (Số khoá ĐÃ HOÀN THÀNH nhưng CHƯA CÓ CERTIFICATE cho User này)
+            var completedCourseIds = enrollments.Where(e => e.Status == "Completed" || e.Status == "Finished").Select(e => e.CourseId).ToList();
+            var certedCourseIds = await _db.Certificates.Where(c => c.UserId == userId && completedCourseIds.Contains(c.CourseId)).Select(c => c.CourseId).ToListAsync();
+            int pendingCerts = completedCourseIds.Count - certedCourseIds.Count;
+
+            // Tính tổng thời lượng của tất cả khoá học trong lộ trình
+            var totalSeconds = await _db.Lessons
+                .Where(l => _db.Modules
+                    .Where(m => courseGroupCourses.Contains(m.CourseId))
+                    .Select(m => m.Id)
+                    .Contains(l.ModuleId))
+                .SumAsync(l => l.VideoDurationSeconds + l.ReadingDurationSeconds);
+            int totalHours = (int)Math.Ceiling(totalSeconds / 3600.0);
+
+            result.Add(new CourseGroupResponse(
+                cg.Id,
+                cg.Name,
+                cg.Description,
+                courseGroupCourses.Count,
+                await _db.DepartmentCourseGroups.CountAsync(dcg => dcg.CourseGroupId == cg.Id),
+                cg.CreatedAt,
+                Math.Round(avgProgress, 1),
+                pendingCerts,
+                totalHours
+            ));
+        }
+
+        return result;
     }
 }

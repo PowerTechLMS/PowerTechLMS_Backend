@@ -9,17 +9,29 @@ namespace LMS.Infrastructure.Services;
 public class CourseService : ICourseService
 {
     private readonly AppDbContext _db;
+    private readonly INotificationService _notificationService;
 
-    public CourseService(AppDbContext db) => _db = db;
+    public CourseService(AppDbContext db, INotificationService notificationService)
+    {
+        _db = db;
+        _notificationService = notificationService;
+    }
 
-    // HÀM LẤY DANH SÁCH (ĐÃ GỘP ĐẦY ĐỦ TÍNH NĂNG LỌC VÀ PHÂN QUYỀN PHÒNG BAN)
-    public async Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null, int? userId = null, int? level = null)
+    // HÀM LẤY DANH SÁCH (Đã gộp đầy đủ tính năng lọc và phân quyền phòng ban)
+    public async Task<PagedResponse<CourseResponse>> GetCoursesAsync(int page, int pageSize, string? search, bool? isPublished = null, int? categoryId = null, int? userId = null, int? level = null, bool isInstructorManagement = false, bool isAdmin = false)
     {
         var query = _db.Courses
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
             .Where(c => !c.IsDeleted) // Đảm bảo lọc IsDeleted ngay từ đầu
             .AsQueryable();
+
+        // 0. [MỚI] Nếu là màn hình quản lý của Giáo viên -> CHỈ thấy khoá của mình
+        // TUY NHIÊN: Admin thì phải thấy hết
+        if (isInstructorManagement && userId.HasValue && !isAdmin)
+        {
+            query = query.Where(c => c.CreatedById == userId.Value);
+        }
 
         // 1. Lọc theo search, category, published như cũ
         if (!string.IsNullOrWhiteSpace(search))
@@ -40,7 +52,7 @@ public class CourseService : ICourseService
             {
                 // 1. Loại trừ các khoá đã có trong Enrollments
                 var enrolledCourseIds = await _db.Enrollments
-                    .Where(e => e.UserId == userId.Value && !e.IsDeleted)
+                    .Where(e => e.UserId == userId.Value && !e.IsDeleted && e.Status != "Rejected")
                     .Select(e => e.CourseId)
                     .ToListAsync();
                 
@@ -57,11 +69,11 @@ public class CourseService : ICourseService
             }
         }
 
-        // 2. [QUAN TRỌNG] Lọc theo tiến độ và phòng ban (Nếu không phải Admin)
-        if (userId.HasValue)
+        // 2. [QUAN TRỌNG] Lọc theo tiến độ và phòng ban (Nếu không phải Admin/Instructor)
+        if (userId.HasValue && !isAdmin)
         {
             var user = await _db.Users.FindAsync(userId);
-            if (user?.Role != "Admin")
+            if (user?.Role != "Admin" && user?.Role != "Instructor" && user?.Role != "Giảng viên")
             {
                 // Kiểm tra xem đã hoàn thành toàn bộ Level 1 chưa
                 var level1CourseIds = await _db.Courses
@@ -85,21 +97,23 @@ public class CourseService : ICourseService
                 else
                 {
                     // Nếu đã xong Level 1 -> Chỉ hiện Level 2 nếu thuộc phòng ban hoặc đã ghi danh
-                    var myCourseGroupIds = await _db.UserGroupMembers
-                        .Where(m => m.UserId == userId)
+                    // [MỚI] Lấy danh sách ID các khoá học thuộc phòng ban của user
+                    var allowedCourseIdsForMyDepts = await _db.UserGroupMembers
+                        .Where(m => m.UserId == userId.Value && !m.IsDeleted)
                         .Join(_db.DepartmentCourseGroups, m => m.GroupId, dcg => dcg.DepartmentId, (m, dcg) => dcg.CourseGroupId)
+                        .Join(_db.CourseGroupCourses.Where(cgc => !cgc.IsDeleted), cgid => cgid, cgc => cgc.GroupId, (cgid, cgc) => cgc.CourseId)
+                        .Distinct()
                         .ToListAsync();
 
                     var myEnrolledCourseIds = await _db.Enrollments
-                        .Where(e => e.UserId == userId && !e.IsDeleted)
+                        .Where(e => e.UserId == userId.Value && !e.IsDeleted && e.Status != "Rejected")
                         .Select(e => e.CourseId)
                         .ToListAsync();
 
                     query = query.Where(c =>
                         c.Level != 2 || 
                         myEnrolledCourseIds.Contains(c.Id) || 
-                        _db.CourseGroupCourses.Any(cgi => cgi.CourseId == c.Id && myCourseGroupIds.Contains(cgi.GroupId))
-                    );
+                        allowedCourseIdsForMyDepts.Contains(c.Id));
                 }
             }
         }
@@ -127,7 +141,9 @@ public class CourseService : ICourseService
                 _db.Quizzes.Where(q => q.CourseId == c.Id && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id)).OrderByDescending(q => q.CreatedAt).Select(q => (int?)q.Id).FirstOrDefault(),
                 c.CategoryId,
                 c.Category != null ? c.Category.Name : null,
-                c.Level
+                c.Level,
+                c.QuizRetakeWaitTimeMinutes,
+                c.QuizMaxRetakesPerDay
             ))
             .ToListAsync();
 
@@ -173,11 +189,13 @@ public class CourseService : ICourseService
              if (!isStillInDept) isEnrolled = false; // Coi như chưa ghi danh nếu đã rời phòng ban
         }
 
-        var finalQuizId = await _db.Quizzes
+        var extraQuizzes = await _db.Quizzes
             .Where(q => q.CourseId == courseId && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
-            .OrderByDescending(q => q.CreatedAt)
-            .Select(q => (int?)q.Id)
-            .FirstOrDefaultAsync();
+            .OrderBy(q => q.CreatedAt)
+            .Select(q => new QuizSummaryResponse(q.Id, q.Title))
+            .ToListAsync();
+
+        var finalQuizId = extraQuizzes.LastOrDefault()?.Id;
 
         return new CourseDetailResponse(
             course.Id, course.Title, course.Description, course.CoverImageUrl,
@@ -188,7 +206,7 @@ public class CourseService : ICourseService
                     l.Id, l.Title, l.Type, 
                     (isEnrolled || isAdmin || l.IsFreePreview) ? l.Content : null, // Ẩn content nếu chưa ghi danh
                     (isEnrolled || isAdmin || l.IsFreePreview) ? (l.VideoStorageUrl ?? l.VideoUrl) : null, // Ẩn video nếu chưa ghi danh
-                    l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
+                    l.VideoDurationSeconds, l.ReadingDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
                     (isEnrolled || isAdmin) ? l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList() : new List<AttachmentResponse>(),
                     l.QuizId
                 )).ToList()
@@ -200,7 +218,10 @@ public class CourseService : ICourseService
             finalQuizId,             // Đối số 16
             course.CategoryId,       // Đối số 17 (Mới)
             course.Category?.Name,   // Đối số 18 (Mới)
-            course.Level             // Đối số 19 (Mới)
+            course.Level,            // Đối số 19 (Mới)
+            extraQuizzes,            // Đối số 20 (Mới)
+            course.QuizRetakeWaitTimeMinutes,
+            course.QuizMaxRetakesPerDay
         );
     }
 
@@ -259,7 +280,7 @@ public class CourseService : ICourseService
                     l.Id, l.Title, l.Type,
                     l.IsFreePreview ? l.Content : null,
                     l.IsFreePreview ? (l.VideoStorageUrl ?? l.VideoUrl) : null,
-                    l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
+                    l.VideoDurationSeconds, l.ReadingDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
                     new List<AttachmentResponse>(),
                     l.QuizId
                 )).ToList()
@@ -271,7 +292,11 @@ public class CourseService : ICourseService
             _db.Quizzes.Where(q => q.CourseId == course.Id && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id)).OrderByDescending(q => q.CreatedAt).Select(q => (int?)q.Id).FirstOrDefault(),
             course.CategoryId,
             course.Category?.Name,
-            course.Level
+            course.Level,
+            await _db.Quizzes.Where(q => q.CourseId == course.Id && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
+                .Select(q => new QuizSummaryResponse(q.Id, q.Title)).ToListAsync(),
+            course.QuizRetakeWaitTimeMinutes,
+            course.QuizMaxRetakesPerDay
         );
     }
 
@@ -288,11 +313,20 @@ public class CourseService : ICourseService
             CompletionDeadlineDays = request.CompletionDeadlineDays,
             CompletionEndDate = request.CompletionEndDate,
             CategoryId = request.CategoryId,
-            Level = request.Level
+            Level = request.Level,
+            IsPublished = request.IsPublished,
+            QuizRetakeWaitTimeMinutes = request.QuizRetakeWaitTimeMinutes,
+            QuizMaxRetakesPerDay = request.QuizMaxRetakesPerDay
         };
 
         _db.Courses.Add(course);
         await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify users if published
+        if (course.IsPublished)
+        {
+            await NotifyNewCourseAsync(course);
+        }
 
         var user = await _db.Users.FindAsync(userId);
         var categoryName = course.CategoryId.HasValue ? (await _db.Categories.FindAsync(course.CategoryId))?.Name : null;
@@ -301,15 +335,20 @@ public class CourseService : ICourseService
             course.IsPublished, course.PassScore, user!.FullName, course.CreatedAt, 0, 0, 0,
             course.EnrollStartDate, course.EnrollEndDate,
             course.CompletionDeadlineDays, course.CompletionEndDate,
-            course.RequiresApproval, null, course.CategoryId, categoryName, course.Level);
+            course.RequiresApproval, null, course.CategoryId, categoryName, course.Level,
+            course.QuizRetakeWaitTimeMinutes, course.QuizMaxRetakesPerDay);
     }
 
-    public async Task<CourseResponse> UpdateCourseAsync(int courseId, UpdateCourseRequest request)
+    public async Task<CourseResponse> UpdateCourseAsync(int courseId, UpdateCourseRequest request, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses.Include(c => c.CreatedBy).FirstOrDefaultAsync(c => c.Id == courseId)
             ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
 
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa khóa học này.");
+
         course.Title = request.Title;
+        // ... (rest of the code stays same)
         course.Description = request.Description;
         course.PassScore = request.PassScore;
         course.IsPublished = request.IsPublished;
@@ -320,8 +359,17 @@ public class CourseService : ICourseService
         course.UpdatedAt = DateTime.UtcNow;
         course.CategoryId = request.CategoryId;
         course.Level = request.Level;
+        course.QuizRetakeWaitTimeMinutes = request.QuizRetakeWaitTimeMinutes;
+        course.QuizMaxRetakesPerDay = request.QuizMaxRetakesPerDay;
 
+        bool wasPublished = (bool)_db.Entry(course).OriginalValues["IsPublished"];
         await _db.SaveChangesAsync();
+
+        // [NOTIFICATION] Notify users if it just got published
+        if (!wasPublished && course.IsPublished)
+        {
+            await NotifyNewCourseAsync(course);
+        }
 
         var finalQuizId = await _db.Quizzes
             .Where(q => q.CourseId == courseId && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
@@ -339,19 +387,26 @@ public class CourseService : ICourseService
             course.EnrollStartDate, course.EnrollEndDate,
             course.CompletionDeadlineDays, course.CompletionEndDate,
             course.RequiresApproval,
-            finalQuizId, course.CategoryId, categoryName, course.Level);
+            finalQuizId, course.CategoryId, categoryName, course.Level,
+            course.QuizRetakeWaitTimeMinutes, course.QuizMaxRetakesPerDay);
     }
 
-    public async Task DeleteCourseAsync(int courseId)
+    public async Task DeleteCourseAsync(int courseId, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền xóa khóa học này.");
+
         course.IsDeleted = true; course.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
     }
 
-    public async Task<string> UploadCoverImageAsync(int courseId, Stream fileStream, string fileName)
+    public async Task<string> UploadCoverImageAsync(int courseId, Stream fileStream, string fileName, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền tải lên ảnh bìa cho khóa học này.");
+
         var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "covers");
         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
         var ext = Path.GetExtension(fileName);
@@ -370,13 +425,33 @@ public class CourseService : ICourseService
         return new CertificateTemplateDto(template.UseBuiltInTemplate, template.HtmlTemplate, template.BackgroundImageUrl, template.LogoUrl, template.SignatureImageUrl, template.SignatureName, template.SignatureTitle, template.TitleText, template.BodyText, template.FooterText, template.PrimaryColor);
     }
 
-    public async Task<CertificateTemplateDto> SaveCourseCertificateTemplateAsync(int courseId, CertificateTemplateDto request)
+    public async Task<CertificateTemplateDto> SaveCourseCertificateTemplateAsync(int courseId, CertificateTemplateDto request, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Khóa học không tồn tại.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền thay đổi mẫu chứng chỉ của khóa học này.");
+
         var template = await _db.CertificateTemplates.FirstOrDefaultAsync(t => t.CourseId == courseId);
         if (template == null) { template = new CertificateTemplate { CourseId = courseId }; _db.CertificateTemplates.Add(template); }
         template.UseBuiltInTemplate = request.UseBuiltInTemplate; template.HtmlTemplate = request.HtmlTemplate; template.BackgroundImageUrl = request.BackgroundImageUrl; template.LogoUrl = request.LogoUrl; template.SignatureImageUrl = request.SignatureImageUrl; template.SignatureName = request.SignatureName; template.SignatureTitle = request.SignatureTitle; template.TitleText = request.TitleText; template.BodyText = request.BodyText; template.FooterText = request.FooterText; template.PrimaryColor = request.PrimaryColor;
         await _db.SaveChangesAsync();
         return request;
+    }
+
+    private async Task NotifyNewCourseAsync(Course course)
+    {
+        // For simplicity, notify ALL users for now. 
+        // In a real system, you might filter by department for Level 2 courses.
+        var users = await _db.Users.Where(u => u.IsActive && !u.IsDeleted).ToListAsync();
+        foreach (var user in users)
+        {
+            await _notificationService.CreateNotificationAsync(
+                user.Id,
+                "Khóa học mới vừa ra mắt",
+                $"Khóa học '{course.Title}' đã được xuất bản. Hãy khám phá ngay!",
+                $"/courses/{course.Id}",
+                "NewCourse"
+            );
+        }
     }
 }

@@ -33,7 +33,8 @@ public class UserService : IUserService
             .Take(pageSize)
             .Select(u => new UserResponse(
                 u.Id, u.FullName, u.Email, u.Role, u.IsActive, u.Phone, u.Address, u.Bio, u.Avatar, u.CreatedAt,
-                _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => gm.Group.Name).FirstOrDefault()
+                _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => gm.Group.Name).FirstOrDefault(),
+                _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => (int?)gm.GroupId).FirstOrDefault()
             ))
             .ToListAsync();
 
@@ -61,15 +62,16 @@ public class UserService : IUserService
         var user = await _db.Users.FindAsync(userId) 
             ?? throw new KeyNotFoundException("Tài khoản không tồn tại.");
             
-        var groupName = await _db.UserGroupMembers
+        var group = await _db.UserGroupMembers
             .Where(gm => gm.UserId == userId)
-            .Select(gm => gm.Group.Name)
+            .Select(gm => new { Name = gm.Group.Name, Id = (int?)gm.GroupId })
             .FirstOrDefaultAsync();
 
         return new UserResponse(
             user.Id, user.FullName, user.Email, user.Role, user.IsActive, 
             user.Phone, user.Address, user.Bio, user.Avatar, user.CreatedAt, 
-            groupName
+            group?.Name,
+            group?.Id
         );
     }
 
@@ -129,7 +131,7 @@ public class UserService : IUserService
         }
 
         await _db.SaveChangesAsync();
-        return new UserResponse(user.Id, user.FullName, user.Email, user.Role, user.IsActive, user.Phone, user.Address, user.Bio, user.Avatar, user.CreatedAt);
+        return await GetUserProfileAsync(userId);
     }
 
     public async Task ChangePasswordAsync(int userId, ChangePasswordRequest request)
@@ -173,15 +175,61 @@ public class UserService : IUserService
 
         if (request.GroupId.HasValue)
         {
-            var existingMember = _db.UserGroupMembers.FirstOrDefault(m => m.UserId == userId);
-            if (existingMember != null) _db.UserGroupMembers.Remove(existingMember);
-
-            _db.UserGroupMembers.Add(new UserGroupMember
+            var existingMember = await _db.UserGroupMembers.FirstOrDefaultAsync(m => m.UserId == userId);
+            if (existingMember == null || existingMember.GroupId != request.GroupId.Value)
             {
-                UserId = userId,
-                GroupId = request.GroupId.Value,
-                AddedAt = DateTime.UtcNow
-            });
+                if (existingMember != null) _db.UserGroupMembers.Remove(existingMember);
+
+                _db.UserGroupMembers.Add(new UserGroupMember
+                {
+                    UserId = userId,
+                    GroupId = request.GroupId.Value,
+                    AddedAt = DateTime.UtcNow
+                });
+
+                // TỰ ĐỘNG GHI DANH KHI VÀO PHÒNG
+                var activeCourseGroupIds = await _db.DepartmentCourseGroups
+                    .Where(dcg => dcg.DepartmentId == request.GroupId.Value)
+                    .Select(dcg => dcg.CourseGroupId)
+                    .ToListAsync();
+
+                if (activeCourseGroupIds.Any())
+                {
+                    var courseIds = await _db.CourseGroupCourses
+                        .Where(cgc => activeCourseGroupIds.Contains(cgc.GroupId) && !cgc.IsDeleted)
+                        .Select(cgc => cgc.CourseId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    var existingCourseIds = await _db.Enrollments
+                        .Where(e => e.UserId == userId && !e.IsDeleted)
+                        .Select(e => e.CourseId)
+                        .ToListAsync();
+
+                    foreach (var courseId in courseIds)
+                    {
+                        if (!existingCourseIds.Contains(courseId))
+                        {
+                            _db.Enrollments.Add(new Enrollment
+                            {
+                                UserId = userId,
+                                CourseId = courseId,
+                                Status = "Approved",
+                                IsMandatory = true,
+                                GroupEnrollId = request.GroupId.Value,
+                                EnrolledAt = DateTime.UtcNow,
+                                ApprovedAt = DateTime.UtcNow
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+             // Nếu set GroupId về null -> Xóa mapping cũ
+             var existingMember = await _db.UserGroupMembers.FirstOrDefaultAsync(m => m.UserId == userId);
+             if (existingMember != null) _db.UserGroupMembers.Remove(existingMember);
         }
 
         await _db.SaveChangesAsync();
@@ -221,6 +269,35 @@ public class UserService : IUserService
                 GroupId = request.GroupId.Value,
                 AddedAt = DateTime.UtcNow
             });
+
+            // TỰ ĐỘNG GHI DANH KHI VÀO PHÒNG
+            var activeCourseGroupIds = await _db.DepartmentCourseGroups
+                .Where(dcg => dcg.DepartmentId == request.GroupId.Value)
+                .Select(dcg => dcg.CourseGroupId)
+                .ToListAsync();
+
+            if (activeCourseGroupIds.Any())
+            {
+                var courseIds = await _db.CourseGroupCourses
+                    .Where(cgc => activeCourseGroupIds.Contains(cgc.GroupId) && !cgc.IsDeleted)
+                    .Select(cgc => cgc.CourseId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var courseId in courseIds)
+                {
+                    _db.Enrollments.Add(new Enrollment
+                    {
+                        UserId = user.Id,
+                        CourseId = courseId,
+                        Status = "Approved",
+                        IsMandatory = true,
+                        GroupEnrollId = request.GroupId.Value,
+                        EnrolledAt = DateTime.UtcNow,
+                        ApprovedAt = DateTime.UtcNow
+                    });
+                }
+            }
         }
 
         await _db.SaveChangesAsync();

@@ -42,8 +42,11 @@ public class QuizService : IQuizService
                         qb.OptionC,
                         qb.OptionD,
                         qb.CorrectAnswer,
-                        qb.Points
-                    )).ToList()
+                        qb.Points,
+                        qb.Explanation
+                    )).ToList(),
+                q.RetakeWaitTimeMinutes,
+                q.MaxRetakesPerDay
             ))
             .FirstOrDefaultAsync();
     }
@@ -69,6 +72,8 @@ public class QuizService : IQuizService
             QuestionCount = request.QuestionCount,
             ShuffleQuestions = request.ShuffleQuestions,
             ShuffleAnswers = request.ShuffleAnswers,
+            RetakeWaitTimeMinutes = request.RetakeWaitTimeMinutes,
+            MaxRetakesPerDay = request.MaxRetakesPerDay,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -89,6 +94,7 @@ public class QuizService : IQuizService
             OptionD = request.OptionD ?? "",
             CorrectAnswer = string.IsNullOrWhiteSpace(request.CorrectAnswer) ? "A" : request.CorrectAnswer,
             Points = 1.0m, // Điểm cơ sở, logic chia 10 nằm ở hàm Submit
+            Explanation = request.Explanation,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -104,7 +110,7 @@ public class QuizService : IQuizService
     public async Task<QuizResultResponse> SubmitQuizAsync(int userId, int attemptId, SubmitQuizRequest request)
     {
         var attempt = await _db.QuizAttempts
-            .Include(a => a.Quiz)
+            .Include(a => a.Quiz).ThenInclude(q => q.Course)
             .Include(a => a.Answers).ThenInclude(a => a.Question)
             .FirstOrDefaultAsync(a => a.Id == attemptId && a.UserId == userId)
             ?? throw new KeyNotFoundException("Không tìm thấy phiên thi.");
@@ -130,7 +136,7 @@ public class QuizService : IQuizService
 
             details.Add(new QuizAnswerDetailResponse(
                 ans.QuestionId, ans.Question.QuestionText, submitted.SelectedAnswer,
-                ans.Question.CorrectAnswer, isCorrect));
+                ans.Question.CorrectAnswer, isCorrect, ans.Question.Explanation));
         }
 
         // TƯ DUY TÍNH ĐIỂM: Chia đều 10 điểm cho tổng số câu
@@ -138,7 +144,8 @@ public class QuizService : IQuizService
         decimal finalScore = Math.Round(rawScore, 1);
 
         attempt.Score = finalScore;
-        attempt.IsPassed = finalScore >= 5.0m; // Pass tại 5 điểm
+        // TƯ DUY MỚI: Dựa trên PassScore của chính đề thi hoặc khóa học
+        attempt.IsPassed = finalScore >= (decimal)attempt.Quiz.PassScore;
         attempt.Status = "Submitted";
         attempt.SubmittedAt = DateTime.UtcNow;
 
@@ -163,12 +170,22 @@ public class QuizService : IQuizService
             }
         }
 
-        return new QuizResultResponse(attemptId, finalScore, correctCount, totalQuestions, attempt.IsPassed, details);
+        // Tính số lần còn lại trong ngày
+        var startOfToday = DateTime.UtcNow.Date;
+        var attemptsDoneToday = await _db.QuizAttempts.CountAsync(a => a.UserId == userId && a.QuizId == attempt.QuizId && a.StartedAt >= startOfToday && a.Status == "Submitted");
+        int maxAllowed = attempt.Quiz.MaxRetakesPerDay ?? attempt.Quiz.Course.QuizMaxRetakesPerDay;
+        int remainingAttempts = Math.Max(0, maxAllowed - attemptsDoneToday);
+        int waitMinutes = attempt.Quiz.RetakeWaitTimeMinutes ?? attempt.Quiz.Course.QuizRetakeWaitTimeMinutes;
+
+        return new QuizResultResponse(attemptId, finalScore, correctCount, totalQuestions, attempt.IsPassed, details, remainingAttempts, waitMinutes);
     }
 
     public async Task<StartQuizResponse> StartQuizAsync(int userId, int quizId)
     {
-        var quiz = await _db.Quizzes.Include(q => q.Questions).FirstOrDefaultAsync(q => q.Id == quizId)
+        var quiz = await _db.Quizzes
+            .Include(q => q.Questions)
+            .Include(q => q.Course)
+            .FirstOrDefaultAsync(q => q.Id == quizId && !q.IsDeleted)
             ?? throw new KeyNotFoundException("Không tìm thấy bài thi.");
 
         var existingAttempt = await _db.QuizAttempts
@@ -179,7 +196,43 @@ public class QuizService : IQuizService
         {
             var draftAnswers = existingAttempt.Answers.Where(a => !string.IsNullOrEmpty(a.SelectedAnswer)).ToDictionary(a => a.QuestionId, a => a.SelectedAnswer!);
             var restoredQuestions = existingAttempt.Answers.Select(a => new QuizQuestionResponse(a.QuestionId, a.Question.QuestionText, a.Question.OptionA, a.Question.OptionB, a.Question.OptionC, a.Question.OptionD)).ToList();
-            return new StartQuizResponse(existingAttempt.Id, quiz.TimeLimitMinutes, existingAttempt.StartedAt, restoredQuestions, draftAnswers, existingAttempt.RemainingSeconds);
+            
+            // Tính số lượt còn lại cho ngày hôm nay
+            var t = DateTime.UtcNow.Date;
+            var doneToday = await _db.QuizAttempts.CountAsync(a => a.UserId == userId && a.QuizId == quizId && a.StartedAt >= t && a.Status == "Submitted");
+            int max = quiz.MaxRetakesPerDay ?? quiz.Course.QuizMaxRetakesPerDay;
+            int remaining = Math.Max(0, max - doneToday);
+
+            return new StartQuizResponse(existingAttempt.Id, quiz.TimeLimitMinutes, existingAttempt.StartedAt, restoredQuestions, draftAnswers, existingAttempt.RemainingSeconds, remaining);
+        }
+
+        // --- KIỂM TRA TƯ DUY MỚI: COOLDOWN & DAILY LIMIT ---
+        var today = DateTime.UtcNow.Date;
+        var finishedAttemptsToday = await _db.QuizAttempts
+            .Where(a => a.UserId == userId && a.QuizId == quizId && a.StartedAt >= today && a.Status == "Submitted")
+            .OrderByDescending(a => a.SubmittedAt)
+            .ToListAsync();
+
+        // 1. Giới hạn số lần thi trong ngày (Lấy từ Quiz, fallback Course)
+        int maxRetakes = quiz.MaxRetakesPerDay ?? quiz.Course.QuizMaxRetakesPerDay;
+        int remainingAttempts = maxRetakes - finishedAttemptsToday.Count;
+
+        if (remainingAttempts <= 0)
+        {
+            throw new InvalidOperationException($"Bạn đã hết lượt làm bài trong ngày (Tối đa {maxRetakes} lần/ngày). Vui lòng quay lại vào ngày mai.");
+        }
+
+        // 2. Chờ N phút sau khi làm sai (Lấy từ Quiz, fallback Course)
+        var lastAttempt = finishedAttemptsToday.FirstOrDefault();
+        if (lastAttempt != null && !lastAttempt.IsPassed && lastAttempt.SubmittedAt.HasValue)
+        {
+            int waitMinutes = quiz.RetakeWaitTimeMinutes ?? quiz.Course.QuizRetakeWaitTimeMinutes;
+            var timePassed = DateTime.UtcNow - lastAttempt.SubmittedAt.Value;
+            if (timePassed.TotalMinutes < waitMinutes)
+            {
+                var remainingMinutes = Math.Ceiling(waitMinutes - timePassed.TotalMinutes);
+                throw new InvalidOperationException($"Vui lòng ôn tập thêm và quay lại sau {remainingMinutes} phút.");
+            }
         }
 
         var questions = quiz.Questions.Take(quiz.QuestionCount).ToList();
@@ -191,7 +244,7 @@ public class QuizService : IQuizService
         await _db.SaveChangesAsync();
 
         var qResponses = questions.Select(q => new QuizQuestionResponse(q.Id, q.QuestionText, q.OptionA, q.OptionB, q.OptionC, q.OptionD)).ToList();
-        return new StartQuizResponse(attempt.Id, quiz.TimeLimitMinutes, attempt.StartedAt, qResponses);
+        return new StartQuizResponse(attempt.Id, quiz.TimeLimitMinutes, attempt.StartedAt, qResponses, null, attempt.RemainingSeconds, remainingAttempts);
     }
 
     public async Task SaveAnswerDraftAsync(int attemptId, int userId, int questionId, string? selected)
@@ -208,6 +261,18 @@ public class QuizService : IQuizService
 
     public async Task<List<QuizResultResponse>> GetUserQuizResultsAsync(int userId, int quizId)
     {
-        return await _db.QuizAttempts.Where(a => a.UserId == userId && a.QuizId == quizId && a.Status == "Submitted").Select(a => new QuizResultResponse(a.Id, a.Score ?? 0, a.Answers.Count(ans => ans.IsCorrect == true), a.Answers.Count, a.IsPassed, new List<QuizAnswerDetailResponse>())).ToListAsync();
+        return await _db.QuizAttempts
+            .Where(a => a.UserId == userId && a.QuizId == quizId && a.Status == "Submitted")
+            .Select(a => new QuizResultResponse(
+                a.Id, 
+                a.Score ?? 0, 
+                a.Answers.Count(ans => ans.IsCorrect == true), 
+                a.Answers.Count, 
+                a.IsPassed, 
+                new List<QuizAnswerDetailResponse>(), 
+                0, // RemainingAttemptsToday - Bắt buộc truyền tường minh để tránh lỗi CS0854
+                0 // WaitMinutes
+            ))
+            .ToListAsync();
     }
 }

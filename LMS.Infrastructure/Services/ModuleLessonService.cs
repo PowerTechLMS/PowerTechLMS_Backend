@@ -11,21 +11,28 @@ public class ModuleService : IModuleService
     private readonly AppDbContext _db;
     public ModuleService(AppDbContext db) => _db = db;
 
-    public async Task<ModuleResponse> CreateModuleAsync(int courseId, CreateModuleRequest request)
+    public async Task<ModuleResponse> CreateModuleAsync(int courseId, CreateModuleRequest request, int userId, bool isAdmin = false)
     {
+        var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý chương cho khóa học này.");
+
         var module = new Module { CourseId = courseId, Title = request.Title, SortOrder = request.SortOrder };
         _db.Modules.Add(module);
         await _db.SaveChangesAsync();
         return new ModuleResponse(module.Id, module.Title, module.SortOrder, new List<LessonResponse>());
     }
 
-
-    public async Task<ModuleResponse> UpdateModuleAsync(int moduleId, UpdateModuleRequest request)
+    public async Task<ModuleResponse> UpdateModuleAsync(int courseId, int moduleId, UpdateModuleRequest request, int userId, bool isAdmin = false)
     {
+        var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý chương cho khóa học này.");
+
         var module = await _db.Modules.Include(m => m.Lessons.OrderBy(l => l.SortOrder))
             .ThenInclude(l => l.Attachments)
-            .FirstOrDefaultAsync(m => m.Id == moduleId)
-            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+            .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId)
+            ?? throw new KeyNotFoundException("Không tìm thấy chương trong khóa học này.");
 
         module.Title = request.Title;
         module.SortOrder = request.SortOrder;
@@ -33,26 +40,34 @@ public class ModuleService : IModuleService
 
         return new ModuleResponse(module.Id, module.Title, module.SortOrder,
             module.Lessons.Select(l => new LessonResponse(l.Id, l.Title, l.Type, l.Content, l.VideoStorageUrl ?? l.VideoUrl,
-                l.VideoDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
+                l.VideoDurationSeconds, l.ReadingDurationSeconds, l.VideoStatus, l.SortOrder, l.IsFreePreview,
                 l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
                 l.QuizId
             )).ToList());
     }
 
-    public async Task DeleteModuleAsync(int moduleId)
+    public async Task DeleteModuleAsync(int courseId, int moduleId, int userId, bool isAdmin = false)
     {
-        var module = await _db.Modules.FindAsync(moduleId)
-            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý chương cho khóa học này.");
+
+        var module = await _db.Modules.FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId)
+            ?? throw new KeyNotFoundException("Không tìm thấy chương trong khóa học này.");
         module.IsDeleted = true;
         module.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
     }
 
-    public async Task UpdateSortOrderAsync(List<SortOrderItem> items)
+    public async Task UpdateSortOrderAsync(int courseId, List<SortOrderItem> items, int userId, bool isAdmin = false)
     {
+        var course = await _db.Courses.FindAsync(courseId) ?? throw new KeyNotFoundException("Không tìm thấy khóa học.");
+        if (!isAdmin && course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý chương cho khóa học này.");
+
         foreach (var item in items)
         {
-            var module = await _db.Modules.FindAsync(item.Id);
+            var module = await _db.Modules.FirstOrDefaultAsync(m => m.Id == item.Id && m.CourseId == courseId);
             if (module != null) module.SortOrder = item.SortOrder;
         }
         await _db.SaveChangesAsync();
@@ -94,8 +109,14 @@ public class LessonService : ILessonService
         return (stream, attachment.FileName, contentType);
     }
 
-    public async Task<LessonResponse> CreateLessonAsync(int moduleId, CreateLessonRequest request)
+    public async Task<LessonResponse> CreateLessonAsync(int moduleId, CreateLessonRequest request, int userId, bool isAdmin = false)
     {
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
         var lesson = new Lesson
         {
             ModuleId = moduleId,
@@ -105,12 +126,14 @@ public class LessonService : ILessonService
             VideoUrl = request.VideoUrl,
             SortOrder = request.SortOrder,
             IsFreePreview = request.IsFreePreview,
-            VideoStatus = request.VideoStatus
+            VideoStatus = request.VideoStatus,
+            VideoDurationSeconds = request.VideoDurationSeconds,
+            ReadingDurationSeconds = request.ReadingDurationSeconds
         };
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
         return new LessonResponse(lesson.Id, lesson.Title, lesson.Type, lesson.Content, lesson.VideoStorageUrl ?? lesson.VideoUrl,
-            lesson.VideoDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview, new List<AttachmentResponse>(), lesson.QuizId);
+            lesson.VideoDurationSeconds, lesson.ReadingDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview, new List<AttachmentResponse>(), lesson.QuizId);
     }
 
     public async Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request)
@@ -145,10 +168,16 @@ public class LessonService : ILessonService
         // Trả về ID để Frontend tiếp tục gọi API AddQuestion
         return newQuiz.Id;
     }
-    public async Task<LessonResponse> UpdateLessonAsync(int lessonId, UpdateLessonRequest request)
+    public async Task<LessonResponse> UpdateLessonAsync(int moduleId, int lessonId, UpdateLessonRequest request, int userId, bool isAdmin = false)
     {
-        var lesson = await _db.Lessons.Include(l => l.Attachments).FirstOrDefaultAsync(l => l.Id == lessonId)
-            ?? throw new KeyNotFoundException("Không tìm thấy bài học.");
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
+        var lesson = await _db.Lessons.Include(l => l.Attachments).FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId)
+            ?? throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
 
         lesson.Title = request.Title;
         lesson.Type = request.Type;
@@ -157,36 +186,58 @@ public class LessonService : ILessonService
         lesson.SortOrder = request.SortOrder;
         lesson.IsFreePreview = request.IsFreePreview;
         lesson.VideoDurationSeconds = request.VideoDurationSeconds;
+        lesson.ReadingDurationSeconds = request.ReadingDurationSeconds;
         lesson.VideoStatus = request.VideoStatus;
         await _db.SaveChangesAsync();
 
         return new LessonResponse(lesson.Id, lesson.Title, lesson.Type, lesson.Content, lesson.VideoStorageUrl ?? lesson.VideoUrl,
-            lesson.VideoDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview,
+            lesson.VideoDurationSeconds, lesson.ReadingDurationSeconds, lesson.VideoStatus, lesson.SortOrder, lesson.IsFreePreview,
             lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
             lesson.QuizId);
     }
 
-    public async Task DeleteLessonAsync(int lessonId)
+    public async Task DeleteLessonAsync(int moduleId, int lessonId, int userId, bool isAdmin = false)
     {
-        var lesson = await _db.Lessons.FindAsync(lessonId)
-            ?? throw new KeyNotFoundException("Không tìm thấy bài học.");
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
+        var lesson = await _db.Lessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId)
+            ?? throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
         lesson.IsDeleted = true;
         lesson.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
     }
 
-    public async Task UpdateSortOrderAsync(List<SortOrderItem> items)
+    public async Task UpdateSortOrderAsync(int moduleId, List<SortOrderItem> items, int userId, bool isAdmin = false)
     {
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
         foreach (var item in items)
         {
-            var lesson = await _db.Lessons.FindAsync(item.Id);
+            var lesson = await _db.Lessons.FirstOrDefaultAsync(l => l.Id == item.Id && l.ModuleId == moduleId);
             if (lesson != null) lesson.SortOrder = item.SortOrder;
         }
         await _db.SaveChangesAsync();
     }
 
-    public async Task<AttachmentResponse> UploadAttachmentAsync(int lessonId, Stream fileStream, string fileName, long fileSize)
+    public async Task<string> UploadAttachmentAsync(int moduleId, int lessonId, Stream fileStream, string fileName, int userId, bool isAdmin = false)
     {
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
+        var lesson = await _db.Lessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId)
+            ?? throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
+
         var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "attachments");
         if (!Directory.Exists(uploadsDir)) Directory.CreateDirectory(uploadsDir);
 
@@ -202,11 +253,11 @@ public class LessonService : ILessonService
             LessonId = lessonId,
             FileName = fileName,
             StorageKey = $"attachments/{newFileName}",
-            FileSize = fileSize
+            FileSize = fileStream.Length
         };
         _db.LessonAttachments.Add(attachment);
         await _db.SaveChangesAsync();
-        return new AttachmentResponse(attachment.Id, attachment.FileName, attachment.FileSize);
+        return $"/uploads/attachments/{newFileName}";
     }
 
     public async Task<string> UploadVideoAsync(int lessonId, Stream fileStream, string fileName)
@@ -247,10 +298,16 @@ public class LessonService : ILessonService
         await _db.SaveChangesAsync();
     }
 
-    public async Task DeleteAttachmentAsync(int attachmentId)
+    public async Task DeleteAttachmentAsync(int moduleId, int attachmentId, int userId, bool isAdmin = false)
     {
-        var attachment = await _db.LessonAttachments.FindAsync(attachmentId)
-            ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm.");
+        var module = await _db.Modules.Include(m => m.Course).FirstOrDefaultAsync(m => m.Id == moduleId) 
+            ?? throw new KeyNotFoundException("Không tìm thấy chương.");
+        
+        if (!isAdmin && module.Course.CreatedById != userId)
+            throw new UnauthorizedAccessException("Bạn không có quyền quản lý bài học cho khóa học này.");
+
+        var attachment = await _db.LessonAttachments.Include(a => a.Lesson).FirstOrDefaultAsync(a => a.Id == attachmentId && a.Lesson.ModuleId == moduleId)
+            ?? throw new KeyNotFoundException("Không tìm thấy tệp đính kèm trong chương này.");
         attachment.IsDeleted = true;
         attachment.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();

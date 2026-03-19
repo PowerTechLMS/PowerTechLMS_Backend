@@ -24,37 +24,58 @@ public class LessonsController : ControllerBase
         _scopeFactory = scopeFactory;
     }
 
+    private int UserId
+    {
+        get
+        {
+            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("sub");
+            return claim != null ? int.Parse(claim.Value) : 0;
+        }
+    }
+    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+
     [HttpPost]
     public async Task<ActionResult> Create(int moduleId, [FromBody] CreateLessonRequest request)
-        => Ok(await _lessonService.CreateLessonAsync(moduleId, request));
+        => Ok(await _lessonService.CreateLessonAsync(moduleId, request, UserId, IsAdmin));
 
     [HttpPut("{id}")]
-    public async Task<ActionResult> Update(int id, [FromBody] UpdateLessonRequest request)
+    public async Task<ActionResult> Update(int moduleId, int id, [FromBody] UpdateLessonRequest request)
     {
-        try { return Ok(await _lessonService.UpdateLessonAsync(id, request)); }
+        try { return Ok(await _lessonService.UpdateLessonAsync(moduleId, id, request, UserId, IsAdmin)); }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(int id)
+    public async Task<ActionResult> Delete(int moduleId, int id)
     {
-        try { await _lessonService.DeleteLessonAsync(id); return NoContent(); }
+        try { await _lessonService.DeleteLessonAsync(moduleId, id, UserId, IsAdmin); return NoContent(); }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPut("sort-order")]
-    public async Task<ActionResult> UpdateSortOrder([FromBody] UpdateSortOrderRequest request)
+    public async Task<ActionResult> UpdateSortOrder(int moduleId, [FromBody] UpdateSortOrderRequest request)
     {
-        await _lessonService.UpdateSortOrderAsync(request.Items);
-        return Ok();
+        try
+        {
+            await _lessonService.UpdateSortOrderAsync(moduleId, request.Items, UserId, IsAdmin);
+            return Ok();
+        }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{lessonId}/attachments")]
     public async Task<ActionResult> UploadAttachment(int moduleId, int lessonId, IFormFile file)
     {
         if (file == null || file.Length == 0) return BadRequest(new { message = "Tệp đính kèm không hợp lệ." });
-        using var stream = file.OpenReadStream();
-        return Ok(await _lessonService.UploadAttachmentAsync(lessonId, stream, file.FileName, file.Length));
+        try
+        {
+            using var stream = file.OpenReadStream();
+            return Ok(await _lessonService.UploadAttachmentAsync(moduleId, lessonId, stream, file.FileName, UserId, IsAdmin));
+        }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{id}/video")]
@@ -146,11 +167,12 @@ public class LessonsController : ControllerBase
         return Accepted(new { message = $"Chunk {chunkIndex} received." });
     }
 
-    [HttpDelete("attachments/{attachmentId}")]
-    public async Task<ActionResult> DeleteAttachment(int attachmentId)
+    [HttpDelete("{lessonId}/attachments/{attachmentId}")]
+    public async Task<ActionResult> DeleteAttachment(int moduleId, int lessonId, int attachmentId)
     {
-        try { await _lessonService.DeleteAttachmentAsync(attachmentId); return NoContent(); }
+        try { await _lessonService.DeleteAttachmentAsync(moduleId, attachmentId, UserId, IsAdmin); return NoContent(); }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{id}/quiz")]
