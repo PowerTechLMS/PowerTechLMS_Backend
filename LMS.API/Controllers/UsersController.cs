@@ -1,9 +1,8 @@
-using System.Security.Claims;
+using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using LMS.Core.DTOs;
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace LMS.API.Controllers;
 
@@ -19,8 +18,10 @@ public class UsersController : ControllerBase
 
     [HttpGet]
     [Authorize(Policy = "UserList")]
-    public async Task<ActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
-        => Ok(await _userService.GetUsersAsync(page, pageSize, search));
+    public async Task<ActionResult> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null) => Ok(await _userService.GetUsersAsync(page, pageSize, search));
 
     [HttpPost]
     [Authorize(Policy = "UserManage")]
@@ -30,12 +31,10 @@ public class UsersController : ControllerBase
         {
             var user = await _userService.CreateUserAsync(request);
             return Ok(user);
-        }
-        catch (InvalidOperationException ex)
+        } catch(InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = ex.Message });
         }
@@ -49,25 +48,24 @@ public class UsersController : ControllerBase
         {
             var user = await _userService.GetUserProfileAsync(id);
             return Ok(user);
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
         }
-        catch (KeyNotFoundException) { return NotFound(); }
     }
+
     [HttpPut("{id}")]
     [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
-    // Lưu ý: Đổi chữ 'UpdateUserRequest' thành tên DTO/Model tương ứng của bạn nếu khác
     {
         try
         {
-            // Gọi hàm update từ Service của bạn (tên hàm có thể khác tùy bạn đặt trong IUserService)
             await _userService.UpdateUserAsync(id, request);
             return Ok(new { message = "Cập nhật thành công!" });
-        }
-        catch (KeyNotFoundException)
+        } catch(KeyNotFoundException)
         {
             return NotFound(new { message = "Không tìm thấy người dùng." });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -81,8 +79,10 @@ public class UsersController : ControllerBase
         {
             var report = await _userService.GetUserProfileReportAsync(id);
             return Ok(report);
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
         }
-        catch (KeyNotFoundException) { return NotFound(); }
     }
 
     [HttpPut("{id}/toggle-active")]
@@ -93,15 +93,18 @@ public class UsersController : ControllerBase
         {
             await _userService.ToggleActiveAsync(id, AdminId);
             return NoContent();
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
         }
-        catch (KeyNotFoundException) { return NotFound(); }
     }
 
     [HttpPost("import")]
     [Authorize(Policy = "UserManage")]
     public async Task<ActionResult> ImportUsers(IFormFile file)
     {
-        if (file == null || file.Length == 0) return BadRequest("Vui lòng chọn file Excel.");
+        if(file == null || file.Length == 0)
+            return BadRequest("Vui lòng chọn file Excel.");
         using var stream = file.OpenReadStream();
         var result = await _userService.ImportUsersAsync(stream);
         return Ok(result);

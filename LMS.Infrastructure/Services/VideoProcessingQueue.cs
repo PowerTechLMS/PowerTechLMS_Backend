@@ -5,6 +5,7 @@ namespace LMS.Infrastructure.Services;
 public interface IVideoProcessingQueue
 {
     void Enqueue(int lessonId);
+
     Task<int> DequeueAsync(CancellationToken cancellationToken);
 }
 

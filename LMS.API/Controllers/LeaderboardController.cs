@@ -1,4 +1,3 @@
-using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,18 +17,20 @@ public class LeaderboardController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId")
-                     ?? User.FindFirst("sub");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId") ??
+                User.FindFirst("sub");
 
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
+
     [HttpGet]
-    public async Task<ActionResult> GetLeaderboard([FromQuery] int top = 10)
-        => Ok(await _service.GetLeaderboardAsync(top));
+    public async Task<ActionResult> GetLeaderboard([FromQuery] int top = 10) => Ok(
+        await _service.GetLeaderboardAsync(top));
 
 
     [HttpGet("monthly")]
@@ -37,13 +38,15 @@ public class LeaderboardController : ControllerBase
 
     [HttpGet("badges/{userId}")]
     public async Task<ActionResult> GetBadges(int userId) => Ok(await _service.GetUserBadgesAsync(userId));
+
     [HttpGet("badges")]
     public IActionResult GetMyBadges()
     {
-        return Ok(new[] {
-            new { BadgeId = 1, BadgeName = "Chăm chỉ", IsEarned = true },
-            new { BadgeId = 2, BadgeName = "Điểm tuyệt đối", IsEarned = true }
-        });
+        return Ok(
+            new[]
+            {
+                new { BadgeId = 1, BadgeName = "Chăm chỉ", IsEarned = true },
+                new { BadgeId = 2, BadgeName = "Điểm tuyệt đối", IsEarned = true }
+            });
     }
-
 }

@@ -1,8 +1,11 @@
+using Hangfire;
 using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
+using LMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using LMS.Infrastructure.Services;
+using System.Diagnostics;
+using System.Security.Claims;
 
 namespace LMS.API.Controllers;
 
@@ -12,13 +15,20 @@ namespace LMS.API.Controllers;
 public class LessonsController : ControllerBase
 {
     private readonly ILessonService _lessonService;
+    private readonly IAiProcessingService _aiService;
     private readonly IVideoProcessingQueue _videoQueue;
     private readonly ILogger<LessonsController> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
 
-    public LessonsController(ILessonService lessonService, IVideoProcessingQueue videoQueue, ILogger<LessonsController> logger, IServiceScopeFactory scopeFactory)
+    public LessonsController(
+        ILessonService lessonService,
+        IAiProcessingService aiService,
+        IVideoProcessingQueue videoQueue,
+        ILogger<LessonsController> logger,
+        IServiceScopeFactory scopeFactory)
     {
         _lessonService = lessonService;
+        _aiService = aiService;
         _videoQueue = videoQueue;
         _logger = logger;
         _scopeFactory = scopeFactory;
@@ -28,31 +38,48 @@ public class LessonsController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
             return claim != null ? int.Parse(claim.Value) : 0;
         }
     }
-    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+
+    private bool IsAdmin => User.IsInRole("Admin") ||
+        User.IsInRole("Quản trị viên") ||
+        User.HasClaim("permission", "user.manage");
 
     [HttpPost]
-    public async Task<ActionResult> Create(int moduleId, [FromBody] CreateLessonRequest request)
-        => Ok(await _lessonService.CreateLessonAsync(moduleId, request, UserId, IsAdmin));
+    public async Task<ActionResult> Create(int moduleId, [FromBody] CreateLessonRequest request) => Ok(
+        await _lessonService.CreateLessonAsync(moduleId, request, UserId, IsAdmin));
 
     [HttpPut("{id}")]
     public async Task<ActionResult> Update(int moduleId, int id, [FromBody] UpdateLessonRequest request)
     {
-        try { return Ok(await _lessonService.UpdateLessonAsync(moduleId, id, request, UserId, IsAdmin)); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            return Ok(await _lessonService.UpdateLessonAsync(moduleId, id, request, UserId, IsAdmin));
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int moduleId, int id)
     {
-        try { await _lessonService.DeleteLessonAsync(moduleId, id, UserId, IsAdmin); return NoContent(); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            await _lessonService.DeleteLessonAsync(moduleId, id, UserId, IsAdmin);
+            return NoContent();
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 
     [HttpPut("sort-order")]
@@ -62,20 +89,26 @@ public class LessonsController : ControllerBase
         {
             await _lessonService.UpdateSortOrderAsync(moduleId, request.Items, UserId, IsAdmin);
             return Ok();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
         }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{lessonId}/attachments")]
     public async Task<ActionResult> UploadAttachment(int moduleId, int lessonId, IFormFile file)
     {
-        if (file == null || file.Length == 0) return BadRequest(new { message = "Tệp đính kèm không hợp lệ." });
+        if(file == null || file.Length == 0)
+            return BadRequest(new { message = "Tệp đính kèm không hợp lệ." });
         try
         {
             using var stream = file.OpenReadStream();
-            return Ok(await _lessonService.UploadAttachmentAsync(moduleId, lessonId, stream, file.FileName, UserId, IsAdmin));
+            return Ok(
+                await _lessonService.UploadAttachmentAsync(moduleId, lessonId, stream, file.FileName, UserId, IsAdmin));
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
         }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpPost("{id}/video")]
@@ -84,82 +117,101 @@ public class LessonsController : ControllerBase
     {
         using var stream = file.OpenReadStream();
         var url = await _lessonService.UploadVideoAsync(id, stream, file.FileName);
-        // Traditional upload also enqueues for processing
         _videoQueue.Enqueue(id);
         return Ok(new { url });
     }
 
     [HttpPost("{id}/video-chunk")]
     [DisableRequestSizeLimit]
-    public async Task<ActionResult> UploadVideoChunk(int id, [FromForm] int chunkIndex, [FromForm] int totalChunks, [FromForm] string fileName, IFormFile file)
+    public async Task<ActionResult> UploadVideoChunk(
+        int id,
+        [FromForm] int chunkIndex,
+        [FromForm] int totalChunks,
+        [FromForm] string fileName,
+        IFormFile file)
     {
-        _logger.LogInformation("Received chunk {ChunkIndex}/{TotalChunks} for lesson {LessonId}", chunkIndex, totalChunks, id);
+        _logger.LogInformation(
+            "Received chunk {ChunkIndex}/{TotalChunks} for lesson {LessonId}",
+            chunkIndex,
+            totalChunks,
+            id);
 
         var tempDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "temp", id.ToString());
-        if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
+        if(!Directory.Exists(tempDir))
+            Directory.CreateDirectory(tempDir);
 
         var chunkPath = Path.Combine(tempDir, $"{chunkIndex}.chunk");
-        using (var stream = new FileStream(chunkPath, FileMode.Create))
+        using(var stream = new FileStream(chunkPath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
         }
 
-        // Check if all chunks are uploaded
         var uploadedChunks = Directory.GetFiles(tempDir, "*.chunk").Length;
-        if (uploadedChunks == totalChunks)
+        if(uploadedChunks == totalChunks)
         {
             _logger.LogInformation("All chunks received for lesson {LessonId}. Starting background merge...", id);
-            
+
             var ext = Path.GetExtension(fileName);
             var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             var finalFileName = $"v_{id}_{timestamp}{ext}";
             var videoUrl = $"/uploads/videos/{finalFileName}";
 
-            // Run merge in background to unlock frontend instantly
-            _ = Task.Run(async () =>
-            {
-                try
+            _ = Task.Run(
+                async () =>
                 {
-                    var sw = System.Diagnostics.Stopwatch.StartNew();
-                    var finalDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
-                    if (!Directory.Exists(finalDir)) Directory.CreateDirectory(finalDir);
-                    var finalPath = Path.Combine(finalDir, finalFileName);
-
-                    using (var finalStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    try
                     {
-                        for (int i = 0; i < totalChunks; i++)
+                        var sw = Stopwatch.StartNew();
+                        var finalDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
+                        if(!Directory.Exists(finalDir))
+                            Directory.CreateDirectory(finalDir);
+                        var finalPath = Path.Combine(finalDir, finalFileName);
+
+                        using(var finalStream = new FileStream(
+                            finalPath,
+                            FileMode.Create,
+                            FileAccess.Write,
+                            FileShare.None))
                         {
-                            var partPath = Path.Combine(tempDir, $"{i}.chunk");
-                            using (var partStream = new FileStream(partPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            for(int i = 0; i < totalChunks; i++)
                             {
-                                await partStream.CopyToAsync(finalStream);
+                                var partPath = Path.Combine(tempDir, $"{i}.chunk");
+                                using(var partStream = new FileStream(
+                                    partPath,
+                                    FileMode.Open,
+                                    FileAccess.Read,
+                                    FileShare.Read))
+                                {
+                                    await partStream.CopyToAsync(finalStream);
+                                }
                             }
                         }
-                    }
 
-                    sw.Stop();
-                    _logger.LogInformation("Merge completed for lesson {LessonId} in {ElapsedMs}ms", id, sw.ElapsedMilliseconds);
+                        sw.Stop();
+                        _logger.LogInformation(
+                            "Merge completed for lesson {LessonId} in {ElapsedMs}ms",
+                            id,
+                            sw.ElapsedMilliseconds);
 
-                    // Clean up chunks
-                    Directory.Delete(tempDir, true);
+                        Directory.Delete(tempDir, true);
 
-                    // Update Lesson & Enqueue
-                    var storageKey = $"videos/{finalFileName}";
-                    
-                    using (var scope = _scopeFactory.CreateScope())
+                        var storageKey = $"videos/{finalFileName}";
+
+                        using(var scope = _scopeFactory.CreateScope())
+                        {
+                            var scopedLessonService = scope.ServiceProvider.GetRequiredService<ILessonService>();
+                            var scopedVideoQueue = scope.ServiceProvider.GetRequiredService<IVideoProcessingQueue>();
+
+                            await scopedLessonService.UpdateVideoMetadataAsync(id, storageKey, videoUrl);
+                            scopedVideoQueue.Enqueue(id);
+
+                            BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(id));
+                        }
+                    } catch(Exception ex)
                     {
-                        var scopedLessonService = scope.ServiceProvider.GetRequiredService<ILessonService>();
-                        var scopedVideoQueue = scope.ServiceProvider.GetRequiredService<IVideoProcessingQueue>();
-                        
-                        await scopedLessonService.UpdateVideoMetadataAsync(id, storageKey, videoUrl);
-                        scopedVideoQueue.Enqueue(id);
+                        _logger.LogError(ex, "Error in background merge for lesson {LessonId}", id);
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error in background merge for lesson {LessonId}", id);
-                }
-            });
+                });
 
             return Ok(new { url = videoUrl, status = "Merging" });
         }
@@ -170,9 +222,17 @@ public class LessonsController : ControllerBase
     [HttpDelete("{lessonId}/attachments/{attachmentId}")]
     public async Task<ActionResult> DeleteAttachment(int moduleId, int lessonId, int attachmentId)
     {
-        try { await _lessonService.DeleteAttachmentAsync(moduleId, attachmentId, UserId, IsAdmin); return NoContent(); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            await _lessonService.DeleteAttachmentAsync(moduleId, attachmentId, UserId, IsAdmin);
+            return NoContent();
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 
     [HttpPost("{id}/quiz")]
@@ -182,12 +242,10 @@ public class LessonsController : ControllerBase
         {
             var quizId = await _lessonService.CreateLessonQuizAsync(id, request);
             return Ok(new { id = quizId });
-        }
-        catch (KeyNotFoundException)
+        } catch(KeyNotFoundException)
         {
             return NotFound(new { message = "Không tìm thấy bài học để thêm Quiz." });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -201,16 +259,13 @@ public class LessonsController : ControllerBase
         {
             var (stream, fileName, contentType) = await _lessonService.GetAttachmentFileAsync(attachmentId);
             return File(stream, contentType, fileName);
-        }
-        catch (KeyNotFoundException)
+        } catch(KeyNotFoundException)
         {
             return NotFound(new { message = "Không tìm thấy tài liệu đính kèm." });
-        }
-        catch (FileNotFoundException)
+        } catch(FileNotFoundException)
         {
             return NotFound(new { message = "Tệp vật lý không còn trên máy chủ." });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return BadRequest(new { message = ex.Message });
         }

@@ -1,6 +1,7 @@
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LMS.API.Controllers;
 
@@ -16,25 +17,32 @@ public class ReportsController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst("sub");
             return claim != null ? int.Parse(claim.Value) : 0;
         }
     }
-    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+
+    private bool IsAdmin => User.IsInRole("Admin") ||
+        User.IsInRole("Quản trị viên") ||
+        User.HasClaim("permission", "user.manage");
 
     [HttpGet("training")]
-    public async Task<ActionResult> GetTrainingReport([FromQuery] int? courseId)
-        => Ok(await _reportService.GetTrainingReportAsync(courseId, UserId, IsAdmin));
+    public async Task<ActionResult> GetTrainingReport([FromQuery] int? courseId) => Ok(
+        await _reportService.GetTrainingReportAsync(courseId, UserId, IsAdmin));
 
     [HttpGet("inactive")]
-    public async Task<ActionResult> GetInactive([FromQuery] int days = 30)
-        => Ok(await _reportService.GetInactiveUsersAsync(days, UserId, IsAdmin));
+    public async Task<ActionResult> GetInactive([FromQuery] int days = 30) => Ok(
+        await _reportService.GetInactiveUsersAsync(days, UserId, IsAdmin));
 
     [HttpGet("quiz-analytics/{quizId}")]
     public async Task<ActionResult> GetQuizAnalytics(int quizId)
     {
-        try { return Ok(await _reportService.GetQuizAnalyticsAsync(quizId, UserId, IsAdmin)); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            return Ok(await _reportService.GetQuizAnalyticsAsync(quizId, UserId, IsAdmin));
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 }

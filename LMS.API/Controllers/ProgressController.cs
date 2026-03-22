@@ -24,11 +24,12 @@ public class ProgressController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub")
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId");
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("sub") ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
@@ -41,20 +42,22 @@ public class ProgressController : ControllerBase
             var result = await _progressService.CompleteLessonAsync(UserId, request.LessonId, request.IsQuizPassed);
             await _leaderboardService.CheckAndAwardBadgesAsync(UserId);
             return Ok(result);
-        }
-        catch (InvalidOperationException ex) 
-        { 
-            return BadRequest(new { message = ex.Message, type = "InvalidOperation" }); 
-        }
-        catch (Exception ex)
+        } catch(InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message, type = "InvalidOperation" });
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message, inner = ex.InnerException?.Message });
         }
     }
 
     [HttpPut("video-position")]
-    public async Task<ActionResult> UpdateVideoPosition([FromBody] UpdateVideoPositionRequest request)
-        => Ok(await _progressService.UpdateVideoPositionAsync(UserId, request.LessonId, request.PositionSeconds, request.WatchedPercent));
+    public async Task<ActionResult> UpdateVideoPosition([FromBody] UpdateVideoPositionRequest request) => Ok(
+        await _progressService.UpdateVideoPositionAsync(
+            UserId,
+            request.LessonId,
+            request.PositionSeconds,
+            request.WatchedPercent));
 
     [HttpGet("course/{courseId}")]
     public async Task<ActionResult> GetCourseProgress(int courseId)
@@ -62,8 +65,7 @@ public class ProgressController : ControllerBase
         try
         {
             return Ok(await _progressService.GetCourseProgressAsync(UserId, courseId));
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi lấy tiến độ khóa học: " + ex.Message });
         }
@@ -75,8 +77,7 @@ public class ProgressController : ControllerBase
         try
         {
             return Ok(await _progressService.GetUserProgressAsync(UserId));
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi lấy lịch sử học tập: " + ex.Message });
         }
@@ -88,14 +89,13 @@ public class ProgressController : ControllerBase
         try
         {
             return Ok(await _progressService.GetLessonProgressesAsync(UserId, courseId));
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi lấy tiến độ bài học: " + ex.Message });
         }
     }
 
     [HttpGet("can-access/{lessonId}")]
-    public async Task<ActionResult> CanAccess(int lessonId)
-        => Ok(new { canAccess = await _progressService.CanAccessLessonAsync(UserId, lessonId) });
+    public async Task<ActionResult> CanAccess(int lessonId) => Ok(
+        new { canAccess = await _progressService.CanAccessLessonAsync(UserId, lessonId) });
 }

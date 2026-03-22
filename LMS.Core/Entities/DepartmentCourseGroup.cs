@@ -5,9 +5,11 @@ namespace LMS.Core.Entities;
 public class DepartmentCourseGroup
 {
     public int DepartmentId { get; set; }
+
     public int CourseGroupId { get; set; }
 
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
+
     public int? AssignedById { get; set; }
 
     [ForeignKey("DepartmentId")]

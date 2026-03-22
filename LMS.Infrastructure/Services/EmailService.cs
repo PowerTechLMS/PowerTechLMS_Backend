@@ -1,8 +1,9 @@
-using System.Net;
-using System.Net.Mail;
+using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Mail;
 
 namespace LMS.Infrastructure.Services;
 
@@ -46,18 +47,15 @@ public class EmailService : IEmailService
 
             await client.SendMailAsync(mailMessage);
             _logger.LogInformation("Successfully sent email to {To}", to);
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {To}", to);
-            throw; // Re-throw to allow background service to handle retry
+            throw;
         }
     }
 
     public void QueueEmail(string to, string subject, string body)
-    {
-        _mailQueue.Enqueue(new LMS.Core.DTOs.MailJob(to, subject, body, 0));
-    }
+    { _mailQueue.Enqueue(new MailJob(to, subject, body, 0)); }
 
     private string GetEmailTemplate(string content)
     {

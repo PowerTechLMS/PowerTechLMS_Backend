@@ -18,27 +18,33 @@ public class QAController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub")
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId");
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("sub") ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
 
     [HttpPost]
-    public async Task<ActionResult> Create(int lessonId, [FromBody] CreateQARequest request)
-        => Ok(await _qaService.CreatePostAsync(lessonId, UserId, request));
+    public async Task<ActionResult> Create(int lessonId, [FromBody] CreateQARequest request) => Ok(
+        await _qaService.CreatePostAsync(lessonId, UserId, request));
 
     [HttpGet]
-    public async Task<ActionResult> GetAll(int lessonId)
-        => Ok(await _qaService.GetLessonQAAsync(lessonId));
+    public async Task<ActionResult> GetAll(int lessonId) => Ok(await _qaService.GetLessonQAAsync(lessonId));
 
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(int id)
     {
-        try { await _qaService.DeletePostAsync(id, UserId); return NoContent(); }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        try
+        {
+            await _qaService.DeletePostAsync(id, UserId);
+            return NoContent();
+        } catch(Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

@@ -1,8 +1,9 @@
-﻿using System.Security.Claims;
-using LMS.Core.DTOs;
+﻿using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace LMS.API.Controllers;
 
@@ -24,11 +25,12 @@ public class ProfileController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub")
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId");
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("sub") ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
@@ -41,8 +43,7 @@ public class ProfileController : ControllerBase
             var user = await _userService.GetUserProfileAsync(UserId);
             Console.WriteLine($"[DEBUG] GetProfile for User ID: {UserId}. Avatar: {user.Avatar}");
             return Ok(user);
-        }
-        catch (KeyNotFoundException)
+        } catch(KeyNotFoundException)
         {
             return NotFound(new { message = "Lỗi xác thực người dùng!" });
         }
@@ -55,8 +56,7 @@ public class ProfileController : ControllerBase
         {
             var updatedUser = await _userService.UpdateProfileAsync(UserId, request);
             return Ok(updatedUser);
-        }
-        catch (KeyNotFoundException ex)
+        } catch(KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
         }
@@ -69,12 +69,10 @@ public class ProfileController : ControllerBase
         {
             await _userService.ChangePasswordAsync(UserId, request);
             return Ok(new { message = "Đổi mật khẩu thành công!" });
-        }
-        catch (ArgumentException ex)
+        } catch(ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
-        }
-        catch (KeyNotFoundException ex)
+        } catch(KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
         }
@@ -85,26 +83,27 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            Console.WriteLine($"[DEBUG] Uploading avatar for User ID: {UserId}. File: {file.FileName}, Length: {file.Length}");
-            
+            Console.WriteLine(
+                $"[DEBUG] Uploading avatar for User ID: {UserId}. File: {file.FileName}, Length: {file.Length}");
+
             var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
-            if (!Directory.Exists(uploadsPath))
+            if(!Directory.Exists(uploadsPath))
             {
                 Console.WriteLine($"[DEBUG] Creating directory: {uploadsPath}");
                 Directory.CreateDirectory(uploadsPath);
             }
 
-            // Sanitize filename: remove special characters and spaces
             var safeFileName = Path.GetFileNameWithoutExtension(file.FileName);
-            safeFileName = System.Text.RegularExpressions.Regex.Replace(safeFileName, @"[^a-zA-Z0-9_-]", "");
-            if (string.IsNullOrEmpty(safeFileName)) safeFileName = "avatar";
-            
+            safeFileName = Regex.Replace(safeFileName, @"[^a-zA-Z0-9_-]", string.Empty);
+            if(string.IsNullOrEmpty(safeFileName))
+                safeFileName = "avatar";
+
             var extension = Path.GetExtension(file.FileName);
             var fileName = $"{Guid.NewGuid()}_{safeFileName}{extension}";
             var filePath = Path.Combine(uploadsPath, fileName);
 
             Console.WriteLine($"[DEBUG] Saving file to: {filePath}");
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            using(var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
@@ -112,10 +111,14 @@ public class ProfileController : ControllerBase
             var avatarUrl = $"/uploads/avatars/{fileName}";
             Console.WriteLine($"[DEBUG] Updating database with URL: {avatarUrl}");
             await _userService.UpdateAvatarAsync(UserId, avatarUrl);
-            
+
             return Ok(new { avatar = avatarUrl });
+        } catch(ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        } catch(KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
-        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
     }
 }

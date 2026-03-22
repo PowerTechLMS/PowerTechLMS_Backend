@@ -19,39 +19,54 @@ public class CoursesController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub")
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId");
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("sub") ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
+
     private int? CurrentUserId
     {
         get
         {
-            var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier);
             return claim != null ? int.Parse(claim.Value) : null;
         }
     }
-    private bool IsAdmin => User.IsInRole("Admin") || User.IsInRole("Quản trị viên") || User.HasClaim("permission", "user.manage");
+
+    private bool IsAdmin => User.IsInRole("Admin") ||
+        User.IsInRole("Quản trị viên") ||
+        User.HasClaim("permission", "user.manage");
+
     private bool IsInstructor => User.IsInRole("Instructor") || User.IsInRole("Giảng viên");
 
     [HttpGet]
-    [AllowAnonymous] // hoặc Authorize
+    [AllowAnonymous]
     public async Task<ActionResult> GetCourses(
-    [FromQuery] int page = 1,
-    [FromQuery] int pageSize = 12,
-    [FromQuery] string? search = null,
-    [FromQuery] bool? isPublished = null,
-    [FromQuery] int? categoryId = null,
-    [FromQuery] int? level = null,
-    [FromQuery] bool manage = false)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 12,
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isPublished = null,
+        [FromQuery] int? categoryId = null,
+        [FromQuery] int? level = null,
+        [FromQuery] bool manage = false)
     {
-        // Nếu truyền manage=true và là Giáo viên/Admin -> Bật chế độ quản lý (chỉ hiện khoá của mình cho GV)
         bool isInstructorManagement = manage && (IsAdmin || IsInstructor);
-        return Ok(await _courseService.GetCoursesAsync(page, pageSize, search, isPublished, categoryId, CurrentUserId, level, isInstructorManagement, IsAdmin));
+        return Ok(
+            await _courseService.GetCoursesAsync(
+                page,
+                pageSize,
+                search,
+                isPublished,
+                categoryId,
+                CurrentUserId,
+                level,
+                isInstructorManagement,
+                IsAdmin));
     }
 
 
@@ -72,25 +87,40 @@ public class CoursesController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = "CourseCreate")]
-    public async Task<ActionResult> CreateCourse([FromBody] CreateCourseRequest request)
-        => Ok(await _courseService.CreateCourseAsync(request, UserId));
+    public async Task<ActionResult> CreateCourse([FromBody] CreateCourseRequest request) => Ok(
+        await _courseService.CreateCourseAsync(request, UserId));
 
     [HttpPut("{id}")]
     [Authorize(Policy = "CourseEdit")]
     public async Task<ActionResult> UpdateCourse(int id, [FromBody] UpdateCourseRequest request)
     {
-        try { return Ok(await _courseService.UpdateCourseAsync(id, request, UserId, IsAdmin)); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            return Ok(await _courseService.UpdateCourseAsync(id, request, UserId, IsAdmin));
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "CourseDelete")]
     public async Task<ActionResult> DeleteCourse(int id)
     {
-        try { await _courseService.DeleteCourseAsync(id, UserId, IsAdmin); return NoContent(); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            await _courseService.DeleteCourseAsync(id, UserId, IsAdmin);
+            return NoContent();
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 
     [HttpPost("{id}/cover")]
@@ -102,8 +132,10 @@ public class CoursesController : ControllerBase
             using var stream = file.OpenReadStream();
             var url = await _courseService.UploadCoverImageAsync(id, stream, file.FileName, UserId, IsAdmin);
             return Ok(new { url });
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
         }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
     }
 
     [HttpGet("{id}/certificate-template")]
@@ -111,15 +143,24 @@ public class CoursesController : ControllerBase
     public async Task<ActionResult> GetCertificateTemplate(int id)
     {
         var template = await _courseService.GetCourseCertificateTemplateAsync(id);
-        return template == null ? NotFound(new { message = "Chưa có mẫu chứng chỉ được thiết lập cho khóa học này." }) : Ok(template);
+        return template == null
+            ? NotFound(new { message = "Chưa có mẫu chứng chỉ được thiết lập cho khóa học này." })
+            : Ok(template);
     }
 
     [HttpPut("{id}/certificate-template")]
     [Authorize(Policy = "CourseEdit")]
     public async Task<ActionResult> SaveCertificateTemplate(int id, [FromBody] CertificateTemplateDto request)
     {
-        try { return Ok(await _courseService.SaveCourseCertificateTemplateAsync(id, request, UserId, IsAdmin)); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        try
+        {
+            return Ok(await _courseService.SaveCourseCertificateTemplateAsync(id, request, UserId, IsAdmin));
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
     }
 }

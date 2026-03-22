@@ -18,11 +18,12 @@ public class QuizzesController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("sub")
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId");
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("sub") ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
@@ -34,11 +35,11 @@ public class QuizzesController : ControllerBase
         try
         {
             var quiz = await _quizService.GetQuizDetailAsync(id);
-            if (quiz == null) return NotFound(new { message = "Không tìm thấy bài thi" });
+            if(quiz == null)
+                return NotFound(new { message = "Không tìm thấy bài thi" });
 
             return Ok(quiz);
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi Backend", error = ex.Message });
         }
@@ -46,8 +47,8 @@ public class QuizzesController : ControllerBase
 
     [HttpPost("course/{courseId}")]
     [Authorize(Policy = "QuizCreate")]
-    public async Task<ActionResult> CreateQuiz(int courseId, [FromBody] CreateQuizRequest request)
-        => Ok(await _quizService.CreateQuizAsync(courseId, request));
+    public async Task<ActionResult> CreateQuiz(int courseId, [FromBody] CreateQuizRequest request) => Ok(
+        await _quizService.CreateQuizAsync(courseId, request));
 
     [HttpPost("{quizId}/questions")]
     [Authorize(Policy = "QuizCreate")]
@@ -57,16 +58,13 @@ public class QuizzesController : ControllerBase
         {
             var result = await _quizService.AddQuestionAsync(quizId, request);
             return Ok(result);
-        }
-        catch (InvalidOperationException ex)
+        } catch(InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
-        }
-        catch (KeyNotFoundException ex)
+        } catch(KeyNotFoundException ex)
         {
             return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message });
         }
@@ -75,16 +73,29 @@ public class QuizzesController : ControllerBase
     [HttpPost("{quizId}/start")]
     public async Task<ActionResult> StartQuiz(int quizId)
     {
-        try { return Ok(await _quizService.StartQuizAsync(UserId, quizId)); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        try
+        {
+            return Ok(await _quizService.StartQuizAsync(UserId, quizId));
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
+        } catch(InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{attemptId}/draft")]
     public async Task<ActionResult> SaveDraft(int attemptId, [FromBody] SaveDraftRequest request)
     {
-        try { await _quizService.SaveAnswerDraftAsync(attemptId, UserId, request.QuestionId, request.SelectedAnswer); return Ok(); }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        try
+        {
+            await _quizService.SaveAnswerDraftAsync(attemptId, UserId, request.QuestionId, request.SelectedAnswer);
+            return Ok();
+        } catch(Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{attemptId}/time")]
@@ -97,11 +108,16 @@ public class QuizzesController : ControllerBase
     [HttpPost("{attemptId}/submit")]
     public async Task<ActionResult> SubmitQuiz(int attemptId, [FromBody] SubmitQuizRequest request)
     {
-        try { return Ok(await _quizService.SubmitQuizAsync(UserId, attemptId, request)); }
-        catch (Exception ex) { return BadRequest(new { message = ex.Message }); }
+        try
+        {
+            return Ok(await _quizService.SubmitQuizAsync(UserId, attemptId, request));
+        } catch(Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("{quizId}/results")]
-    public async Task<ActionResult> GetResults(int quizId)
-        => Ok(await _quizService.GetUserQuizResultsAsync(UserId, quizId));
+    public async Task<ActionResult> GetResults(int quizId) => Ok(
+        await _quizService.GetUserQuizResultsAsync(UserId, quizId));
 }

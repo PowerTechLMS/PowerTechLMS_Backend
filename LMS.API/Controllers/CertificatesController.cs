@@ -18,12 +18,13 @@ public class CertificatesController : ControllerBase
     {
         get
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
-                     ?? User.FindFirst("id")
-                     ?? User.FindFirst("UserId")
-                     ?? User.FindFirst("sub");
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ??
+                User.FindFirst("id") ??
+                User.FindFirst("UserId") ??
+                User.FindFirst("sub");
 
-            if (claim == null) throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
+            if(claim == null)
+                throw new UnauthorizedAccessException("Không tìm thấy UserId trong Token.");
             return int.Parse(claim.Value);
         }
     }
@@ -34,43 +35,47 @@ public class CertificatesController : ControllerBase
         try
         {
             var cert = await _certService.IssueCertificateAsync(UserId, courseId);
-            if (cert == null) return BadRequest(new { message = "Bạn chưa đủ điều kiện nhận chứng chỉ (Cần hoàn thành bài học và đạt bài tập)." });
+            if(cert == null)
+                return BadRequest(
+                    new { message = "Bạn chưa đủ điều kiện nhận chứng chỉ (Cần hoàn thành bài học và đạt bài tập)." });
             return Ok(cert);
-        }
-        catch (InvalidOperationException ex)
+        } catch(InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
     }
 
     [HttpGet("my")]
-    public async Task<ActionResult> GetMyCertificates()
-        => Ok(await _certService.GetUserCertificatesAsync(UserId));
+    public async Task<ActionResult> GetMyCertificates() => Ok(await _certService.GetUserCertificatesAsync(UserId));
 
     [HttpGet("verify/{code}")]
     public async Task<ActionResult> Verify(string code)
     {
-        // [BUSINESS RULE]: Học viên khi chưa đăng nhập thì không có phép xem (Authorize class level đã chặn 401)
         var cert = await _certService.VerifyCertificateAsync(code, User);
-        return cert == null ? NotFound(new { message = "Chứng chỉ không tồn tại hoặc bạn không có quyền xem." }) : Ok(cert);
+        return cert == null
+            ? NotFound(new { message = "Chứng chỉ không tồn tại hoặc bạn không có quyền xem." })
+            : Ok(cert);
     }
 
     [HttpGet("admin")]
     [Authorize(Policy = "CertificateView")]
-    public async Task<ActionResult> GetAdminCertificates([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null)
-    {
-        return Ok(await _certService.GetCertificatesAsync(page, pageSize, search, User));
-    }
+    public async Task<ActionResult> GetAdminCertificates(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null)
+    { return Ok(await _certService.GetCertificatesAsync(page, pageSize, search, User)); }
 
     [HttpPut("{id}/revoke")]
     [Authorize(Policy = "CertificateManage")]
     public async Task<ActionResult> RevokeCertificate(int id, [FromBody] RevokeCertificateRequest request)
     {
-        try 
-        { 
-            await _certService.RevokeCertificateAsync(id, request.Reason, UserId); 
-            return Ok(); 
+        try
+        {
+            await _certService.RevokeCertificateAsync(id, request.Reason, UserId);
+            return Ok();
+        } catch(KeyNotFoundException)
+        {
+            return NotFound();
         }
-        catch (KeyNotFoundException) { return NotFound(); }
     }
 }
