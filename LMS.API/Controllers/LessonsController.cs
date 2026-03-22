@@ -130,12 +130,6 @@ public class LessonsController : ControllerBase
         [FromForm] string fileName,
         IFormFile file)
     {
-        _logger.LogInformation(
-            "Received chunk {ChunkIndex}/{TotalChunks} for lesson {LessonId}",
-            chunkIndex,
-            totalChunks,
-            id);
-
         var tempDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "temp", id.ToString());
         if(!Directory.Exists(tempDir))
             Directory.CreateDirectory(tempDir);
@@ -149,8 +143,6 @@ public class LessonsController : ControllerBase
         var uploadedChunks = Directory.GetFiles(tempDir, "*.chunk").Length;
         if(uploadedChunks == totalChunks)
         {
-            _logger.LogInformation("All chunks received for lesson {LessonId}. Starting background merge...", id);
-
             var ext = Path.GetExtension(fileName);
             var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             var finalFileName = $"v_{id}_{timestamp}{ext}";
@@ -159,57 +151,47 @@ public class LessonsController : ControllerBase
             _ = Task.Run(
                 async () =>
                 {
-                    try
-                    {
-                        var sw = Stopwatch.StartNew();
-                        var finalDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
-                        if(!Directory.Exists(finalDir))
-                            Directory.CreateDirectory(finalDir);
-                        var finalPath = Path.Combine(finalDir, finalFileName);
+                    var sw = Stopwatch.StartNew();
+                    var finalDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
+                    if(!Directory.Exists(finalDir))
+                        Directory.CreateDirectory(finalDir);
+                    var finalPath = Path.Combine(finalDir, finalFileName);
 
-                        using(var finalStream = new FileStream(
-                            finalPath,
-                            FileMode.Create,
-                            FileAccess.Write,
-                            FileShare.None))
+                    using(var finalStream = new FileStream(
+                        finalPath,
+                        FileMode.Create,
+                        FileAccess.Write,
+                        FileShare.None))
+                    {
+                        for(int i = 0; i < totalChunks; i++)
                         {
-                            for(int i = 0; i < totalChunks; i++)
+                            var partPath = Path.Combine(tempDir, $"{i}.chunk");
+                            using(var partStream = new FileStream(
+                                partPath,
+                                FileMode.Open,
+                                FileAccess.Read,
+                                FileShare.Read))
                             {
-                                var partPath = Path.Combine(tempDir, $"{i}.chunk");
-                                using(var partStream = new FileStream(
-                                    partPath,
-                                    FileMode.Open,
-                                    FileAccess.Read,
-                                    FileShare.Read))
-                                {
-                                    await partStream.CopyToAsync(finalStream);
-                                }
+                                await partStream.CopyToAsync(finalStream);
                             }
                         }
+                    }
 
-                        sw.Stop();
-                        _logger.LogInformation(
-                            "Merge completed for lesson {LessonId} in {ElapsedMs}ms",
-                            id,
-                            sw.ElapsedMilliseconds);
+                    sw.Stop();
 
-                        Directory.Delete(tempDir, true);
+                    Directory.Delete(tempDir, true);
 
-                        var storageKey = $"videos/{finalFileName}";
+                    var storageKey = $"videos/{finalFileName}";
 
-                        using(var scope = _scopeFactory.CreateScope())
-                        {
-                            var scopedLessonService = scope.ServiceProvider.GetRequiredService<ILessonService>();
-                            var scopedVideoQueue = scope.ServiceProvider.GetRequiredService<IVideoProcessingQueue>();
-
-                            await scopedLessonService.UpdateVideoMetadataAsync(id, storageKey, videoUrl);
-                            scopedVideoQueue.Enqueue(id);
-
-                            BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(id));
-                        }
-                    } catch(Exception ex)
+                    using(var scope = _scopeFactory.CreateScope())
                     {
-                        _logger.LogError(ex, "Error in background merge for lesson {LessonId}", id);
+                        var scopedLessonService = scope.ServiceProvider.GetRequiredService<ILessonService>();
+                        var scopedVideoQueue = scope.ServiceProvider.GetRequiredService<IVideoProcessingQueue>();
+
+                        await scopedLessonService.UpdateVideoMetadataAsync(id, storageKey, videoUrl);
+                        scopedVideoQueue.Enqueue(id);
+
+                        BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(id));
                     }
                 });
 

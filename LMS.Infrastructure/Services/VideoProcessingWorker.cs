@@ -32,26 +32,17 @@ public class VideoProcessingWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Video Processing Worker is starting.");
-
         while(!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 var lessonId = await _queue.DequeueAsync(stoppingToken);
-                _logger.LogInformation($"Processing video for Lesson ID: {lessonId}");
-
                 await ProcessVideoAsync(lessonId, stoppingToken);
             } catch(OperationCanceledException)
             {
                 break;
-            } catch(Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred executing video processing task.");
-            }
+            } 
         }
-
-        _logger.LogInformation("Video Processing Worker is stopping.");
     }
 
     private async Task ProcessVideoAsync(int lessonId, CancellationToken stoppingToken)
@@ -86,7 +77,6 @@ public class VideoProcessingWorker : BackgroundService
             var duration = await GetVideoDurationAsync(ffprobePath, inputPath);
             lesson.VideoDurationSeconds = (int)duration;
 
-            _logger.LogInformation($"Starting HLS conversion for Lesson {lessonId}. Input: {inputPath}");
             var arguments = $"-y -i \"{inputPath}\" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -ar 44100 -map 0 -f hls -hls_time 10 -hls_list_size 0 -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
 
             var process = new Process
@@ -118,47 +108,25 @@ public class VideoProcessingWorker : BackgroundService
             {
                 lesson.VideoStatus = "Ready";
                 lesson.VideoStorageUrl = $"/uploads/hls/{lessonId}/index.m3u8";
-                _logger.LogInformation($"Video processed successfully for Lesson {lessonId}");
 
-                try
-                {
-                    var audioDir = Path.Combine(wwwroot, "uploads", "audio");
-                    if(!Directory.Exists(audioDir))
-                        Directory.CreateDirectory(audioDir);
-                    var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
-                    _logger.LogInformation($"Extracting audio for AI: {audioPath}");
-                    await ExtractAudioForAiAsync(ffmpegPath, inputPath, audioPath, stoppingToken);
-                } catch(Exception ex)
-                {
-                    _logger.LogWarning($"Could not extract audio for Lesson {lessonId}: {ex.Message}");
-                }
+                var audioDir = Path.Combine(wwwroot, "uploads", "audio");
+                if(!Directory.Exists(audioDir))
+                    Directory.CreateDirectory(audioDir);
+                var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
+                await ExtractAudioForAiAsync(ffmpegPath, inputPath, audioPath, stoppingToken);
 
-                try
-                {
-                    BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(lessonId));
-                } catch(Exception ex)
-                {
-                    _logger.LogError($"Could not enqueue AI job for Lesson {lessonId}: {ex.Message}");
-                }
+                BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(lessonId));
 
                 if(File.Exists(inputPath))
                 {
-                    try
-                    {
-                        File.Delete(inputPath);
-                    } catch(Exception ex)
-                    {
-                        _logger.LogWarning($"Could not delete original video {inputPath}: {ex.Message}");
-                    }
+                    File.Delete(inputPath);
                 }
             } else
             {
-                _logger.LogError($"FFmpeg error for Lesson {lessonId}: {ffmpegLog}");
                 lesson.VideoStatus = "Failed";
             }
-        } catch(Exception ex)
+        } catch
         {
-            _logger.LogError(ex, $"Exception during video processing for Lesson {lessonId}");
             lesson.VideoStatus = "Failed";
         }
 

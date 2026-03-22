@@ -46,10 +46,8 @@ public class EmailService : IEmailService
             mailMessage.To.Add(to);
 
             await client.SendMailAsync(mailMessage);
-            _logger.LogInformation("Successfully sent email to {To}", to);
-        } catch(Exception ex)
+        } catch
         {
-            _logger.LogError(ex, "Failed to send email to {To}", to);
             throw;
         }
     }

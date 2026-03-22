@@ -77,8 +77,6 @@ public class FFmpegDownloader : IFFmpegDownloader
     {
         const string DownloadUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
         var zipPath = Path.Combine(_basePath, "ffmpeg.zip");
-        _logger.LogInformation($"Downloading FFmpeg for Windows from {DownloadUrl}...");
-
         using(var httpClient = new HttpClient())
         {
             var responseStream = await httpClient.GetStreamAsync(DownloadUrl);
@@ -87,14 +85,10 @@ public class FFmpegDownloader : IFFmpegDownloader
                 await responseStream.CopyToAsync(fs);
             }
         }
-
-        _logger.LogInformation("Extracting FFmpeg for Windows...");
         var extractPath = Path.Combine(_basePath, "temp_extract");
         if(Directory.Exists(extractPath))
             Directory.Delete(extractPath, true);
-
         ZipFile.ExtractToDirectory(zipPath, extractPath);
-
         var binFolder = Directory.GetDirectories(extractPath)
             .SelectMany(d => Directory.GetDirectories(d, "bin"))
             .FirstOrDefault();
@@ -108,11 +102,9 @@ public class FFmpegDownloader : IFFmpegDownloader
             File.Copy(Path.Combine(binFolder, "ffmpeg.exe"), _ffmpegPath, true);
             File.Copy(Path.Combine(binFolder, "ffprobe.exe"), _ffprobePath, true);
         }
-
         File.Delete(zipPath);
         if(Directory.Exists(extractPath))
             Directory.Delete(extractPath, true);
-        _logger.LogInformation("FFmpeg setup complete for Windows.");
     }
 
     private async Task DownloadAndExtractMacAsync()
@@ -126,15 +118,11 @@ public class FFmpegDownloader : IFFmpegDownloader
 
         await DownloadAndExtractMacBinaryAsync(FfmpegUrl, "ffmpeg.zip", _ffmpegPath);
         await DownloadAndExtractMacBinaryAsync(FfprobeUrl, "ffprobe.zip", _ffprobePath);
-
-        _logger.LogInformation("FFmpeg setup complete for MacOS.");
     }
 
     private async Task DownloadAndExtractMacBinaryAsync(string url, string zipName, string targetPath)
     {
         var zipPath = Path.Combine(_basePath, zipName);
-        _logger.LogInformation($"Downloading {zipName} from {url}...");
-
         using(var httpClient = new HttpClient())
         {
             var responseStream = await httpClient.GetStreamAsync(url);
@@ -143,8 +131,6 @@ public class FFmpegDownloader : IFFmpegDownloader
                 await responseStream.CopyToAsync(fs);
             }
         }
-
-        _logger.LogInformation($"Extracting {zipName}...");
         var extractPath = Path.Combine(_basePath, $"temp_extract_{zipName}");
         if(Directory.Exists(extractPath))
             Directory.Delete(extractPath, true);
@@ -166,8 +152,6 @@ public class FFmpegDownloader : IFFmpegDownloader
     {
         const string DownloadUrl = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz";
         var tarPath = Path.Combine(_basePath, "ffmpeg.tar.xz");
-        _logger.LogInformation($"Downloading FFmpeg for Linux from {DownloadUrl}...");
-
         using(var httpClient = new HttpClient())
         {
             var responseStream = await httpClient.GetStreamAsync(DownloadUrl);
@@ -176,8 +160,6 @@ public class FFmpegDownloader : IFFmpegDownloader
                 await responseStream.CopyToAsync(fs);
             }
         }
-
-        _logger.LogInformation("Extracting FFmpeg for Linux with tar...");
         var extractPath = Path.Combine(_basePath, "temp_extract_linux");
         if(Directory.Exists(extractPath))
             Directory.Delete(extractPath, true);
@@ -235,30 +217,21 @@ public class FFmpegDownloader : IFFmpegDownloader
             if(Directory.Exists(extractPath))
                 Directory.Delete(extractPath, true);
         }
-
-        _logger.LogInformation("FFmpeg setup complete for Linux.");
     }
 
     private void SetExecutablePermission(string path)
     {
         if(!_isWindows && File.Exists(path))
         {
-            try
-            {
-                var process = Process.Start(
-                    new ProcessStartInfo
-                    {
-                        FileName = "chmod",
-                        Arguments = $"+x \"{path}\"",
-                        CreateNoWindow = true,
-                        UseShellExecute = false
-                    });
-                process?.WaitForExit();
-                _logger.LogInformation($"Set executable permission for {path}");
-            } catch(Exception ex)
-            {
-                _logger.LogWarning($"Failed to set executable permission for {path}: {ex.Message}");
-            }
+           var process = Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = "chmod",
+                    Arguments = $"+x \"{path}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                });
+            process?.WaitForExit();
         }
     }
 }

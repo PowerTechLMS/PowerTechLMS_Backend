@@ -27,8 +27,6 @@ public class ProtonXService : IAiModelService
         {
             throw new Exception($"CRITICAL: Script chuẩn hoá {scriptPath} không tìm thấy.");
         }
-
-        Console.WriteLine($"[ProtonX] Khởi tạo mô hình tại {_modelDir}...");
     }
 
     private string GetScriptPath()
@@ -84,7 +82,6 @@ public class ProtonXService : IAiModelService
 
             if(process.ExitCode != 0)
             {
-                _logger.LogWarning($"[ProtonX] Batch CLI Error: {error}");
                 return texts;
             }
 
@@ -97,11 +94,9 @@ public class ProtonXService : IAiModelService
                 return results.Take(texts.Count).ToList();
             }
 
-            _logger.LogWarning($"[ProtonX] Batch mismatch: in {texts.Count}, out {results.Count}");
             return texts;
-        } catch(Exception ex)
+        } catch
         {
-            _logger.LogError($"[ProtonX] Lỗi RefineTextBatch: {ex.Message}");
             return texts;
         } finally
         {

@@ -46,89 +46,69 @@ public class AiProcessingService : IAiProcessingService
         if(lesson == null || string.IsNullOrEmpty(lesson.VideoStorageUrl))
             return;
 
-        try
+        var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var videoPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey?.TrimStart('/') ?? string.Empty);
+        var audioDir = Path.Combine(wwwroot, "uploads", "audio");
+        if(!Directory.Exists(audioDir))
+            Directory.CreateDirectory(audioDir);
+
+        var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
+
+        if(File.Exists(videoPath))
         {
-            Console.WriteLine($"[AI] Bắt đầu xử lý cho Lesson: {lessonId}");
-            _logger.LogInformation($"Bắt đầu xử lý AI cho video bài học: {lessonId}");
+            await ExtractAudioAsync(videoPath, audioPath);
+        } else if(!File.Exists(audioPath))
+        {
+            return;
+        }
 
-            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-            var videoPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey?.TrimStart('/') ?? string.Empty);
-            var audioDir = Path.Combine(wwwroot, "uploads", "audio");
-            if(!Directory.Exists(audioDir))
-                Directory.CreateDirectory(audioDir);
+        var segments = await _whisper.TranscribeAsync(audioPath);
 
-            var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
+        var rawTexts = segments.Select(s => s.Text).ToList();
+        var refinedTexts = await _protonX.RefineTextBatchAsync(rawTexts);
 
-            if(File.Exists(videoPath))
+        var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
+        bool skipVectorDb = false;
+
+        for(int i = 0; i < segments.Count; i++)
+        {
+            var seg = segments[i];
+            var refined = i < refinedTexts.Count ? refinedTexts[i] : seg.Text;
+            processedSegments.Add((seg, refined));
+
+            if(!skipVectorDb)
             {
-                Console.WriteLine($"[AI] Đang trích xuất audio từ: {videoPath}");
-                _logger.LogInformation($"Trích xuất audio từ {videoPath} sang {audioPath}");
-                await ExtractAudioAsync(videoPath, audioPath);
-            } else if(!File.Exists(audioPath))
-            {
-                Console.WriteLine($"[AI] KHÔNG TÌM THẤY VIDEO GỐC: {videoPath}");
-                _logger.LogWarning(
-                    $"Không tìm thấy video gốc ({videoPath}) cũng như audio ({audioPath}). Hủy xử lý AI.");
-                return;
-            }
-
-            Console.WriteLine($"[AI] Đang chạy Whisper transcription cho: {audioPath}");
-            var segments = await _whisper.TranscribeAsync(audioPath);
-            Console.WriteLine($"[AI] Số lượng segments tìm thấy: {segments.Count}");
-
-            var rawTexts = segments.Select(s => s.Text).ToList();
-            var refinedTexts = await _protonX.RefineTextBatchAsync(rawTexts);
-
-            var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
-            bool skipVectorDb = false;
-
-            for(int i = 0; i < segments.Count; i++)
-            {
-                var seg = segments[i];
-                var refined = i < refinedTexts.Count ? refinedTexts[i] : seg.Text;
-                processedSegments.Add((seg, refined));
-
-                if(!skipVectorDb)
+                try
                 {
-                    try
-                    {
-                        await _vectorDb.UpsertVectorAsync(
-                            Guid.NewGuid(),
-                            refined,
-                            new { LessonId = lessonId, Type = "Video", Start = seg.StartTime });
-                    } catch(Exception ex)
-                    {
-                        _logger.LogWarning(
-                            $"[VectorDB] Tạm ngừng Vectorize cho bài học {lessonId} do lỗi: {ex.Message}");
-                        skipVectorDb = true;
-                    }
+                    await _vectorDb.UpsertVectorAsync(
+                        Guid.NewGuid(),
+                        refined,
+                        new { LessonId = lessonId, Type = "Video", Start = seg.StartTime });
+                } catch
+                {
+                    skipVectorDb = true;
                 }
             }
-
-            var srtContent = GenerateSrtContent(processedSegments);
-            var vttContent = GenerateVttContent(processedSegments);
-
-            var subtitleDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "subtitles");
-            if(!Directory.Exists(subtitleDir))
-                Directory.CreateDirectory(subtitleDir);
-
-            var srtPath = Path.Combine(subtitleDir, $"{lessonId}.srt");
-            var vttPath = Path.Combine(subtitleDir, $"{lessonId}.vtt");
-
-            await File.WriteAllTextAsync(srtPath, srtContent, Encoding.UTF8);
-            await File.WriteAllTextAsync(vttPath, vttContent, Encoding.UTF8);
-
-            lesson.Transcript = string.Join(" ", processedSegments.Select(x => x.RefinedText));
-            lesson.SubtitlesPath = $"/uploads/subtitles/{lessonId}.vtt";
-            lesson.IsAiProcessed = true;
-            await _db.SaveChangesAsync();
-            await _hubContext.Clients.Group($"lesson_{lessonId}").SendAsync("AiProcessingCompleted", lessonId);
-        } catch(Exception ex)
-        {
-            Console.WriteLine($"[AI] LỖI CỰC NGHIÊM TRỌNG: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
-            _logger.LogError(ex, $"Lỗi xử lý AI video cho bài học {lessonId}");
         }
+
+        var srtContent = GenerateSrtContent(processedSegments);
+        var vttContent = GenerateVttContent(processedSegments);
+
+        var subtitleDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "subtitles");
+        if(!Directory.Exists(subtitleDir))
+            Directory.CreateDirectory(subtitleDir);
+
+        var srtPath = Path.Combine(subtitleDir, $"{lessonId}.srt");
+        var vttPath = Path.Combine(subtitleDir, $"{lessonId}.vtt");
+
+        await File.WriteAllTextAsync(srtPath, srtContent, Encoding.UTF8);
+        await File.WriteAllTextAsync(vttPath, vttContent, Encoding.UTF8);
+
+        lesson.Transcript = string.Join(" ", processedSegments.Select(x => x.RefinedText));
+        lesson.SubtitlesPath = $"/uploads/subtitles/{lessonId}.vtt";
+        lesson.IsAiProcessed = true;
+        await _db.SaveChangesAsync();
+        await _hubContext.Clients.Group($"lesson_{lessonId}").SendAsync("AiProcessingCompleted", lessonId);
     }
 
     public async Task ProcessDocumentAsync(int documentId)
@@ -136,8 +116,6 @@ public class AiProcessingService : IAiProcessingService
         var doc = await _db.Documents.Include(d => d.CurrentVersion).FirstOrDefaultAsync(d => d.Id == documentId);
         if(doc == null || doc.CurrentVersion == null)
             return;
-
-        _logger.LogInformation($"Bắt đầu xử lý AI cho tài liệu: {documentId}");
 
         var filePath = Path.Combine(
             Directory.GetCurrentDirectory(),

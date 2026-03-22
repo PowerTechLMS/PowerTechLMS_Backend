@@ -3,13 +3,11 @@ import torch
 import os
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# Force UTF-8 for Windows console
 if sys.platform == "win32":
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# Disable logging to keep stdout clean for the C# result
 import logging
 logging.disable(logging.CRITICAL)
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"

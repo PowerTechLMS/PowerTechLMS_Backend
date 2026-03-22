@@ -41,7 +41,6 @@ public class ProfileController : ControllerBase
         try
         {
             var user = await _userService.GetUserProfileAsync(UserId);
-            Console.WriteLine($"[DEBUG] GetProfile for User ID: {UserId}. Avatar: {user.Avatar}");
             return Ok(user);
         } catch(KeyNotFoundException)
         {
@@ -83,13 +82,9 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            Console.WriteLine(
-                $"[DEBUG] Uploading avatar for User ID: {UserId}. File: {file.FileName}, Length: {file.Length}");
-
             var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
             if(!Directory.Exists(uploadsPath))
             {
-                Console.WriteLine($"[DEBUG] Creating directory: {uploadsPath}");
                 Directory.CreateDirectory(uploadsPath);
             }
 
@@ -102,14 +97,12 @@ public class ProfileController : ControllerBase
             var fileName = $"{Guid.NewGuid()}_{safeFileName}{extension}";
             var filePath = Path.Combine(uploadsPath, fileName);
 
-            Console.WriteLine($"[DEBUG] Saving file to: {filePath}");
             using(var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
             var avatarUrl = $"/uploads/avatars/{fileName}";
-            Console.WriteLine($"[DEBUG] Updating database with URL: {avatarUrl}");
             await _userService.UpdateAvatarAsync(UserId, avatarUrl);
 
             return Ok(new { avatar = avatarUrl });
