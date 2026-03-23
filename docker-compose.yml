@@ -1,18 +1,15 @@
 version: "3.8"
 
 services:
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2025-latest
-    container_name: lms-sqlserver-2025
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=LmsPassword@123
-      - MSSQL_PID=H62HC-BCYXW-PP88N-PXPV3-BHD6H
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: lms-qdrant
     ports:
-      - "1433:1433"
+      - "6333:6333"
+      - "6334:6334"
     volumes:
-      - sqlserver-2025-data:/var/opt/mssql
+      - qdrant-data:/qdrant/storage
     restart: unless-stopped
 
 volumes:
-  sqlserver-2025-data:
+  qdrant-data:

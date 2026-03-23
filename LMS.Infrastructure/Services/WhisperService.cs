@@ -26,7 +26,10 @@ public class WhisperService : ITranscriptionService
         }
 
         using var factory = WhisperFactory.FromPath(_modelPath);
-        using var processor = factory.CreateBuilder().WithLanguage("vi").Build();
+        using var processor = factory.CreateBuilder()
+            .WithLanguage("vi")
+            .WithThreads(Math.Max(2, Environment.ProcessorCount / 2)) // Tối ưu số luồng theo CPU
+            .Build();
 
         using var fileStream = File.OpenRead(audioPath);
 

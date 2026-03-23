@@ -62,10 +62,14 @@ public class AiProcessingService : IAiProcessingService
             return;
         }
 
+        _logger.LogInformation($"[AI] Bắt đầu Whisper Transcription cho bài học: {lessonId}");
         var segments = await _whisper.TranscribeAsync(audioPath);
+        _logger.LogInformation($"[AI] Whisper hoàn tất: {segments.Count} segments tìm thấy.");
 
         var rawTexts = segments.Select(s => s.Text).ToList();
+        _logger.LogInformation($"[AI] Đang chuẩn hóa văn bản (ProtonX Batch)...");
         var refinedTexts = await _protonX.RefineTextBatchAsync(rawTexts);
+        _logger.LogInformation($"[AI] Chuẩn hóa văn bản hoàn tất.");
 
         var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
         bool skipVectorDb = false;
@@ -73,7 +77,10 @@ public class AiProcessingService : IAiProcessingService
         for(int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
-            var refined = i < refinedTexts.Count ? refinedTexts[i] : seg.Text;
+            // Fix: Nếu kết quảRefine là placeholder hoặc dummy, hãy dùng văn bản gốc của Whisper
+            var refined = i < refinedTexts.Count 
+                ? (refinedTexts[i].Contains("refined") || refinedTexts[i].Contains("Success") ? seg.Text : refinedTexts[i]) 
+                : seg.Text;
             processedSegments.Add((seg, refined));
 
             if(!skipVectorDb)
