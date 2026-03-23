@@ -37,7 +37,7 @@ public class TextExtractionService
     private string ExtractFromWord(string filePath)
     {
         using var doc = WordprocessingDocument.Open(filePath, false);
-        var body = doc.MainDocumentPart?.Document.Body;
+        var body = doc.MainDocumentPart?.Document?.Body;
         return body?.InnerText ?? string.Empty;
     }
 }

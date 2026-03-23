@@ -77,7 +77,7 @@ public class VideoProcessingWorker : BackgroundService
             var duration = await GetVideoDurationAsync(ffprobePath, inputPath);
             lesson.VideoDurationSeconds = (int)duration;
 
-            var arguments = $"-y -i \"{inputPath}\" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -ar 44100 -map 0 -f hls -hls_time 10 -hls_list_size 0 -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
+            var arguments = $"-y -i \"{inputPath}\" -c copy -bsf:a aac_adtstoasc -map 0 -f hls -hls_time 10 -hls_list_size 0 -hls_flags independent_segments -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
 
             var process = new Process
             {

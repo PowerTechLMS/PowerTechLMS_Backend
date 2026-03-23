@@ -91,25 +91,7 @@ Trong file `appsettings.Development.json` hoặc `appsettings.json`, tìm đến
   - _Lưu ý_: Không dùng mật khẩu đăng nhập Gmail thông thường. Bạn cần bật Xác minh 2 lớp và tạo [Mật khẩu ứng dụng](https://myaccount.google.com/apppasswords).
 - **FromEmail**: Địa chỉ email hiển thị khi gửi (thường trùng với `SmtpUser`).
 
-## 7. Cấu hình AI Model (ProtonX ONNX)
+## 7. Cài đặt CUDA
 
-Mô hình chuẩn hóa văn bản (ProtonX) chạy trực tiếp trên C# thông qua ONNX Runtime. Bạn cần thực hiện bước xuất mô hình **một lần duy nhất** khi mới tham gia dự án:
-
-1. **Cài đặt thư viện Python cần thiết**:
-
-   ```bash
-   pip install optimum[onnxruntime] transformers torch
-   ```
-
-2. **Chạy script chuyển đổi**:
-   Di chuyển vào thư mục và chạy script:
-
-   ```bash
-   cd LMS.Infrastructure/Scripts
-   python convert_onnx.py
-   ```
-
-   _Lưu ý: Script này sẽ tải mô hình từ HuggingFace (~1GB) và tạo ra các tệp `.onnx` trong thư mục `LMS.API/models/protonx-legal-tc/`._
-
-3. **Kiểm tra**:
-   Xác nhận trong thư mục `LMS.API/models/protonx-legal-tc/` đã có các tệp: `encoder_model.onnx`, `decoder_model.onnx`, `tokenizer.json`.
+- Cập nhật phiên bản card đồ hoạ lên phiên bản mới nhất.
+- Vào đường link [này](https://developer.download.nvidia.com/compute/cuda/13.2.0/local_installers/cuda_13.2.0_windows.exe) và cài đặt CUDA

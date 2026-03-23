@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
-using System;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -7,17 +7,18 @@ using System;
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc/>
-    public partial class AddAiProcessingFields : Migration
+    /// <inheritdoc />
+    public partial class FirstMigration : Migration
     {
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "Badges",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IconUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -36,7 +37,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
@@ -54,7 +56,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Permissions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Category = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -73,7 +76,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Roles",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsSystem = table.Column<bool>(type: "bit", nullable: false),
@@ -91,7 +95,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -147,7 +152,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "CourseGroups",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedById = table.Column<int>(type: "int", nullable: true),
@@ -171,7 +177,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Courses",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CoverImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -213,7 +220,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Notifications",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -240,7 +248,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "UserBadges",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     BadgeId = table.Column<int>(type: "int", nullable: false),
                     EarnedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -269,7 +278,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "UserGroups",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedById = table.Column<int>(type: "int", nullable: true),
@@ -324,7 +334,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "CertificateTemplates",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     TemplateName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UseBuiltInTemplate = table.Column<bool>(type: "bit", nullable: false),
@@ -358,7 +369,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "CourseGroupCourses",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     GroupId = table.Column<int>(type: "int", nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
@@ -389,7 +401,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Modules",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
@@ -413,7 +426,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Quizzes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TimeLimitMinutes = table.Column<int>(type: "int", nullable: true),
@@ -474,7 +488,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Enrollments",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
@@ -521,7 +536,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "UserGroupMembers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     GroupId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     AddedById = table.Column<int>(type: "int", nullable: true),
@@ -556,7 +572,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Lessons",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     ModuleId = table.Column<int>(type: "int", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
@@ -571,6 +588,7 @@ namespace LMS.Infrastructure.Migrations
                     VideoStatus = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsAiProcessed = table.Column<bool>(type: "bit", nullable: false),
                     AiSummary = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Transcript = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SubtitlesPath = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
                     IsFreePreview = table.Column<bool>(type: "bit", nullable: false),
@@ -600,7 +618,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "QuestionBanks",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     QuizId = table.Column<int>(type: "int", nullable: false),
                     QuestionText = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     OptionA = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -630,7 +649,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "QuizAttempts",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     QuizId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
@@ -665,7 +685,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "LessonAttachments",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     StorageKey = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -690,7 +711,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "LessonProgresses",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     IsCompleted = table.Column<bool>(type: "bit", nullable: false),
@@ -722,7 +744,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Notes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -752,7 +775,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "QAThreads",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -787,7 +811,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Certificates",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     CourseId = table.Column<int>(type: "int", nullable: false),
                     CertificateCode = table.Column<string>(type: "nvarchar(450)", nullable: false),
@@ -826,7 +851,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "QuizAnswers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     AttemptId = table.Column<int>(type: "int", nullable: false),
                     QuestionId = table.Column<int>(type: "int", nullable: false),
                     SelectedAnswer = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
@@ -857,7 +883,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "DocumentPermissions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: true),
                     RoleId = table.Column<int>(type: "int", nullable: true),
@@ -900,7 +927,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "Documents",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Title = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Tags = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -930,7 +958,8 @@ namespace LMS.Infrastructure.Migrations
                 name: "DocumentVersions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
                     VersionNumber = table.Column<int>(type: "int", nullable: false),
                     FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -962,64 +991,13 @@ namespace LMS.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Badges",
-                columns: new[]
-                {
-                    "Id",
-                    "CreatedAt",
-                    "DeletedAt",
-                    "Description",
-                    "IconUrl",
-                    "IsDeleted",
-                    "Name",
-                    "RequiredCourses",
-                    "UpdatedAt"
-                },
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "Description", "IconUrl", "IsDeleted", "Name", "RequiredCourses", "UpdatedAt" },
                 values: new object[,]
                 {
-                {
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Hoàn thành khóa học đầu tiên",
-                    null,
-                    false,
-                    "Người mới bắt đầu",
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    2,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Hoàn thành 3 khóa học",
-                    null,
-                    false,
-                    "Học viên chăm chỉ",
-                    3,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    3,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Hoàn thành 5 khóa học",
-                    null,
-                    false,
-                    "Siêu nhân học tập",
-                    5,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    4,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Hoàn thành 10 khóa học",
-                    null,
-                    false,
-                    "Bậc thầy tri thức",
-                    10,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                }
+                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành khóa học đầu tiên", null, false, "Người mới bắt đầu", 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 3 khóa học", null, false, "Học viên chăm chỉ", 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 5 khóa học", null, false, "Siêu nhân học tập", 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 10 khóa học", null, false, "Bậc thầy tri thức", 10, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.InsertData(
@@ -1027,608 +1005,89 @@ namespace LMS.Infrastructure.Migrations
                 columns: new[] { "Id", "CreatedAt", "DeletedAt", "IsDeleted", "Name", "Slug", "SortOrder", "UpdatedAt" },
                 values: new object[,]
                 {
-                {
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    false,
-                    "Kỹ năng mềm",
-                    "ky-nang-mem",
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    2,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    false,
-                    "Kỹ thuật",
-                    "ky-thuat",
-                    2,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    3,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    false,
-                    "Quy trình",
-                    "quy-trinh",
-                    3,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    4,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    false,
-                    "Lãnh đạo",
-                    "lanh-dao",
-                    4,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    5,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    false,
-                    "Số hóa",
-                    "so-hoa",
-                    5,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                }
+                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Kỹ năng mềm", "ky-nang-mem", 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Kỹ thuật", "ky-thuat", 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Quy trình", "quy-trinh", 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Lãnh đạo", "lanh-dao", 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Số hóa", "so-hoa", 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[]
-                {
-                    "Id",
-                    "Category",
-                    "Code",
-                    "CreatedAt",
-                    "DeletedAt",
-                    "Description",
-                    "IsDeleted",
-                    "Name",
-                    "UpdatedAt"
-                },
+                columns: new[] { "Id", "Category", "Code", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                {
-                    1,
-                    "Course",
-                    "course.view",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6240),
-                    null,
-                    null,
-                    false,
-                    "Xem khóa học",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6241)
-                },
-                {
-                    2,
-                    "Course",
-                    "course.create",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6247),
-                    null,
-                    null,
-                    false,
-                    "Tạo khóa học",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6248)
-                },
-                {
-                    3,
-                    "Course",
-                    "course.edit",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6249),
-                    null,
-                    null,
-                    false,
-                    "Sửa khóa học",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6249)
-                },
-                {
-                    4,
-                    "Course",
-                    "course.delete",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6251),
-                    null,
-                    null,
-                    false,
-                    "Xóa khóa học",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6251)
-                },
-                {
-                    5,
-                    "Course",
-                    "course.publish",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6252),
-                    null,
-                    null,
-                    false,
-                    "Xuất bản khóa học",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6253)
-                },
-                {
-                    6,
-                    "Enrollment",
-                    "enrollment.view",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6267),
-                    null,
-                    null,
-                    false,
-                    "Xem ghi danh",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6267)
-                },
-                {
-                    7,
-                    "Enrollment",
-                    "enrollment.approve",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6269),
-                    null,
-                    null,
-                    false,
-                    "Duyệt ghi danh",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6269)
-                },
-                {
-                    8,
-                    "Enrollment",
-                    "enrollment.assign",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6270),
-                    null,
-                    null,
-                    false,
-                    "Gán học viên",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6294)
-                },
-                {
-                    9,
-                    "Document",
-                    "doc.view",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6295),
-                    null,
-                    null,
-                    false,
-                    "Xem tài liệu",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(6295)
-                },
-                {
-                    10,
-                    "Document",
-                    "doc.upload",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7610),
-                    null,
-                    null,
-                    false,
-                    "Tải tài liệu",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7616)
-                },
-                {
-                    11,
-                    "Document",
-                    "doc.delete",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7619),
-                    null,
-                    null,
-                    false,
-                    "Xóa tài liệu",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7619)
-                },
-                {
-                    12,
-                    "Quiz",
-                    "quiz.create",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7620),
-                    null,
-                    null,
-                    false,
-                    "Tạo bài tập",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7621)
-                },
-                {
-                    13,
-                    "Quiz",
-                    "quiz.manage",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7622),
-                    null,
-                    null,
-                    false,
-                    "Quản lý bài tập",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7623)
-                },
-                {
-                    14,
-                    "Report",
-                    "report.view",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7624),
-                    null,
-                    null,
-                    false,
-                    "Xem báo cáo",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7624)
-                },
-                {
-                    15,
-                    "Admin",
-                    "user.manage",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7626),
-                    null,
-                    null,
-                    false,
-                    "Quản lý người dùng",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7626)
-                },
-                {
-                    16,
-                    "Admin",
-                    "role.manage",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7635),
-                    null,
-                    null,
-                    false,
-                    "Quản lý phân quyền",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7635)
-                },
-                {
-                    17,
-                    "Admin",
-                    "group.manage",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7637),
-                    null,
-                    null,
-                    false,
-                    "Quản lý nhóm",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7637)
-                },
-                {
-                    18,
-                    "Certificate",
-                    "certificate.view",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7640),
-                    null,
-                    null,
-                    false,
-                    "Xem chứng chỉ",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7640)
-                },
-                {
-                    19,
-                    "Certificate",
-                    "certificate.manage",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7641),
-                    null,
-                    null,
-                    false,
-                    "Quản lý chứng chỉ",
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(7642)
-                }
+                    { 1, "Course", "course.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, "Course", "course.create", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tạo khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, "Course", "course.edit", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Sửa khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4, "Course", "course.delete", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xóa khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 5, "Course", "course.publish", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xuất bản khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 6, "Enrollment", "enrollment.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem ghi danh", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 7, "Enrollment", "enrollment.approve", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Duyệt ghi danh", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 8, "Enrollment", "enrollment.assign", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Gán học viên", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 9, "Document", "doc.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 10, "Document", "doc.upload", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tải tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 11, "Document", "doc.delete", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xóa tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 12, "Quiz", "quiz.create", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tạo bài tập", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 13, "Quiz", "quiz.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý bài tập", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 14, "Report", "report.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem báo cáo", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 15, "Admin", "user.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý người dùng", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 16, "Admin", "role.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý phân quyền", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 17, "Admin", "group.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý nhóm", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 18, "Certificate", "certificate.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem chứng chỉ", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 19, "Certificate", "certificate.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý chứng chỉ", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.InsertData(
                 table: "Roles",
-                columns: new[]
-                {
-                    "Id",
-                    "CreatedAt",
-                    "DeletedAt",
-                    "Description",
-                    "IsDeleted",
-                    "IsSystem",
-                    "Name",
-                    "UpdatedAt"
-                },
+                columns: new[] { "Id", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "IsSystem", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                {
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Quản trị viên hệ thống",
-                    false,
-                    true,
-                    "Admin",
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    2,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Giảng viên",
-                    false,
-                    true,
-                    "Instructor",
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                },
-                {
-                    3,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    "Nhân viên / Học viên",
-                    false,
-                    true,
-                    "Employee",
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                }
+                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Quản trị viên hệ thống", false, true, "Admin", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Giảng viên", false, true, "Instructor", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Nhân viên / Học viên", false, true, "Employee", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[]
-                {
-                    "Id",
-                    "Address",
-                    "Avatar",
-                    "Bio",
-                    "CreatedAt",
-                    "DeactivatedAt",
-                    "DeactivatedById",
-                    "DeletedAt",
-                    "Email",
-                    "FullName",
-                    "IsActive",
-                    "IsDeleted",
-                    "PasswordHash",
-                    "Phone",
-                    "Role",
-                    "UpdatedAt"
-                },
-                values: new object[]
-                {
-                    1,
-                    null,
-                    null,
-                    null,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    null,
-                    null,
-                    "admin@lms.com",
-                    "Admin",
-                    true,
-                    false,
-                    "$2a$11$eFFLu5A83.LUh/YDvb.GR.JRWfxNDMgatCaYthF297Rs//27dFIjy",
-                    null,
-                    "Admin",
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
-                });
+                columns: new[] { "Id", "Address", "Avatar", "Bio", "CreatedAt", "DeactivatedAt", "DeactivatedById", "DeletedAt", "Email", "FullName", "IsActive", "IsDeleted", "PasswordHash", "Phone", "Role", "UpdatedAt" },
+                values: new object[] { 1, null, null, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, "admin@lms.com", "Admin", true, false, "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2", null, "Admin", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[]
-                {
-                    "PermissionId",
-                    "RoleId",
-                    "CreatedAt",
-                    "DeletedAt",
-                    "GrantedAt",
-                    "GrantedById",
-                    "IsDeleted",
-                    "UpdatedAt"
-                },
+                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
                 values: new object[,]
                 {
-                {
-                    1,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8500),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8500),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8501)
-                },
-                {
-                    2,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8503),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8503),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8504)
-                },
-                {
-                    3,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8504),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8504),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8504)
-                },
-                {
-                    4,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8505),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8505),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8505)
-                },
-                {
-                    5,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8506),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8506),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8506)
-                },
-                {
-                    6,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8507),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8507),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8507)
-                },
-                {
-                    7,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8508),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8508),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8508)
-                },
-                {
-                    8,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8509),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8508),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8509)
-                },
-                {
-                    9,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8510),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8509),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8510)
-                },
-                {
-                    10,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8510),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8510),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8511)
-                },
-                {
-                    11,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8511),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8511),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8512)
-                },
-                {
-                    12,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8512),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8512),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8512)
-                },
-                {
-                    13,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8513),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8513),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8513)
-                },
-                {
-                    14,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8514),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8514),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8514)
-                },
-                {
-                    15,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8515),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8514),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8515)
-                },
-                {
-                    16,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8516),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8515),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8516)
-                },
-                {
-                    17,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8516),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8516),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8517)
-                },
-                {
-                    18,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8517),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8517),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8517)
-                },
-                {
-                    19,
-                    1,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8627),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8627),
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8627)
-                }
+                    { 1, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 2, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 3, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 4, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 5, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 6, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 7, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 8, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 9, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 10, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 11, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 12, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 13, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 14, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 15, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 16, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 17, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 18, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
+                    { 19, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
                 });
 
             migrationBuilder.InsertData(
                 table: "UserRoles",
-                columns: new[]
-                {
-                    "RoleId",
-                    "UserId",
-                    "AssignedAt",
-                    "AssignedById",
-                    "CreatedAt",
-                    "DeletedAt",
-                    "ExpiresAt",
-                    "IsDeleted",
-                    "UpdatedAt"
-                },
-                values: new object[]
-                {
-                    1,
-                    1,
-                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                    null,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8204),
-                    null,
-                    null,
-                    false,
-                    new DateTime(2026, 3, 22, 8, 46, 38, 754, DateTimeKind.Utc).AddTicks(8204)
-                });
+                columns: new[] { "RoleId", "UserId", "AssignedAt", "AssignedById", "CreatedAt", "DeletedAt", "ExpiresAt", "IsDeleted", "UpdatedAt" },
+                values: new object[] { 1, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
 
-            migrationBuilder.CreateIndex(name: "IX_Certificates_AttemptId", table: "Certificates", column: "AttemptId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Certificates_AttemptId",
+                table: "Certificates",
+                column: "AttemptId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Certificates_CertificateCode",
@@ -1636,7 +1095,10 @@ namespace LMS.Infrastructure.Migrations
                 column: "CertificateCode",
                 unique: true);
 
-            migrationBuilder.CreateIndex(name: "IX_Certificates_CourseId", table: "Certificates", column: "CourseId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Certificates_CourseId",
+                table: "Certificates",
+                column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Certificates_UserId_CourseId",
@@ -1666,9 +1128,15 @@ namespace LMS.Infrastructure.Migrations
                 table: "CourseGroups",
                 column: "CreatedById");
 
-            migrationBuilder.CreateIndex(name: "IX_Courses_CategoryId", table: "Courses", column: "CategoryId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Courses_CategoryId",
+                table: "Courses",
+                column: "CategoryId");
 
-            migrationBuilder.CreateIndex(name: "IX_Courses_CreatedById", table: "Courses", column: "CreatedById");
+            migrationBuilder.CreateIndex(
+                name: "IX_Courses_CreatedById",
+                table: "Courses",
+                column: "CreatedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DepartmentCourseGroups_CourseGroupId",
@@ -1705,7 +1173,10 @@ namespace LMS.Infrastructure.Migrations
                 table: "Documents",
                 column: "CurrentVersionId");
 
-            migrationBuilder.CreateIndex(name: "IX_Documents_UploadedById", table: "Documents", column: "UploadedById");
+            migrationBuilder.CreateIndex(
+                name: "IX_Documents_UploadedById",
+                table: "Documents",
+                column: "UploadedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DocumentVersions_DocumentId_VersionNumber",
@@ -1723,7 +1194,10 @@ namespace LMS.Infrastructure.Migrations
                 table: "Enrollments",
                 column: "AssignedById");
 
-            migrationBuilder.CreateIndex(name: "IX_Enrollments_CourseId", table: "Enrollments", column: "CourseId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Enrollments_CourseId",
+                table: "Enrollments",
+                column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Enrollments_GroupEnrollId",
@@ -1752,25 +1226,55 @@ namespace LMS.Infrastructure.Migrations
                 columns: new[] { "UserId", "LessonId" },
                 unique: true);
 
-            migrationBuilder.CreateIndex(name: "IX_Lessons_ModuleId", table: "Lessons", column: "ModuleId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Lessons_ModuleId",
+                table: "Lessons",
+                column: "ModuleId");
 
-            migrationBuilder.CreateIndex(name: "IX_Lessons_QuizId", table: "Lessons", column: "QuizId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Lessons_QuizId",
+                table: "Lessons",
+                column: "QuizId");
 
-            migrationBuilder.CreateIndex(name: "IX_Modules_CourseId", table: "Modules", column: "CourseId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Modules_CourseId",
+                table: "Modules",
+                column: "CourseId");
 
-            migrationBuilder.CreateIndex(name: "IX_Notes_LessonId", table: "Notes", column: "LessonId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Notes_LessonId",
+                table: "Notes",
+                column: "LessonId");
 
-            migrationBuilder.CreateIndex(name: "IX_Notes_UserId", table: "Notes", column: "UserId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Notes_UserId",
+                table: "Notes",
+                column: "UserId");
 
-            migrationBuilder.CreateIndex(name: "IX_Notifications_UserId", table: "Notifications", column: "UserId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_UserId",
+                table: "Notifications",
+                column: "UserId");
 
-            migrationBuilder.CreateIndex(name: "IX_QAThreads_LessonId", table: "QAThreads", column: "LessonId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QAThreads_LessonId",
+                table: "QAThreads",
+                column: "LessonId");
 
-            migrationBuilder.CreateIndex(name: "IX_QAThreads_ParentId", table: "QAThreads", column: "ParentId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QAThreads_ParentId",
+                table: "QAThreads",
+                column: "ParentId");
 
-            migrationBuilder.CreateIndex(name: "IX_QAThreads_UserId", table: "QAThreads", column: "UserId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QAThreads_UserId",
+                table: "QAThreads",
+                column: "UserId");
 
-            migrationBuilder.CreateIndex(name: "IX_QuestionBanks_QuizId", table: "QuestionBanks", column: "QuizId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QuestionBanks_QuizId",
+                table: "QuestionBanks",
+                column: "QuizId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_QuizAnswers_AttemptId_QuestionId",
@@ -1778,20 +1282,35 @@ namespace LMS.Infrastructure.Migrations
                 columns: new[] { "AttemptId", "QuestionId" },
                 unique: true);
 
-            migrationBuilder.CreateIndex(name: "IX_QuizAnswers_QuestionId", table: "QuizAnswers", column: "QuestionId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAnswers_QuestionId",
+                table: "QuizAnswers",
+                column: "QuestionId");
 
-            migrationBuilder.CreateIndex(name: "IX_QuizAttempts_QuizId", table: "QuizAttempts", column: "QuizId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAttempts_QuizId",
+                table: "QuizAttempts",
+                column: "QuizId");
 
-            migrationBuilder.CreateIndex(name: "IX_QuizAttempts_UserId", table: "QuizAttempts", column: "UserId");
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAttempts_UserId",
+                table: "QuizAttempts",
+                column: "UserId");
 
-            migrationBuilder.CreateIndex(name: "IX_Quizzes_CourseId", table: "Quizzes", column: "CourseId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Quizzes_CourseId",
+                table: "Quizzes",
+                column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
                 table: "RolePermissions",
                 column: "PermissionId");
 
-            migrationBuilder.CreateIndex(name: "IX_UserBadges_BadgeId", table: "UserBadges", column: "BadgeId");
+            migrationBuilder.CreateIndex(
+                name: "IX_UserBadges_BadgeId",
+                table: "UserBadges",
+                column: "BadgeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserBadges_UserId_BadgeId",
@@ -1815,11 +1334,21 @@ namespace LMS.Infrastructure.Migrations
                 table: "UserGroupMembers",
                 column: "UserId");
 
-            migrationBuilder.CreateIndex(name: "IX_UserGroups_CreatedById", table: "UserGroups", column: "CreatedById");
+            migrationBuilder.CreateIndex(
+                name: "IX_UserGroups_CreatedById",
+                table: "UserGroups",
+                column: "CreatedById");
 
-            migrationBuilder.CreateIndex(name: "IX_UserRoles_RoleId", table: "UserRoles", column: "RoleId");
+            migrationBuilder.CreateIndex(
+                name: "IX_UserRoles_RoleId",
+                table: "UserRoles",
+                column: "RoleId");
 
-            migrationBuilder.CreateIndex(name: "IX_Users_Email", table: "Users", column: "Email", unique: true);
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_DocumentPermissions_Documents_DocumentId",
@@ -1837,76 +1366,113 @@ namespace LMS.Infrastructure.Migrations
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(name: "FK_Documents_Users_UploadedById", table: "Documents");
+            migrationBuilder.DropForeignKey(
+                name: "FK_Documents_Users_UploadedById",
+                table: "Documents");
 
-            migrationBuilder.DropForeignKey(name: "FK_DocumentVersions_Users_UploadedById", table: "DocumentVersions");
+            migrationBuilder.DropForeignKey(
+                name: "FK_DocumentVersions_Users_UploadedById",
+                table: "DocumentVersions");
 
-            migrationBuilder.DropForeignKey(name: "FK_DocumentVersions_Documents_DocumentId", table: "DocumentVersions");
+            migrationBuilder.DropForeignKey(
+                name: "FK_DocumentVersions_Documents_DocumentId",
+                table: "DocumentVersions");
 
-            migrationBuilder.DropTable(name: "Certificates");
+            migrationBuilder.DropTable(
+                name: "Certificates");
 
-            migrationBuilder.DropTable(name: "CertificateTemplates");
+            migrationBuilder.DropTable(
+                name: "CertificateTemplates");
 
-            migrationBuilder.DropTable(name: "CourseGroupCourses");
+            migrationBuilder.DropTable(
+                name: "CourseGroupCourses");
 
-            migrationBuilder.DropTable(name: "DepartmentCourseGroups");
+            migrationBuilder.DropTable(
+                name: "DepartmentCourseGroups");
 
-            migrationBuilder.DropTable(name: "DocumentPermissions");
+            migrationBuilder.DropTable(
+                name: "DocumentPermissions");
 
-            migrationBuilder.DropTable(name: "Enrollments");
+            migrationBuilder.DropTable(
+                name: "Enrollments");
 
-            migrationBuilder.DropTable(name: "LessonAttachments");
+            migrationBuilder.DropTable(
+                name: "LessonAttachments");
 
-            migrationBuilder.DropTable(name: "LessonProgresses");
+            migrationBuilder.DropTable(
+                name: "LessonProgresses");
 
-            migrationBuilder.DropTable(name: "Notes");
+            migrationBuilder.DropTable(
+                name: "Notes");
 
-            migrationBuilder.DropTable(name: "Notifications");
+            migrationBuilder.DropTable(
+                name: "Notifications");
 
-            migrationBuilder.DropTable(name: "QAThreads");
+            migrationBuilder.DropTable(
+                name: "QAThreads");
 
-            migrationBuilder.DropTable(name: "QuizAnswers");
+            migrationBuilder.DropTable(
+                name: "QuizAnswers");
 
-            migrationBuilder.DropTable(name: "RolePermissions");
+            migrationBuilder.DropTable(
+                name: "RolePermissions");
 
-            migrationBuilder.DropTable(name: "UserBadges");
+            migrationBuilder.DropTable(
+                name: "UserBadges");
 
-            migrationBuilder.DropTable(name: "UserGroupMembers");
+            migrationBuilder.DropTable(
+                name: "UserGroupMembers");
 
-            migrationBuilder.DropTable(name: "UserRoles");
+            migrationBuilder.DropTable(
+                name: "UserRoles");
 
-            migrationBuilder.DropTable(name: "CourseGroups");
+            migrationBuilder.DropTable(
+                name: "CourseGroups");
 
-            migrationBuilder.DropTable(name: "Lessons");
+            migrationBuilder.DropTable(
+                name: "Lessons");
 
-            migrationBuilder.DropTable(name: "QuestionBanks");
+            migrationBuilder.DropTable(
+                name: "QuestionBanks");
 
-            migrationBuilder.DropTable(name: "QuizAttempts");
+            migrationBuilder.DropTable(
+                name: "QuizAttempts");
 
-            migrationBuilder.DropTable(name: "Permissions");
+            migrationBuilder.DropTable(
+                name: "Permissions");
 
-            migrationBuilder.DropTable(name: "Badges");
+            migrationBuilder.DropTable(
+                name: "Badges");
 
-            migrationBuilder.DropTable(name: "UserGroups");
+            migrationBuilder.DropTable(
+                name: "UserGroups");
 
-            migrationBuilder.DropTable(name: "Roles");
+            migrationBuilder.DropTable(
+                name: "Roles");
 
-            migrationBuilder.DropTable(name: "Modules");
+            migrationBuilder.DropTable(
+                name: "Modules");
 
-            migrationBuilder.DropTable(name: "Quizzes");
+            migrationBuilder.DropTable(
+                name: "Quizzes");
 
-            migrationBuilder.DropTable(name: "Courses");
+            migrationBuilder.DropTable(
+                name: "Courses");
 
-            migrationBuilder.DropTable(name: "Categories");
+            migrationBuilder.DropTable(
+                name: "Categories");
 
-            migrationBuilder.DropTable(name: "Users");
+            migrationBuilder.DropTable(
+                name: "Users");
 
-            migrationBuilder.DropTable(name: "Documents");
+            migrationBuilder.DropTable(
+                name: "Documents");
 
-            migrationBuilder.DropTable(name: "DocumentVersions");
+            migrationBuilder.DropTable(
+                name: "DocumentVersions");
         }
     }
 }

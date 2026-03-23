@@ -13,7 +13,6 @@ public class AiProcessingService : IAiProcessingService
 {
     private readonly AppDbContext _db;
     private readonly ITranscriptionService _whisper;
-    private readonly IAiModelService _protonX;
     private readonly VectorDbService _vectorDb;
     private readonly TextExtractionService _textExtractor;
     private readonly ILogger<AiProcessingService> _logger;
@@ -23,7 +22,6 @@ public class AiProcessingService : IAiProcessingService
     public AiProcessingService(
         AppDbContext db,
         ITranscriptionService whisper,
-        IAiModelService protonX,
         VectorDbService vectorDb,
         TextExtractionService textExtractor,
         ILogger<AiProcessingService> logger,
@@ -32,7 +30,6 @@ public class AiProcessingService : IAiProcessingService
     {
         _db = db;
         _whisper = whisper;
-        _protonX = protonX;
         _vectorDb = vectorDb;
         _textExtractor = textExtractor;
         _logger = logger;
@@ -67,9 +64,6 @@ public class AiProcessingService : IAiProcessingService
         _logger.LogInformation($"[AI] Whisper hoàn tất: {segments.Count} segments tìm thấy.");
 
         var rawTexts = segments.Select(s => s.Text).ToList();
-        _logger.LogInformation($"[AI] Đang chuẩn hóa văn bản (ProtonX Batch)...");
-        var refinedTexts = await _protonX.RefineTextBatchAsync(rawTexts);
-        _logger.LogInformation($"[AI] Chuẩn hóa văn bản hoàn tất.");
 
         var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
         bool skipVectorDb = false;
@@ -77,10 +71,7 @@ public class AiProcessingService : IAiProcessingService
         for(int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
-            // Fix: Nếu kết quảRefine là placeholder hoặc dummy, hãy dùng văn bản gốc của Whisper
-            var refined = i < refinedTexts.Count 
-                ? (refinedTexts[i].Contains("refined") || refinedTexts[i].Contains("Success") ? seg.Text : refinedTexts[i]) 
-                : seg.Text;
+            var refined = seg.Text;
             processedSegments.Add((seg, refined));
 
             if(!skipVectorDb)
@@ -111,10 +102,55 @@ public class AiProcessingService : IAiProcessingService
         await File.WriteAllTextAsync(srtPath, srtContent, Encoding.UTF8);
         await File.WriteAllTextAsync(vttPath, vttContent, Encoding.UTF8);
 
+        // Tạo Master Playlist để tích hợp phụ đề vào HLS
+        var hlsDir = Path.Combine(wwwroot, "uploads", "hls", lessonId.ToString());
+        if (Directory.Exists(hlsDir))
+        {
+            var masterM3u8Path = Path.Combine(hlsDir, "master.m3u8");
+            var subtitleM3u8Path = Path.Combine(hlsDir, "subtitles.m3u8");
+
+            // Sao chép phụ đề vào cùng thư mục HLS để tránh dùng đường dẫn tương đối phức tạp (../)
+            var localSubtitlePath = Path.Combine(hlsDir, "subtitles.vtt");
+            var sourceSubtitlePath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.vtt");
+            if (File.Exists(sourceSubtitlePath))
+            {
+                File.Copy(sourceSubtitlePath, localSubtitlePath, true);
+            }
+
+            var utf8WithoutBom = new UTF8Encoding(false);
+
+            // 1. Tạo Subtitle Playlist (VOD) theo chuẩn HLS
+            var totalDuration = processedSegments.Count is not 0 ? processedSegments.Last().Segment.EndTime : 0;
+            var subM3u8Content = new StringBuilder();
+            subM3u8Content.AppendLine("#EXTM3U");
+            subM3u8Content.AppendLine("#EXT-X-VERSION:3");
+            subM3u8Content.AppendLine($"#EXT-X-TARGETDURATION:{(int)Math.Ceiling(totalDuration)}");
+            subM3u8Content.AppendLine("#EXT-X-MEDIA-SEQUENCE:0");
+            subM3u8Content.AppendLine("#EXT-X-PLAYLIST-TYPE:VOD");
+            subM3u8Content.AppendLine($"#EXTINF:{totalDuration:F6},");
+            subM3u8Content.AppendLine("subtitles.vtt");
+            subM3u8Content.AppendLine("#EXT-X-ENDLIST");
+            await File.WriteAllTextAsync(subtitleM3u8Path, subM3u8Content.ToString(), utf8WithoutBom);
+
+            // 2. Tạo Master Playlist (HLS v6) để hỗ trợ phụ đề native
+            var masterM3u8Content = new StringBuilder();
+            masterM3u8Content.AppendLine("#EXTM3U");
+            masterM3u8Content.AppendLine("#EXT-X-VERSION:6");
+            masterM3u8Content.AppendLine("#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"Tiếng Việt\",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,LANGUAGE=\"vi\",URI=\"subtitles.m3u8\"");
+            masterM3u8Content.AppendLine("#EXT-X-STREAM-INF:BANDWIDTH=1280000,SUBTITLES=\"subs\"");
+            masterM3u8Content.AppendLine("index.m3u8");
+
+            await File.WriteAllTextAsync(masterM3u8Path, masterM3u8Content.ToString(), utf8WithoutBom);
+            lesson.VideoStorageUrl = $"/uploads/hls/{lessonId}/master.m3u8";
+        }
+
         lesson.Transcript = string.Join(" ", processedSegments.Select(x => x.RefinedText));
         lesson.SubtitlesPath = $"/uploads/subtitles/{lessonId}.vtt";
         lesson.IsAiProcessed = true;
         await _db.SaveChangesAsync();
+
+        // Gửi thông báo cập nhật URL mới (master.m3u8) để frontend chuyển sang luồng có phụ đề
+        await _hubContext.Clients.Group($"lesson_{lessonId}").SendAsync("VideoStatusUpdated", lessonId, "Ready", lesson.VideoStorageUrl);
         await _hubContext.Clients.Group($"lesson_{lessonId}").SendAsync("AiProcessingCompleted", lessonId);
     }
 

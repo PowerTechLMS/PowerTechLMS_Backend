@@ -74,6 +74,7 @@ public class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
+        var staticDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
         m.Entity<User>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<Course>().HasQueryFilter(e => !e.IsDeleted);
@@ -459,8 +460,8 @@ public class AppDbContext : DbContext
                     Name = "Kỹ năng mềm",
                     Slug = "ky-nang-mem",
                     SortOrder = 1,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Category
                 {
@@ -468,8 +469,8 @@ public class AppDbContext : DbContext
                     Name = "Kỹ thuật",
                     Slug = "ky-thuat",
                     SortOrder = 2,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Category
                 {
@@ -477,8 +478,8 @@ public class AppDbContext : DbContext
                     Name = "Quy trình",
                     Slug = "quy-trinh",
                     SortOrder = 3,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Category
                 {
@@ -486,8 +487,8 @@ public class AppDbContext : DbContext
                     Name = "Lãnh đạo",
                     Slug = "lanh-dao",
                     SortOrder = 4,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Category
                 {
@@ -495,8 +496,8 @@ public class AppDbContext : DbContext
                     Name = "Số hóa",
                     Slug = "so-hoa",
                     SortOrder = 5,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 });
 
         m.Entity<User>()
@@ -506,11 +507,11 @@ public class AppDbContext : DbContext
                     Id = 1,
                     FullName = "Admin",
                     Email = "admin@lms.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password@123"),
+                    PasswordHash = "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2",
                     Role = "Admin",
                     IsActive = true,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 });
 
         m.Entity<Badge>()
@@ -521,8 +522,8 @@ public class AppDbContext : DbContext
                     Name = "Người mới bắt đầu",
                     Description = "Hoàn thành khóa học đầu tiên",
                     RequiredCourses = 1,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Badge
                 {
@@ -530,8 +531,8 @@ public class AppDbContext : DbContext
                     Name = "Học viên chăm chỉ",
                     Description = "Hoàn thành 3 khóa học",
                     RequiredCourses = 3,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Badge
                 {
@@ -539,8 +540,8 @@ public class AppDbContext : DbContext
                     Name = "Siêu nhân học tập",
                     Description = "Hoàn thành 5 khóa học",
                     RequiredCourses = 5,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Badge
                 {
@@ -548,8 +549,8 @@ public class AppDbContext : DbContext
                     Name = "Bậc thầy tri thức",
                     Description = "Hoàn thành 10 khóa học",
                     RequiredCourses = 10,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 });
 
         m.Entity<Role>()
@@ -560,8 +561,8 @@ public class AppDbContext : DbContext
                     Name = "Admin",
                     Description = "Quản trị viên hệ thống",
                     IsSystem = true,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Role
                 {
@@ -569,8 +570,8 @@ public class AppDbContext : DbContext
                     Name = "Instructor",
                     Description = "Giảng viên",
                     IsSystem = true,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 },
                 new Role
                 {
@@ -578,37 +579,31 @@ public class AppDbContext : DbContext
                     Name = "Employee",
                     Description = "Nhân viên / Học viên",
                     IsSystem = true,
-                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                    UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 });
 
         var permissions = new List<Permission>
         {
-            new Permission { Id = 1, Code = "course.view", Name = "Xem khóa học", Category = "Course" },
-            new Permission { Id = 2, Code = "course.create", Name = "Tạo khóa học", Category = "Course" },
-            new Permission { Id = 3, Code = "course.edit", Name = "Sửa khóa học", Category = "Course" },
-            new Permission { Id = 4, Code = "course.delete", Name = "Xóa khóa học", Category = "Course" },
-            new Permission { Id = 5, Code = "course.publish", Name = "Xuất bản khóa học", Category = "Course" },
-            new Permission { Id = 6, Code = "enrollment.view", Name = "Xem ghi danh", Category = "Enrollment" },
-            new Permission { Id = 7, Code = "enrollment.approve", Name = "Duyệt ghi danh", Category = "Enrollment" },
-            new Permission { Id = 8, Code = "enrollment.assign", Name = "Gán học viên", Category = "Enrollment" },
-            new Permission { Id = 9, Code = "doc.view", Name = "Xem tài liệu", Category = "Document" },
-            new Permission { Id = 10, Code = "doc.upload", Name = "Tải tài liệu", Category = "Document" },
-            new Permission { Id = 11, Code = "doc.delete", Name = "Xóa tài liệu", Category = "Document" },
-            new Permission { Id = 12, Code = "quiz.create", Name = "Tạo bài tập", Category = "Quiz" },
-            new Permission { Id = 13, Code = "quiz.manage", Name = "Quản lý bài tập", Category = "Quiz" },
-            new Permission { Id = 14, Code = "report.view", Name = "Xem báo cáo", Category = "Report" },
-            new Permission { Id = 15, Code = "user.manage", Name = "Quản lý người dùng", Category = "Admin" },
-            new Permission { Id = 16, Code = "role.manage", Name = "Quản lý phân quyền", Category = "Admin" },
-            new Permission { Id = 17, Code = "group.manage", Name = "Quản lý nhóm", Category = "Admin" },
-            new Permission { Id = 18, Code = "certificate.view", Name = "Xem chứng chỉ", Category = "Certificate" },
-            new Permission
-            {
-                Id = 19,
-                Code = "certificate.manage",
-                Name = "Quản lý chứng chỉ",
-                Category = "Certificate"
-            }
+            new Permission { Id = 1, Code = "course.view", Name = "Xem khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 2, Code = "course.create", Name = "Tạo khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 3, Code = "course.edit", Name = "Sửa khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 4, Code = "course.delete", Name = "Xóa khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 5, Code = "course.publish", Name = "Xuất bản khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 6, Code = "enrollment.view", Name = "Xem ghi danh", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 7, Code = "enrollment.approve", Name = "Duyệt ghi danh", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 8, Code = "enrollment.assign", Name = "Gán học viên", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 9, Code = "doc.view", Name = "Xem tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 10, Code = "doc.upload", Name = "Tải tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 11, Code = "doc.delete", Name = "Xóa tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 12, Code = "quiz.create", Name = "Tạo bài tập", Category = "Quiz", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 13, Code = "quiz.manage", Name = "Quản lý bài tập", Category = "Quiz", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 14, Code = "report.view", Name = "Xem báo cáo", Category = "Report", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 15, Code = "user.manage", Name = "Quản lý người dùng", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 16, Code = "role.manage", Name = "Quản lý phân quyền", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 17, Code = "group.manage", Name = "Quản lý nhóm", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 18, Code = "certificate.view", Name = "Xem chứng chỉ", Category = "Certificate", CreatedAt = staticDate, UpdatedAt = staticDate },
+            new Permission { Id = 19, Code = "certificate.manage", Name = "Quản lý chứng chỉ", Category = "Certificate", CreatedAt = staticDate, UpdatedAt = staticDate }
         };
         m.Entity<Permission>().HasData(permissions);
 
@@ -618,10 +613,19 @@ public class AppDbContext : DbContext
                 {
                     UserId = 1,
                     RoleId = 1,
-                    AssignedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                    AssignedAt = staticDate,
+                    CreatedAt = staticDate,
+                    UpdatedAt = staticDate
                 });
 
-        var adminPermissions = permissions.Select(p => new RolePermission { RoleId = 1, PermissionId = p.Id }).ToList();
+        var adminPermissions = permissions.Select(p => new RolePermission 
+        { 
+            RoleId = 1, 
+            PermissionId = p.Id,
+            GrantedAt = staticDate,
+            CreatedAt = staticDate,
+            UpdatedAt = staticDate
+        }).ToList();
         m.Entity<RolePermission>().HasData(adminPermissions);
     }
 }

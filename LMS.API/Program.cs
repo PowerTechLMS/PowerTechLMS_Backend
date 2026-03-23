@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -149,12 +149,7 @@ builder.Services.AddSingleton<TextExtractionService>();
 builder.Services.AddSingleton<VectorDbService>(sp => new VectorDbService("localhost", 6334));
 builder.Services
     .AddSingleton<ITranscriptionService>(
-        sp => new WhisperService(Path.Combine(builder.Environment.ContentRootPath, "models", "ggml-base-vi.bin")));
-builder.Services
-    .AddSingleton<IAiModelService>(
-        sp => new ProtonXService(
-            Path.Combine(builder.Environment.ContentRootPath, "models", "protonx-legal-tc"),
-            sp.GetRequiredService<ILogger<ProtonXService>>()));
+        sp => new WhisperService(Path.Combine(builder.Environment.ContentRootPath, "models", "ggml-small-vi.bin")));
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 
 builder.Services
@@ -208,34 +203,27 @@ builder.Services
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services
-    .AddSwaggerGen(
-        c =>
-        {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "LMS API", Version = "v1" });
-            c.AddSecurityDefinition(
-                "Bearer",
-                new OpenApiSecurityScheme
-                    {
-                        In = ParameterLocation.Header,
-                        Description = "Enter JWT token",
-                        Name = "Authorization",
-                        Type = SecuritySchemeType.Http,
-                        Scheme = "bearer",
-                        BearerFormat = "JWT"
-                    });
-            c.AddSecurityRequirement(
-                new OpenApiSecurityRequirement
-                    {
-                {
+builder.Services.AddSwaggerGen(
+            options =>
+    {
+                options.AddSecurityDefinition(
+                    "bearer",
                     new OpenApiSecurityScheme
                     {
-                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-                    },
-                    Array.Empty<string>()
-                }
-                    });
-        });
+                            Description =
+                                "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                            Name = "Authorization",
+                            In = ParameterLocation.Header,
+                            Type = SecuritySchemeType.Http,
+                            Scheme = "bearer",
+                            BearerFormat = "JWT",
+                        });
+                options.AddSecurityRequirement(
+                    document => new OpenApiSecurityRequirement
+                        {
+                            [new OpenApiSecuritySchemeReference("bearer", document)] = []
+            });
+    });
 
 var app = builder.Build();
 
@@ -255,8 +243,10 @@ if(!Directory.Exists(uploadsPath))
     Directory.CreateDirectory(uploadsPath);
 
 var provider = new FileExtensionContentTypeProvider();
-provider.Mappings[".m3u8"] = "application/x-mpegURL";
-provider.Mappings[".ts"] = "video/MP2T";
+provider.Mappings[".m3u8"] = "application/vnd.apple.mpegurl";
+provider.Mappings[".ts"] = "video/mp2t";
+provider.Mappings[".vtt"] = "text/vtt";
+provider.Mappings[".srt"] = "text/plain";
 
 app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
 
@@ -270,59 +260,5 @@ app.UseHangfireDashboard(
 app.MapControllers();
 app.MapHub<VideoHub>("/hubs/video");
 app.MapHub<NotificationHub>("/hubs/notifications");
-
-try
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-
-    db.Database
-        .ExecuteSqlRaw(
-            @"
-        IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Courses' AND COLUMN_NAME = 'RequiresApproval')
-        BEGIN
-            ALTER TABLE Courses ADD RequiresApproval BIT NOT NULL DEFAULT 1;
-        END
-
-        IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Lessons' AND COLUMN_NAME = 'ReadingDurationSeconds')
-        BEGIN
-            ALTER TABLE Lessons ADD ReadingDurationSeconds INT NOT NULL DEFAULT 0;
-        END
-
-        -- BÁO CÁO: TỰ ĐỘNG CHÈN QUYỀN XEM CHỨNG CHỈ NẾU CHƯA CÓ
-        IF NOT EXISTS (SELECT * FROM Permissions WHERE Code = 'certificate.view')
-        BEGIN
-            INSERT INTO Permissions (Code, Name, Category, IsDeleted) 
-            VALUES ('certificate.view', N'Xem chứng chỉ', 'Certificate', 0);
-            
-            DECLARE @permId INT = SCOPE_IDENTITY();
-            -- Gán cho Admin (Role 1)
-            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 1 AND PermissionId = @permId)
-                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted) VALUES (1, @permId, 0);
-            -- Gán cho Instructor (Role 2)
-            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 2 AND PermissionId = @permId)
-                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted) VALUES (2, @permId, 0);
-        END
-
-        -- TỰ ĐỘNG CHÈN QUYỀN QUẢN LÝ CHỨNG CHỈ (certificate.manage)
-        IF NOT EXISTS (SELECT * FROM Permissions WHERE Code = 'certificate.manage')
-        BEGIN
-            INSERT INTO Permissions (Code, Name, Category, IsDeleted, CreatedAt, UpdatedAt) 
-            VALUES ('certificate.manage', N'Quản lý chứng chỉ', 'Certificate', 0, GETUTCDATE(), GETUTCDATE());
-            
-            DECLARE @managePermId INT = (SELECT Id FROM Permissions WHERE Code = 'certificate.manage');
-            -- Gán cho Admin (Role 1)
-            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 1 AND PermissionId = @managePermId)
-                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted, GrantedAt) VALUES (1, @managePermId, 0, GETUTCDATE());
-            -- Gán cho Instructor (Role 2)
-            IF NOT EXISTS (SELECT * FROM RolePermissions WHERE RoleId = 2 AND PermissionId = @managePermId)
-                INSERT INTO RolePermissions (RoleId, PermissionId, IsDeleted, GrantedAt) VALUES (2, @managePermId, 0, GETUTCDATE());
-        END
-    ");
-} catch(Exception ex)
-{
-    Console.WriteLine($"Database initialization failed: {ex.Message}");
-}
 
 app.Run();
