@@ -38,6 +38,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
+    <SmartComponents-LocalEmbeddings-SkipDownload>true</SmartComponents-LocalEmbeddings-SkipDownload>
   </PropertyGroup>
 
 </Project>
