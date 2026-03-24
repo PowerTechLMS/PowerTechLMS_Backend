@@ -55,7 +55,7 @@ _Backend sẽ chạy tại: http://localhost:5100_
 
 ```
 dotnet ef migrations add <Tên Migration mới> --project LMS.Infrastructure --startup-project LMS.API
-dotnet ef database update --project LMS.Infrastructure --startup-project LMS.API
+dotnet ef database update --project LMS.Infrastructure --startup-project LMS.API --context AppDbContext
 ```
 
 ## 5. Khi mới vào dự án, làm sao để cài đặt các biến môi trường sử dụng (appsetting.\*)

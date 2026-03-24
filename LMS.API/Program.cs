@@ -37,21 +37,17 @@ builder.Services
 var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "SqlServer";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
+builder.Services.AddDbContext<PostgreSqlDbContext>(
+    options => options.UseNpgsql(connectionString));
+
 if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddDbContext<AppDbContext, PostgreSqlDbContext>(
-        options => options.UseNpgsql(connectionString));
-
-    builder.Services.AddDbContext<PostgreSqlDbContext>(
-        options => options.UseNpgsql(connectionString));
+    builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<PostgreSqlDbContext>());
 }
 else
 {
     builder.Services.AddDbContext<AppDbContext>(
         options => options.UseSqlServer(connectionString));
-
-    builder.Services.AddDbContext<PostgreSqlDbContext>(
-        options => options.UseNpgsql(connectionString));
 }
 
 builder.Services

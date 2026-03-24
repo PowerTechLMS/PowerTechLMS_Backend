@@ -21,19 +21,8 @@ public class VectorDbService
 
     public async Task UpsertVectorAsync(Guid pointId, string content, object metadata)
     {
+        await EnsureCollectionReadyAsync();
         var embedding = _embedder.Embed(content);
-
-        if(!_collectionVerified)
-        {
-            try
-            {
-                await EnsureCollectionExistsAsync();
-                _collectionVerified = true;
-            } catch
-            {
-                throw;
-            }
-        }
         var point = new PointStruct
         {
             Id = pointId,
@@ -46,6 +35,7 @@ public class VectorDbService
 
     public async Task<List<(Guid Id, string Content, string Metadata)>> SearchAsync(string query, int lessonId, int limit = 5)
     {
+        await EnsureCollectionReadyAsync();
         var embedding = _embedder.Embed(query);
 
         var filter = new Filter();
@@ -74,6 +64,7 @@ public class VectorDbService
 
     public async Task DeleteVectorsByFilterAsync(string key, object value)
     {
+        await EnsureCollectionReadyAsync();
         var filter = new Filter();
         filter.Must.Add(new Condition
         {
@@ -90,6 +81,7 @@ public class VectorDbService
 
     public async Task<List<(string Content, string Metadata)>> GetAllSegmentsAsync(int lessonId)
     {
+        await EnsureCollectionReadyAsync();
         var filter = new Filter();
         filter.Must.Add(new Condition
         {
@@ -107,6 +99,15 @@ public class VectorDbService
             p.Payload["content"].StringValue,
             p.Payload["metadata"].StringValue
         )).ToList();
+    }
+
+    private async Task EnsureCollectionReadyAsync()
+    {
+        if (!_collectionVerified)
+        {
+            await EnsureCollectionExistsAsync();
+            _collectionVerified = true;
+        }
     }
 
     private async Task EnsureCollectionExistsAsync()
