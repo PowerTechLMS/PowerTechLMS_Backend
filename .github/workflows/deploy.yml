@@ -59,7 +59,7 @@ jobs:
       - name: Install EF Core Tools
         run: dotnet tool install --global dotnet-ef
       - name: Generate PostgreSQL Migration Bundle
-        run: >
+        run: |
           cd LMS.Infrastructure
           dotnet ef migrations bundle --self-contained -r linux-x64 --context PostgreSqlDbContext --output ../postgres_bundle
           cd ..
@@ -102,7 +102,7 @@ jobs:
           username: ${{ secrets.PRODUCTION_SERVER_USERNAME }}
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
-          script: >
+          script: |
             if [ -f /var/www/powertech/backend/postgres_bundle ]; then
               chmod +x /var/www/powertech/backend/postgres_bundle
               /var/www/powertech/backend/postgres_bundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
