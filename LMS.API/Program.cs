@@ -35,22 +35,23 @@ builder.Services
         });
 
 var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "SqlServer";
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
 if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddDbContext<AppDbContext, PostgreSqlDbContext>(
-        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+        options => options.UseNpgsql(connectionString));
 
     builder.Services.AddDbContext<PostgreSqlDbContext>(
-        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+        options => options.UseNpgsql(connectionString));
 }
 else
 {
     builder.Services.AddDbContext<AppDbContext>(
-        options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options => options.UseSqlServer(connectionString));
 
     builder.Services.AddDbContext<PostgreSqlDbContext>(
-        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+        options => options.UseNpgsql(connectionString));
 }
 
 builder.Services
@@ -166,9 +167,8 @@ builder.Services.AddSingleton<TextExtractionService>();
 builder.Services.AddSingleton<VectorDbService>(sp => 
 {
     var config = sp.GetRequiredService<IConfiguration>();
-    var host = config["Qdrant:Host"] ?? "localhost";
-    var port = int.Parse(config["Qdrant:Port"] ?? "6334");
-    return new VectorDbService(host, port);
+    var url = config["Qdrant:Url"] ?? "http://localhost:6334";
+    return new VectorDbService(url);
 });
 builder.Services
     .AddSingleton<ITranscriptionService>(
@@ -184,7 +184,7 @@ builder.Services
                 configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
-                    .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("PostgreSqlConnection"));
+                    .UsePostgreSqlStorage(connectionString);
             }
             else
             {
@@ -192,7 +192,7 @@ builder.Services
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
                     .UseSqlServerStorage(
-                        builder.Configuration.GetConnectionString("DefaultConnection"),
+                        connectionString,
                         new SqlServerStorageOptions
                         {
                             CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),

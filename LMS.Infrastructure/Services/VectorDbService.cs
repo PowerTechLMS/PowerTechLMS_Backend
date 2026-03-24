@@ -11,9 +11,9 @@ public class VectorDbService
     private readonly LocalEmbedder _embedder;
     private const string CollectionName = "powertech_knowledge";
 
-    public VectorDbService(string qdrantHost, int qdrantPort)
+    public VectorDbService(string qdrantUrl)
     {
-        _client = new QdrantClient(qdrantHost, qdrantPort);
+        _client = new QdrantClient(new Uri(qdrantUrl));
         _embedder = new LocalEmbedder();
     }
 
@@ -71,6 +71,22 @@ public class VectorDbService
             r.Payload["metadata"].StringValue
         )).ToList();
     }
+
+    public async Task DeleteVectorsByFilterAsync(string key, object value)
+    {
+        var filter = new Filter();
+        filter.Must.Add(new Condition
+        {
+            Field = new FieldCondition
+            {
+                Key = "metadata",
+                Match = new Match { Text = $"{key} = {value}," }
+            }
+        });
+
+        await _client.DeleteAsync(CollectionName, filter: filter);
+    }
+
 
     public async Task<List<(string Content, string Metadata)>> GetAllSegmentsAsync(int lessonId)
     {

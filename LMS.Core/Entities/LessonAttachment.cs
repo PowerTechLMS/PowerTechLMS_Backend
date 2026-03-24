@@ -14,4 +14,6 @@ public class LessonAttachment : BaseEntity
     public long FileSize { get; set; }
 
     public Lesson Lesson { get; set; } = null!;
+
+    public bool IsAiProcessed { get; set; }
 }

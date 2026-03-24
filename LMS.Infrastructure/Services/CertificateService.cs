@@ -471,7 +471,13 @@ public class LeaderboardService : ILeaderboardService
 public class DocumentService : IDocumentService
 {
     private readonly AppDbContext _db;
-    public DocumentService(AppDbContext db) => _db = db;
+    private readonly VectorDbService _vectorDb;
+
+    public DocumentService(AppDbContext db, VectorDbService vectorDb)
+    {
+        _db = db;
+        _vectorDb = vectorDb;
+    }
 
     public async Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(
         int page,
@@ -758,6 +764,9 @@ public class DocumentService : IDocumentService
 
         if(!isAdmin && doc.UploadedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền xóa tài liệu này.");
+
+        // Xoá vector của tài liệu
+        await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
 
         doc.IsDeleted = true;
         doc.DeletedAt = DateTime.UtcNow;

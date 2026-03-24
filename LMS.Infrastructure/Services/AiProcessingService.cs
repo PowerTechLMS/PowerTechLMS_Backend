@@ -58,7 +58,11 @@ public class AiProcessingService : IAiProcessingService
         {
             return;
         }
+
+        await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
+
         var segments = await _whisper.TranscribeAsync(audioPath);
+
 
         var rawTexts = segments.Select(s => s.Text).ToList();
 
@@ -86,7 +90,21 @@ public class AiProcessingService : IAiProcessingService
             }
         }
 
+        // Xoá file âm thanh tạm sau khi đã chuyển biên thành công
+        try
+        {
+            if (File.Exists(audioPath))
+            {
+                File.Delete(audioPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"[AI] Không thể xoá file âm thanh tạm: {ex.Message}");
+        }
+
         var srtContent = GenerateSrtContent(processedSegments);
+
         var vttContent = GenerateVttContent(processedSegments);
 
         var subtitleDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "subtitles");
@@ -165,10 +183,15 @@ public class AiProcessingService : IAiProcessingService
         var fullText = _textExtractor.ExtractText(filePath);
 
         var chunks = SplitText(fullText, 500);
+        
+        // Xoá các vector cũ của tài liệu trước khi xử lý mới
+        await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
+
         foreach(var chunk in chunks)
         {
             await _vectorDb.UpsertVectorAsync(Guid.NewGuid(), chunk, new { DocumentId = documentId, Type = "Document" });
         }
+
 
         doc.IsAiProcessed = true;
         await _db.SaveChangesAsync();
@@ -184,7 +207,37 @@ public class AiProcessingService : IAiProcessingService
         return list;
     }
 
-    public Task ProcessLessonAttachmentAsync(int attachmentId) { return Task.CompletedTask; }
+    public async Task ProcessLessonAttachmentAsync(int attachmentId)
+    {
+        var attachment = await _db.LessonAttachments.FindAsync(attachmentId);
+        if (attachment == null || string.IsNullOrEmpty(attachment.StorageKey))
+            return;
+
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", attachment.StorageKey.TrimStart('/'));
+        if (!File.Exists(filePath))
+            return;
+
+        var fullText = _textExtractor.ExtractText(filePath);
+        if (string.IsNullOrWhiteSpace(fullText))
+            return;
+
+        var chunks = SplitText(fullText, 500);
+
+        // Xoá các vector cũ của đính kèm này (nếu có)
+        await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
+
+        foreach (var chunk in chunks)
+        {
+            await _vectorDb.UpsertVectorAsync(
+                Guid.NewGuid(),
+                chunk,
+                new { LessonId = attachment.LessonId, AttachmentId = attachmentId, Type = "Attachment" });
+        }
+
+        attachment.IsAiProcessed = true;
+        await _db.SaveChangesAsync();
+    }
+
 
     private string GenerateVttContent(List<(TextSegment Segment, string RefinedText)> processedSegments)
     {

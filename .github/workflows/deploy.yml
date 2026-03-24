@@ -1,4 +1,4 @@
-name: AnhEmMotor Backend - Deploy
+name: Powertech Backend - Deploy
 on:
   push:
     branches:
@@ -17,58 +17,56 @@ jobs:
           dotnet-version: 10.0.x
       - name: Prepare AppSettings
         run: |
-          cp WebAPI/appsettings.Template.json appsettings.Production.json
+          cp LMS.API/appsettings.Template.json appsettings.Production.json
           sed -i '/^[[:blank:]]*\/\//d' appsettings.Production.json
           sed -i 's|[[:blank:]]\+//.*||g' appsettings.Production.json
       - name: Inject Secrets
         env:
           ALLOWED_HOSTS: ${{ secrets.ALLOWED_HOSTS }}
-          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
           DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
           JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
-          SUPER_ROLES_LIST: ${{ secrets.SUPER_ROLES_LIST || '[]' }}
-          PROTECTED_USERS_LIST: ${{ secrets.PROTECTED_USERS_LIST || '[]' }}
-          DEFAULT_ROLES_FOR_NEW_USER_LIST: ${{ secrets.DEFAULT_ROLES_FOR_NEW_USER_LIST || '[]' }}
-          ENABLE_DATABASE_SEEDING: ${{ secrets.ENABLE_DATABASE_SEEDING || 'false' }}
-          COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
-          OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
-          LOKI_ENDPOINT: ${{ secrets.LOKI_ENDPOINT }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          LLM_API_URL: ${{ secrets.LLM_API_URL }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
         run: >
           jq '
-            .Provider = "PostgreSql" |
+            .DatabaseProvider = "PostgreSql" |
             .AllowedHosts = env.ALLOWED_HOSTS |
-            .Cors.AllowedOrigins = env.CORS_ALLOWED_ORIGINS |
-            .ConnectionStrings.StringConnection = env.DB_CONNECTION_STRING |
-            .Jwt.Key = env.JWT_SECRET_KEY |
+            .ConnectionStrings.DefaultConnection = env.DB_CONNECTION_STRING |
+            .Jwt.Secret = env.JWT_SECRET_KEY |
             .Jwt.Issuer = env.JWT_ISSUER |
             .Jwt.Audience = env.JWT_AUDIENCE |
-            .ProtectedAuthorizationEntities.SuperRoles = (env.SUPER_ROLES_LIST | fromjson) |
-            .ProtectedAuthorizationEntities.ProtectedUsers = (env.PROTECTED_USERS_LIST | fromjson) |
-            .ProtectedAuthorizationEntities.DefaultRolesForNewUsers = (env.DEFAULT_ROLES_FOR_NEW_USER_LIST | fromjson) |
-            .SeedingOptions.RunDataSeedingOnStartup = (env.ENABLE_DATABASE_SEEDING | fromjson) |
-            .CookieDomain = env.COOKIE_DOMAIN |
-            .OpenTelemetry.OtlpEndpoint = env.OTLP_ENDPOINT |
-            .OpenTelemetry.LokiEndpoint = env.LOKI_ENDPOINT
+            .EmailSettings.SmtpHost = env.SMTP_HOST |
+            .EmailSettings.SmtpPort = env.SMTP_PORT |
+            .EmailSettings.SmtpUser = env.SMTP_USER |
+            .EmailSettings.SmtpPass = env.SMTP_PASS |
+            .EmailSettings.FromEmail = env.FROM_EMAIL |
+            .LlmSettings.ApiUrl = env.LLM_API_URL |
+            .LlmSettings.ApiKey = env.LLM_API_KEY |
+            .Qdrant.Url = env.QDRANT_URL
           ' appsettings.Production.json > tmp.json && mv tmp.json appsettings.Production.json
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
-        run: dotnet build WebAPI/WebAPI.csproj --configuration Release --no-restore
+        run: dotnet build LMS.API/LMS.API.csproj --configuration Release --no-restore
       - name: Install EF Core Tools
         run: dotnet tool install --global dotnet-ef
       - name: Generate PostgreSQL Migration Bundle
         run: >
-          cd Infrastructure
-
+          cd LMS.Infrastructure
           dotnet ef migrations bundle --self-contained -r linux-x64 --context PostgreSqlDbContext --output ../postgres_bundle
-
           cd ..
         continue-on-error: true
       - name: Publish
         run:
-          dotnet publish WebAPI/WebAPI.csproj --configuration Release --no-build
+          dotnet publish LMS.API/LMS.API.csproj --configuration Release --no-build
           --output ./publish
       - name: Move AppSettings to Publish Folder
         run: cp appsettings.Production.json ./publish/
@@ -86,7 +84,7 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            rm -rf /var/www/anhemmotor/backend/*
+            rm -rf /var/www/powertech/backend/*
       - name: Copy Files via SCP
         uses: appleboy/scp-action@master
         with:
@@ -95,7 +93,7 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           source: ./publish/*
-          target: /var/www/anhemmotor/backend
+          target: /var/www/powertech/backend
           strip_components: 1
       - name: Execute Remote SSH Commands
         uses: appleboy/ssh-action@master
@@ -105,10 +103,9 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: >
-            if [ -f /var/www/anhemmotor/backend/postgres_bundle ]; then
-              chmod +x /var/www/anhemmotor/backend/postgres_bundle
-              /var/www/anhemmotor/backend/postgres_bundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
-              rm /var/www/anhemmotor/backend/postgres_bundle
+            if [ -f /var/www/powertech/backend/postgres_bundle ]; then
+              chmod +x /var/www/powertech/backend/postgres_bundle
+              /var/www/powertech/backend/postgres_bundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
+              rm /var/www/powertech/backend/postgres_bundle
             fi
-
-            sudo systemctl restart anhemmotor.service
+            sudo systemctl restart powertech.service
