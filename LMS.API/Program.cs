@@ -144,9 +144,16 @@ builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
+builder.Services.AddHttpClient<ILlmService, LlmService>();
 
 builder.Services.AddSingleton<TextExtractionService>();
-builder.Services.AddSingleton<VectorDbService>(sp => new VectorDbService("localhost", 6334));
+builder.Services.AddSingleton<VectorDbService>(sp => 
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var host = config["Qdrant:Host"] ?? "localhost";
+    var port = int.Parse(config["Qdrant:Port"] ?? "6334");
+    return new VectorDbService(host, port);
+});
 builder.Services
     .AddSingleton<ITranscriptionService>(
         sp => new WhisperService(Path.Combine(builder.Environment.ContentRootPath, "models", "ggml-small-vi.bin")));

@@ -95,3 +95,4 @@ Trong file `appsettings.Development.json` hoặc `appsettings.json`, tìm đến
 
 - Cập nhật phiên bản card đồ hoạ lên phiên bản mới nhất.
 - Vào đường link [này](https://developer.download.nvidia.com/compute/cuda/13.2.0/local_installers/cuda_13.2.0_windows.exe) và cài đặt CUDA
+- Ngoài ra, phải đảm bảo card đồ hoạ đầu tiên trong máy là card đồ hoạ NVIDIA

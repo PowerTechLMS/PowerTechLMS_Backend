@@ -71,6 +71,8 @@ public class AppDbContext : DbContext
 
     public DbSet<Notification> Notifications => Set<Notification>();
 
+    public DbSet<LessonChat> LessonChats => Set<LessonChat>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -106,6 +108,7 @@ public class AppDbContext : DbContext
         m.Entity<RolePermission>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<LessonChat>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -317,6 +320,19 @@ public class AppDbContext : DbContext
                     .WithMany(l => l.Notes)
                     .HasForeignKey(n => n.LessonId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+        m.Entity<LessonChat>(
+            e =>
+            {
+                e.HasOne(lc => lc.Lesson)
+                    .WithMany()
+                    .HasForeignKey(lc => lc.LessonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(lc => lc.User)
+                    .WithMany()
+                    .HasForeignKey(lc => lc.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
         m.Entity<Badge>(e => e.Property(b => b.Name).HasMaxLength(100));

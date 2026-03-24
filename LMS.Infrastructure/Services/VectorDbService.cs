@@ -1,3 +1,4 @@
+using System;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using SmartComponents.LocalEmbeddings;
@@ -41,6 +42,55 @@ public class VectorDbService
         };
 
         await _client.UpsertAsync(CollectionName, new[] { point });
+    }
+
+    public async Task<List<(Guid Id, string Content, string Metadata)>> SearchAsync(string query, int lessonId, int limit = 5)
+    {
+        var embedding = _embedder.Embed(query);
+
+        var filter = new Filter();
+        filter.Must.Add(new Condition
+        {
+            Field = new FieldCondition
+            {
+                Key = "metadata",
+                Match = new Match { Text = $"LessonId = {lessonId}," }
+            }
+        });
+
+        var results = await _client.SearchAsync(
+            CollectionName,
+            embedding.Values.ToArray(),
+            filter: filter,
+            limit: (ulong)limit
+        );
+
+        return results.Select(r => (
+            Guid.Parse(r.Id.Uuid),
+            r.Payload["content"].StringValue,
+            r.Payload["metadata"].StringValue
+        )).ToList();
+    }
+
+    public async Task<List<(string Content, string Metadata)>> GetAllSegmentsAsync(int lessonId)
+    {
+        var filter = new Filter();
+        filter.Must.Add(new Condition
+        {
+            Field = new FieldCondition
+            {
+                Key = "metadata",
+                Match = new Match { Text = $"LessonId = {lessonId}," }
+            }
+        });
+
+        // Scroll trả về ScrollResponse, danh sách point nằm trong Result
+        var results = await _client.ScrollAsync(CollectionName, filter: filter, limit: 100);
+
+        return results.Result.Select(p => (
+            p.Payload["content"].StringValue,
+            p.Payload["metadata"].StringValue
+        )).ToList();
     }
 
     private async Task EnsureCollectionExistsAsync()
