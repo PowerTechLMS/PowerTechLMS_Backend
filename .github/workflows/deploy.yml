@@ -61,7 +61,7 @@ jobs:
       - name: Generate PostgreSQL Migration Bundle
         run: |
           cd LMS.Infrastructure
-          dotnet ef migrations bundle --self-contained -r linux-x64 --context PostgreSqlDbContext --output ../postgres_bundle
+          dotnet ef migrations bundle --self-contained -r linux-x64 --context PostgreSqlDbContext --startup-project ../LMS.API/LMS.API.csproj --output ../postgres_bundle
           cd ..
         continue-on-error: true
       - name: Publish

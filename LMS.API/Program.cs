@@ -180,7 +180,7 @@ builder.Services
                 configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
-                    .UsePostgreSqlStorage(connectionString);
+                    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString));
             }
             else
             {
