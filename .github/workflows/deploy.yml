@@ -35,7 +35,8 @@ jobs:
           LLM_API_URL: ${{ secrets.LLM_API_URL }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
-        run: >
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+        run: |
           jq '
             .DatabaseProvider = "PostgreSql" |
             .AllowedHosts = env.ALLOWED_HOSTS |
@@ -50,7 +51,8 @@ jobs:
             .EmailSettings.FromEmail = env.FROM_EMAIL |
             .LlmSettings.ApiUrl = env.LLM_API_URL |
             .LlmSettings.ApiKey = env.LLM_API_KEY |
-            .Qdrant.Url = env.QDRANT_URL
+            .Qdrant.Url = env.QDRANT_URL |
+            .FrontendUrl = env.FRONTEND_URL
           ' appsettings.Production.json > tmp.json && mv tmp.json appsettings.Production.json
       - name: Restore dependencies
         run: dotnet restore
