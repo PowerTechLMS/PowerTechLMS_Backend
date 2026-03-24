@@ -26,6 +26,26 @@
 - Tuyệt đối không dùng toán tử null-forgiving (!). Việc dùng ! là biểu hiện của sự lười biếng trong xử lý logic. Nếu bạn tin chắc nó không null, hãy chứng minh bằng code check null hoặc gán giá trị mặc định (??).
 - Dù kiểu dữ liệu được khai báo là string, nhưng nếu nó đến từ một bản ghi Database cũ hoặc một API bên thứ ba, nó vẫn có thể là null. Phải kiểm tra tính toàn vẹn trước khi xử lý.
 
+# Tạo Migration mới cho dự án
+
+- Phải sử dụng file add-migration.ps1 để tạo migraion mới. Cú pháp
+
+```
+./add-migration.ps1 -MigrationName "TenMigrationCuaBan"
+```
+
+# Quy tắc khi thêm 1 biến môi trường vào trong appsetting.json hoặc appsettings.Development.json
+
+Khi thêm 1 biến môi trường vào trong appsetting.json hoặc appsettings.Development.json:
+
+- Phải thêm vào trong appsettings.Template.Development.json và appsettings.Template.json, bao gồm cả chú thích cho biến môi trường mới đó.
+- Trong file .github\workflows\deploy.yml, nếu cần thêm vào trong việc deploy dự án trên Hosting thì thêm biến đó vào trong Secret của dự án.
+
+Lưu ý:
+
+- Tuyệt đối không lưu giá trị nhạy cảm (Password, Secret Key, Connection String) vào các file Template.
+- Tên Secret trên GitHub phải khớp 100% với tên biến trong cấu hình ASP.NET Core (Sử dụng dấu \_\_ thay cho dấu : nếu cần).
+
 ## Build và Test
 
 - Mỗi khi có sự thay đổi trong code chạy dự án, bắt buộc phải build và test dự án.

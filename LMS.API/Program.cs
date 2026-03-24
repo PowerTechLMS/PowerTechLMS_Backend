@@ -12,6 +12,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
 using Microsoft.OpenApi;
+using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,9 +34,24 @@ builder.Services
             options.MemoryBufferThreshold = int.MaxValue;
         });
 
-builder.Services
-    .AddDbContext<AppDbContext>(
+var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "SqlServer";
+
+if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddDbContext<AppDbContext, PostgreSqlDbContext>(
+        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+
+    builder.Services.AddDbContext<PostgreSqlDbContext>(
+        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+}
+else
+{
+    builder.Services.AddDbContext<AppDbContext>(
         options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+    builder.Services.AddDbContext<PostgreSqlDbContext>(
+        options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSqlConnection")));
+}
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -161,20 +177,32 @@ builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 
 builder.Services
     .AddHangfire(
-        configuration => configuration
-    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-            .UseSimpleAssemblyNameTypeSerializer()
-            .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(
-                builder.Configuration.GetConnectionString("DefaultConnection"),
-                new SqlServerStorageOptions
-                    {
-                        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-                        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-                        QueuePollInterval = TimeSpan.Zero,
-                        UseRecommendedIsolationLevel = true,
-                        DisableGlobalLocks = true
-                    }));
+        configuration => 
+        {
+            if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+            {
+                configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("PostgreSqlConnection"));
+            }
+            else
+            {
+                configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                    .UseSimpleAssemblyNameTypeSerializer()
+                    .UseRecommendedSerializerSettings()
+                    .UseSqlServerStorage(
+                        builder.Configuration.GetConnectionString("DefaultConnection"),
+                        new SqlServerStorageOptions
+                        {
+                            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                            QueuePollInterval = TimeSpan.Zero,
+                            UseRecommendedIsolationLevel = true,
+                            DisableGlobalLocks = true
+                        });
+            }
+        });
 
 builder.Services.AddHangfireServer();
 

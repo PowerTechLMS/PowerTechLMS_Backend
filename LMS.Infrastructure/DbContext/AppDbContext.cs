@@ -3,9 +3,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Infrastructure.Data;
 
+/// <summary>
+/// Password mặc định là Password@123
+/// </summary>
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
+    protected AppDbContext(DbContextOptions options) : base(options)
     {
     }
 
@@ -523,7 +530,7 @@ public class AppDbContext : DbContext
                     Id = 1,
                     FullName = "Admin",
                     Email = "admin@lms.com",
-                    PasswordHash = "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2",
+                    PasswordHash = "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2", 
                     Role = "Admin",
                     IsActive = true,
                     CreatedAt = staticDate,

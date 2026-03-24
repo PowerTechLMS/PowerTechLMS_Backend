@@ -51,13 +51,6 @@ public class LessonChatController : ControllerBase
         // RAG: Search for relevant context
         var searchResults = await _vectorDb.SearchAsync(request.Message, request.LessonId, limit: 5);
         
-        // Log các đoạn được chọn để debug theo yêu cầu người dùng
-        _logger.LogInformation("[RAG] Top {Count} segments found for message: {Message}", searchResults.Count, request.Message);
-        foreach (var res in searchResults)
-        {
-            _logger.LogInformation("[RAG Segment] ID: {Id} | Payload: {Metadata} | Content: {Content}", res.Id, res.Metadata, res.Content);
-        }
-
         // Lấy toàn bộ các đoạn của bài học để tìm các đoạn kế tiếp (context expansion)
         var allSegments = await _vectorDb.GetAllSegmentsAsync(request.LessonId);
         var sortedAllSegments = allSegments

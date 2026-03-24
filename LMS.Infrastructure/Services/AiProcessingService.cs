@@ -58,10 +58,7 @@ public class AiProcessingService : IAiProcessingService
         {
             return;
         }
-
-        _logger.LogInformation($"[AI] Bắt đầu Whisper Transcription cho bài học: {lessonId}");
         var segments = await _whisper.TranscribeAsync(audioPath);
-        _logger.LogInformation($"[AI] Whisper hoàn tất: {segments.Count} segments tìm thấy.");
 
         var rawTexts = segments.Select(s => s.Text).ToList();
 
