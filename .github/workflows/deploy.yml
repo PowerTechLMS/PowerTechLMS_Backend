@@ -71,16 +71,17 @@ jobs:
           port: 22
           script: |
             rm -rf /var/www/powertech/backend/*
-      - name: Copy Files via SCP
+      - name: Compress Publish Folder
+        run: tar -czf publish.tar.gz -C ./publish .
+      - name: Copy via SCP
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.PRODUCTION_SERVER_IP }}
           username: ${{ secrets.PRODUCTION_SERVER_USERNAME }}
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
-          source: ./publish/*
-          target: /var/www/powertech/backend
-          strip_components: 1
+          source: "publish.tar.gz"
+          target: "/var/www/powertech/backend"
       - name: Execute Remote SSH Commands
         uses: appleboy/ssh-action@master
         with:
@@ -90,5 +91,7 @@ jobs:
           port: 22
           script: |
             cd /var/www/powertech/backend
+            tar -xzf publish.tar.gz
+            rm publish.tar.gz
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
