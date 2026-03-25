@@ -59,15 +59,11 @@ jobs:
       - name: Build
         run: dotnet build LMS.API/LMS.API.csproj --configuration Release --no-restore
       - name: Publish
-        run: |
-          dotnet publish LMS.API/LMS.API.csproj \
-            --configuration Release \
-            --no-build \
-            --output ./publish \
-            -p:CopyOutputSymbolsToPublishDirectory=false \
-            -p:DebugType=None
+        run: dotnet publish LMS.API/LMS.API.csproj --configuration Release --no-build --output ./publish -p:CopyOutputSymbolsToPublishDirectory=false -p:DebugType=None
       - name: Move AppSettings to Publish Folder
         run: cp appsettings.Production.json ./publish/
+      - name: Check Publish Size
+        run: du -sh ./publish/*
       - name: Clean Remote Directory
         uses: appleboy/ssh-action@master
         with:
@@ -95,5 +91,6 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            dotnet /var/www/powertech/backend/LMS.API.dll --migrate
+            cd /var/www/powertech/backend
+            ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
