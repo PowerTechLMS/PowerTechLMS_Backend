@@ -58,14 +58,6 @@ jobs:
         run: dotnet restore
       - name: Build
         run: dotnet build LMS.API/LMS.API.csproj --configuration Release --no-restore
-      - name: Install EF Core Tools
-        run: dotnet tool install --global dotnet-ef
-      - name: Generate PostgreSQL Migration Bundle
-        run: |
-          cd LMS.Infrastructure
-          dotnet ef migrations bundle -r linux-x64 --context PostgreSqlDbContext --startup-project ../LMS.API/LMS.API.csproj --output ../postgres_bundle
-          cd ..
-        continue-on-error: true
       - name: Publish
         run: |
           dotnet publish LMS.API/LMS.API.csproj \
@@ -76,12 +68,6 @@ jobs:
             -p:DebugType=None
       - name: Move AppSettings to Publish Folder
         run: cp appsettings.Production.json ./publish/
-      - name: Move Migration Bundle to Publish Folder
-        run: |
-          if [ -f postgres_bundle ]; then
-            mv postgres_bundle ./publish/
-          fi
-        continue-on-error: true
       - name: Clean Remote Directory
         uses: appleboy/ssh-action@master
         with:
@@ -109,9 +95,5 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            if [ -f /var/www/powertech/backend/postgres_bundle ]; then
-              chmod +x /var/www/powertech/backend/postgres_bundle
-              /var/www/powertech/backend/postgres_bundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
-              rm /var/www/powertech/backend/postgres_bundle
-            fi
+            dotnet /var/www/powertech/backend/LMS.API.dll --migrate
             sudo systemctl restart powertech.service

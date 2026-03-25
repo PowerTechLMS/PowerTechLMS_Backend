@@ -262,6 +262,23 @@ builder.Services.AddSwaggerGen(
 
 var app = builder.Build();
 
+if (args.Contains("--migrate"))
+{
+    using var scope = app.Services.CreateScope();
+    if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+    {
+        var context = scope.ServiceProvider.GetRequiredService<PostgreSqlDbContext>();
+        context.Database.Migrate();
+    }
+    else
+    {
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        context.Database.Migrate();
+    }
+
+    return;
+}
+
 if(app.Environment.IsDevelopment())
 {
     app.UseSwagger();
