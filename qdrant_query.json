@@ -1,0 +1,12 @@
+{
+	"filter": {
+		"must": [
+			{
+				"key": "LessonId",
+				"match": { "value": 5 }
+			}
+		]
+	},
+	"limit": 20,
+	"with_payload": true
+}

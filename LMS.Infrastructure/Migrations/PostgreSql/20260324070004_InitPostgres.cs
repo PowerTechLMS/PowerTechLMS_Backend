@@ -1,6 +1,6 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
 
 #nullable disable
 
@@ -8,10 +8,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class InitPostgres : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -19,7 +19,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
                     IconUrl = table.Column<string>(type: "text", nullable: true),
@@ -39,7 +41,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Slug = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
@@ -58,7 +62,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Code = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Category = table.Column<string>(type: "text", nullable: true),
@@ -78,7 +84,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     IsSystem = table.Column<bool>(type: "boolean", nullable: false),
@@ -97,7 +105,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FullName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
                     PasswordHash = table.Column<string>(type: "text", nullable: false),
@@ -154,7 +164,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     CreatedById = table.Column<int>(type: "integer", nullable: true),
@@ -179,7 +191,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Title = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
                     CoverImageUrl = table.Column<string>(type: "text", nullable: true),
@@ -222,7 +236,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Message = table.Column<string>(type: "text", nullable: false),
@@ -250,7 +266,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     BadgeId = table.Column<int>(type: "integer", nullable: false),
                     EarnedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -280,7 +298,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     CreatedById = table.Column<int>(type: "integer", nullable: true),
@@ -336,7 +356,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     TemplateName = table.Column<string>(type: "text", nullable: false),
                     UseBuiltInTemplate = table.Column<bool>(type: "boolean", nullable: false),
@@ -371,7 +393,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     GroupId = table.Column<int>(type: "integer", nullable: false),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
@@ -403,7 +427,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
@@ -428,7 +454,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     TimeLimitMinutes = table.Column<int>(type: "integer", nullable: true),
@@ -490,7 +518,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
@@ -538,7 +568,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     GroupId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     AddedById = table.Column<int>(type: "integer", nullable: true),
@@ -574,7 +606,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ModuleId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Type = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
@@ -620,7 +654,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuizId = table.Column<int>(type: "integer", nullable: false),
                     QuestionText = table.Column<string>(type: "text", nullable: false),
                     OptionA = table.Column<string>(type: "text", nullable: false),
@@ -651,7 +687,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     QuizId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
@@ -687,7 +725,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     FileName = table.Column<string>(type: "text", nullable: false),
                     StorageKey = table.Column<string>(type: "text", nullable: true),
@@ -713,7 +753,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     UserMessage = table.Column<string>(type: "text", nullable: false),
@@ -745,7 +787,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     IsCompleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -778,7 +822,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
@@ -809,7 +855,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
@@ -845,7 +893,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     CourseId = table.Column<int>(type: "integer", nullable: false),
                     CertificateCode = table.Column<string>(type: "text", nullable: false),
@@ -885,7 +935,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AttemptId = table.Column<int>(type: "integer", nullable: false),
                     QuestionId = table.Column<int>(type: "integer", nullable: false),
                     SelectedAnswer = table.Column<string>(type: "character varying(1)", maxLength: 1, nullable: true),
@@ -917,7 +969,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     DocumentId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: true),
                     RoleId = table.Column<int>(type: "integer", nullable: true),
@@ -961,7 +1015,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Title = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     Tags = table.Column<string>(type: "text", nullable: true),
@@ -992,7 +1048,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     DocumentId = table.Column<int>(type: "integer", nullable: false),
                     VersionNumber = table.Column<int>(type: "integer", nullable: false),
                     FileName = table.Column<string>(type: "text", nullable: false),
@@ -1024,13 +1082,64 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
 
             migrationBuilder.InsertData(
                 table: "Badges",
-                columns: new[] { "Id", "CreatedAt", "DeletedAt", "Description", "IconUrl", "IsDeleted", "Name", "RequiredCourses", "UpdatedAt" },
+                columns: new[]
+                {
+                    "Id",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "Description",
+                    "IconUrl",
+                    "IsDeleted",
+                    "Name",
+                    "RequiredCourses",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành khóa học đầu tiên", null, false, "Người mới bắt đầu", 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 3 khóa học", null, false, "Học viên chăm chỉ", 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 5 khóa học", null, false, "Siêu nhân học tập", 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Hoàn thành 10 khóa học", null, false, "Bậc thầy tri thức", 10, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Hoàn thành khóa học đầu tiên",
+                    null,
+                    false,
+                    "Người mới bắt đầu",
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Hoàn thành 3 khóa học",
+                    null,
+                    false,
+                    "Học viên chăm chỉ",
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Hoàn thành 5 khóa học",
+                    null,
+                    false,
+                    "Siêu nhân học tập",
+                    5,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    4,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Hoàn thành 10 khóa học",
+                    null,
+                    false,
+                    "Bậc thầy tri thức",
+                    10,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
             migrationBuilder.InsertData(
@@ -1038,89 +1147,608 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: new[] { "Id", "CreatedAt", "DeletedAt", "IsDeleted", "Name", "Slug", "SortOrder", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Kỹ năng mềm", "ky-nang-mem", 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Kỹ thuật", "ky-thuat", 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Quy trình", "quy-trinh", 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Lãnh đạo", "lanh-dao", 4, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, "Số hóa", "so-hoa", 5, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    "Kỹ năng mềm",
+                    "ky-nang-mem",
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    "Kỹ thuật",
+                    "ky-thuat",
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    "Quy trình",
+                    "quy-trinh",
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    4,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    "Lãnh đạo",
+                    "lanh-dao",
+                    4,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    5,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    "Số hóa",
+                    "so-hoa",
+                    5,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[] { "Id", "Category", "Code", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "Name", "UpdatedAt" },
+                columns: new[]
+                {
+                    "Id",
+                    "Category",
+                    "Code",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "Description",
+                    "IsDeleted",
+                    "Name",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, "Course", "course.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, "Course", "course.create", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tạo khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, "Course", "course.edit", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Sửa khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 4, "Course", "course.delete", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xóa khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 5, "Course", "course.publish", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xuất bản khóa học", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 6, "Enrollment", "enrollment.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem ghi danh", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 7, "Enrollment", "enrollment.approve", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Duyệt ghi danh", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 8, "Enrollment", "enrollment.assign", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Gán học viên", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, "Document", "doc.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 10, "Document", "doc.upload", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tải tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 11, "Document", "doc.delete", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xóa tài liệu", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 12, "Quiz", "quiz.create", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Tạo bài tập", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 13, "Quiz", "quiz.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý bài tập", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 14, "Report", "report.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem báo cáo", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 15, "Admin", "user.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý người dùng", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 16, "Admin", "role.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý phân quyền", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 17, "Admin", "group.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý nhóm", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, "Certificate", "certificate.view", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Xem chứng chỉ", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 19, "Certificate", "certificate.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý chứng chỉ", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    "Course",
+                    "course.view",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xem khóa học",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    "Course",
+                    "course.create",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Tạo khóa học",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    "Course",
+                    "course.edit",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Sửa khóa học",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    4,
+                    "Course",
+                    "course.delete",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xóa khóa học",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    5,
+                    "Course",
+                    "course.publish",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xuất bản khóa học",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    6,
+                    "Enrollment",
+                    "enrollment.view",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xem ghi danh",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    7,
+                    "Enrollment",
+                    "enrollment.approve",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Duyệt ghi danh",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    8,
+                    "Enrollment",
+                    "enrollment.assign",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Gán học viên",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    "Document",
+                    "doc.view",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xem tài liệu",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    10,
+                    "Document",
+                    "doc.upload",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Tải tài liệu",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    11,
+                    "Document",
+                    "doc.delete",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xóa tài liệu",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    12,
+                    "Quiz",
+                    "quiz.create",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Tạo bài tập",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    13,
+                    "Quiz",
+                    "quiz.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý bài tập",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    14,
+                    "Report",
+                    "report.view",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xem báo cáo",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    15,
+                    "Admin",
+                    "user.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý người dùng",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    16,
+                    "Admin",
+                    "role.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý phân quyền",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    17,
+                    "Admin",
+                    "group.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý nhóm",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    "Certificate",
+                    "certificate.view",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Xem chứng chỉ",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    19,
+                    "Certificate",
+                    "certificate.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý chứng chỉ",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
             migrationBuilder.InsertData(
                 table: "Roles",
-                columns: new[] { "Id", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "IsSystem", "Name", "UpdatedAt" },
+                columns: new[]
+                {
+                    "Id",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "Description",
+                    "IsDeleted",
+                    "IsSystem",
+                    "Name",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Quản trị viên hệ thống", false, true, "Admin", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Giảng viên", false, true, "Instructor", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, "Nhân viên / Học viên", false, true, "Employee", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Quản trị viên hệ thống",
+                    false,
+                    true,
+                    "Admin",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Giảng viên",
+                    false,
+                    true,
+                    "Instructor",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    "Nhân viên / Học viên",
+                    false,
+                    true,
+                    "Employee",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "Address", "Avatar", "Bio", "CreatedAt", "DeactivatedAt", "DeactivatedById", "DeletedAt", "Email", "FullName", "IsActive", "IsDeleted", "PasswordHash", "Phone", "Role", "UpdatedAt" },
-                values: new object[] { 1, null, null, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, null, "admin@lms.com", "Admin", true, false, "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2", null, "Admin", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "Id",
+                    "Address",
+                    "Avatar",
+                    "Bio",
+                    "CreatedAt",
+                    "DeactivatedAt",
+                    "DeactivatedById",
+                    "DeletedAt",
+                    "Email",
+                    "FullName",
+                    "IsActive",
+                    "IsDeleted",
+                    "PasswordHash",
+                    "Phone",
+                    "Role",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    1,
+                    null,
+                    null,
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    null,
+                    "admin@lms.com",
+                    "Admin",
+                    true,
+                    false,
+                    "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2",
+                    null,
+                    "Admin",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
+                columns: new[]
+                {
+                    "PermissionId",
+                    "RoleId",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "GrantedAt",
+                    "GrantedById",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 4, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 5, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 6, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 7, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 8, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 10, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 11, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 12, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 13, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 14, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 15, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 16, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 17, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 19, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    4,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    5,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    6,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    7,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    8,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    10,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    11,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    12,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    13,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    14,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    15,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    16,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    17,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    19,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
             migrationBuilder.InsertData(
                 table: "UserRoles",
-                columns: new[] { "RoleId", "UserId", "AssignedAt", "AssignedById", "CreatedAt", "DeletedAt", "ExpiresAt", "IsDeleted", "UpdatedAt" },
-                values: new object[] { 1, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "RoleId",
+                    "UserId",
+                    "AssignedAt",
+                    "AssignedById",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "ExpiresAt",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    1,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Certificates_AttemptId",
-                table: "Certificates",
-                column: "AttemptId");
+            migrationBuilder.CreateIndex(name: "IX_Certificates_AttemptId", table: "Certificates", column: "AttemptId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Certificates_CertificateCode",
@@ -1128,10 +1756,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 column: "CertificateCode",
                 unique: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Certificates_CourseId",
-                table: "Certificates",
-                column: "CourseId");
+            migrationBuilder.CreateIndex(name: "IX_Certificates_CourseId", table: "Certificates", column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Certificates_UserId_CourseId",
@@ -1161,15 +1786,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 table: "CourseGroups",
                 column: "CreatedById");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Courses_CategoryId",
-                table: "Courses",
-                column: "CategoryId");
+            migrationBuilder.CreateIndex(name: "IX_Courses_CategoryId", table: "Courses", column: "CategoryId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Courses_CreatedById",
-                table: "Courses",
-                column: "CreatedById");
+            migrationBuilder.CreateIndex(name: "IX_Courses_CreatedById", table: "Courses", column: "CreatedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DepartmentCourseGroups_CourseGroupId",
@@ -1206,10 +1825,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 table: "Documents",
                 column: "CurrentVersionId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Documents_UploadedById",
-                table: "Documents",
-                column: "UploadedById");
+            migrationBuilder.CreateIndex(name: "IX_Documents_UploadedById", table: "Documents", column: "UploadedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DocumentVersions_DocumentId_VersionNumber",
@@ -1227,10 +1843,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 table: "Enrollments",
                 column: "AssignedById");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Enrollments_CourseId",
-                table: "Enrollments",
-                column: "CourseId");
+            migrationBuilder.CreateIndex(name: "IX_Enrollments_CourseId", table: "Enrollments", column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Enrollments_GroupEnrollId",
@@ -1248,15 +1861,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 table: "LessonAttachments",
                 column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonChats_LessonId",
-                table: "LessonChats",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_LessonChats_LessonId", table: "LessonChats", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonChats_UserId",
-                table: "LessonChats",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_LessonChats_UserId", table: "LessonChats", column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_LessonProgresses_LessonId",
@@ -1269,55 +1876,25 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: new[] { "UserId", "LessonId" },
                 unique: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Lessons_ModuleId",
-                table: "Lessons",
-                column: "ModuleId");
+            migrationBuilder.CreateIndex(name: "IX_Lessons_ModuleId", table: "Lessons", column: "ModuleId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Lessons_QuizId",
-                table: "Lessons",
-                column: "QuizId");
+            migrationBuilder.CreateIndex(name: "IX_Lessons_QuizId", table: "Lessons", column: "QuizId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Modules_CourseId",
-                table: "Modules",
-                column: "CourseId");
+            migrationBuilder.CreateIndex(name: "IX_Modules_CourseId", table: "Modules", column: "CourseId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Notes_LessonId",
-                table: "Notes",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_Notes_LessonId", table: "Notes", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Notes_UserId",
-                table: "Notes",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_Notes_UserId", table: "Notes", column: "UserId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Notifications_UserId",
-                table: "Notifications",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_Notifications_UserId", table: "Notifications", column: "UserId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QAThreads_LessonId",
-                table: "QAThreads",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_QAThreads_LessonId", table: "QAThreads", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QAThreads_ParentId",
-                table: "QAThreads",
-                column: "ParentId");
+            migrationBuilder.CreateIndex(name: "IX_QAThreads_ParentId", table: "QAThreads", column: "ParentId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QAThreads_UserId",
-                table: "QAThreads",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_QAThreads_UserId", table: "QAThreads", column: "UserId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QuestionBanks_QuizId",
-                table: "QuestionBanks",
-                column: "QuizId");
+            migrationBuilder.CreateIndex(name: "IX_QuestionBanks_QuizId", table: "QuestionBanks", column: "QuizId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_QuizAnswers_AttemptId_QuestionId",
@@ -1325,35 +1902,20 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: new[] { "AttemptId", "QuestionId" },
                 unique: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizAnswers_QuestionId",
-                table: "QuizAnswers",
-                column: "QuestionId");
+            migrationBuilder.CreateIndex(name: "IX_QuizAnswers_QuestionId", table: "QuizAnswers", column: "QuestionId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizAttempts_QuizId",
-                table: "QuizAttempts",
-                column: "QuizId");
+            migrationBuilder.CreateIndex(name: "IX_QuizAttempts_QuizId", table: "QuizAttempts", column: "QuizId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizAttempts_UserId",
-                table: "QuizAttempts",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_QuizAttempts_UserId", table: "QuizAttempts", column: "UserId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Quizzes_CourseId",
-                table: "Quizzes",
-                column: "CourseId");
+            migrationBuilder.CreateIndex(name: "IX_Quizzes_CourseId", table: "Quizzes", column: "CourseId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
                 table: "RolePermissions",
                 column: "PermissionId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_UserBadges_BadgeId",
-                table: "UserBadges",
-                column: "BadgeId");
+            migrationBuilder.CreateIndex(name: "IX_UserBadges_BadgeId", table: "UserBadges", column: "BadgeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserBadges_UserId_BadgeId",
@@ -1377,21 +1939,11 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 table: "UserGroupMembers",
                 column: "UserId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_UserGroups_CreatedById",
-                table: "UserGroups",
-                column: "CreatedById");
+            migrationBuilder.CreateIndex(name: "IX_UserGroups_CreatedById", table: "UserGroups", column: "CreatedById");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_UserRoles_RoleId",
-                table: "UserRoles",
-                column: "RoleId");
+            migrationBuilder.CreateIndex(name: "IX_UserRoles_RoleId", table: "UserRoles", column: "RoleId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
-                column: "Email",
-                unique: true);
+            migrationBuilder.CreateIndex(name: "IX_Users_Email", table: "Users", column: "Email", unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_DocumentPermissions_Documents_DocumentId",
@@ -1409,116 +1961,78 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Documents_Users_UploadedById",
-                table: "Documents");
+            migrationBuilder.DropForeignKey(name: "FK_Documents_Users_UploadedById", table: "Documents");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_DocumentVersions_Users_UploadedById",
-                table: "DocumentVersions");
+            migrationBuilder.DropForeignKey(name: "FK_DocumentVersions_Users_UploadedById", table: "DocumentVersions");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_DocumentVersions_Documents_DocumentId",
-                table: "DocumentVersions");
+            migrationBuilder.DropForeignKey(name: "FK_DocumentVersions_Documents_DocumentId", table: "DocumentVersions");
 
-            migrationBuilder.DropTable(
-                name: "Certificates");
+            migrationBuilder.DropTable(name: "Certificates");
 
-            migrationBuilder.DropTable(
-                name: "CertificateTemplates");
+            migrationBuilder.DropTable(name: "CertificateTemplates");
 
-            migrationBuilder.DropTable(
-                name: "CourseGroupCourses");
+            migrationBuilder.DropTable(name: "CourseGroupCourses");
 
-            migrationBuilder.DropTable(
-                name: "DepartmentCourseGroups");
+            migrationBuilder.DropTable(name: "DepartmentCourseGroups");
 
-            migrationBuilder.DropTable(
-                name: "DocumentPermissions");
+            migrationBuilder.DropTable(name: "DocumentPermissions");
 
-            migrationBuilder.DropTable(
-                name: "Enrollments");
+            migrationBuilder.DropTable(name: "Enrollments");
 
-            migrationBuilder.DropTable(
-                name: "LessonAttachments");
+            migrationBuilder.DropTable(name: "LessonAttachments");
 
-            migrationBuilder.DropTable(
-                name: "LessonChats");
+            migrationBuilder.DropTable(name: "LessonChats");
 
-            migrationBuilder.DropTable(
-                name: "LessonProgresses");
+            migrationBuilder.DropTable(name: "LessonProgresses");
 
-            migrationBuilder.DropTable(
-                name: "Notes");
+            migrationBuilder.DropTable(name: "Notes");
 
-            migrationBuilder.DropTable(
-                name: "Notifications");
+            migrationBuilder.DropTable(name: "Notifications");
 
-            migrationBuilder.DropTable(
-                name: "QAThreads");
+            migrationBuilder.DropTable(name: "QAThreads");
 
-            migrationBuilder.DropTable(
-                name: "QuizAnswers");
+            migrationBuilder.DropTable(name: "QuizAnswers");
 
-            migrationBuilder.DropTable(
-                name: "RolePermissions");
+            migrationBuilder.DropTable(name: "RolePermissions");
 
-            migrationBuilder.DropTable(
-                name: "UserBadges");
+            migrationBuilder.DropTable(name: "UserBadges");
 
-            migrationBuilder.DropTable(
-                name: "UserGroupMembers");
+            migrationBuilder.DropTable(name: "UserGroupMembers");
 
-            migrationBuilder.DropTable(
-                name: "UserRoles");
+            migrationBuilder.DropTable(name: "UserRoles");
 
-            migrationBuilder.DropTable(
-                name: "CourseGroups");
+            migrationBuilder.DropTable(name: "CourseGroups");
 
-            migrationBuilder.DropTable(
-                name: "Lessons");
+            migrationBuilder.DropTable(name: "Lessons");
 
-            migrationBuilder.DropTable(
-                name: "QuestionBanks");
+            migrationBuilder.DropTable(name: "QuestionBanks");
 
-            migrationBuilder.DropTable(
-                name: "QuizAttempts");
+            migrationBuilder.DropTable(name: "QuizAttempts");
 
-            migrationBuilder.DropTable(
-                name: "Permissions");
+            migrationBuilder.DropTable(name: "Permissions");
 
-            migrationBuilder.DropTable(
-                name: "Badges");
+            migrationBuilder.DropTable(name: "Badges");
 
-            migrationBuilder.DropTable(
-                name: "UserGroups");
+            migrationBuilder.DropTable(name: "UserGroups");
 
-            migrationBuilder.DropTable(
-                name: "Roles");
+            migrationBuilder.DropTable(name: "Roles");
 
-            migrationBuilder.DropTable(
-                name: "Modules");
+            migrationBuilder.DropTable(name: "Modules");
 
-            migrationBuilder.DropTable(
-                name: "Quizzes");
+            migrationBuilder.DropTable(name: "Quizzes");
 
-            migrationBuilder.DropTable(
-                name: "Courses");
+            migrationBuilder.DropTable(name: "Courses");
 
-            migrationBuilder.DropTable(
-                name: "Categories");
+            migrationBuilder.DropTable(name: "Categories");
 
-            migrationBuilder.DropTable(
-                name: "Users");
+            migrationBuilder.DropTable(name: "Users");
 
-            migrationBuilder.DropTable(
-                name: "Documents");
+            migrationBuilder.DropTable(name: "Documents");
 
-            migrationBuilder.DropTable(
-                name: "DocumentVersions");
+            migrationBuilder.DropTable(name: "DocumentVersions");
         }
     }
 }

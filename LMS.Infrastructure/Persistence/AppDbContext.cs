@@ -1,7 +1,7 @@
 using LMS.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace LMS.Infrastructure.Data;
+namespace LMS.Infrastructure.Persistence;
 
 /// <summary>
 /// Password mặc định là Password@123
@@ -80,6 +80,8 @@ public class AppDbContext : DbContext
 
     public DbSet<LessonChat> LessonChats => Set<LessonChat>();
 
+    public DbSet<DocumentChat> DocumentChats => Set<DocumentChat>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -116,6 +118,7 @@ public class AppDbContext : DbContext
         m.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<LessonChat>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<DocumentChat>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -332,14 +335,18 @@ public class AppDbContext : DbContext
         m.Entity<LessonChat>(
             e =>
             {
-                e.HasOne(lc => lc.Lesson)
+                e.HasOne(lc => lc.Lesson).WithMany().HasForeignKey(lc => lc.LessonId).OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(lc => lc.User).WithMany().HasForeignKey(lc => lc.UserId).OnDelete(DeleteBehavior.NoAction);
+            });
+
+        m.Entity<DocumentChat>(
+            e =>
+            {
+                e.HasOne(dc => dc.Document)
                     .WithMany()
-                    .HasForeignKey(lc => lc.LessonId)
+                    .HasForeignKey(dc => dc.DocumentId)
                     .OnDelete(DeleteBehavior.Cascade);
-                e.HasOne(lc => lc.User)
-                    .WithMany()
-                    .HasForeignKey(lc => lc.UserId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                e.HasOne(dc => dc.User).WithMany().HasForeignKey(dc => dc.UserId).OnDelete(DeleteBehavior.NoAction);
             });
 
         m.Entity<Badge>(e => e.Property(b => b.Name).HasMaxLength(100));
@@ -530,7 +537,7 @@ public class AppDbContext : DbContext
                     Id = 1,
                     FullName = "Admin",
                     Email = "admin@lms.com",
-                    PasswordHash = "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2", 
+                    PasswordHash = "$2a$12$3m6ntV3rzI0hNEhaIWUQ0ufB4w2P/CT6R.7ioRtSyeUrmceKBiZL2",
                     Role = "Admin",
                     IsActive = true,
                     CreatedAt = staticDate,
@@ -608,25 +615,177 @@ public class AppDbContext : DbContext
 
         var permissions = new List<Permission>
         {
-            new Permission { Id = 1, Code = "course.view", Name = "Xem khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 2, Code = "course.create", Name = "Tạo khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 3, Code = "course.edit", Name = "Sửa khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 4, Code = "course.delete", Name = "Xóa khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 5, Code = "course.publish", Name = "Xuất bản khóa học", Category = "Course", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 6, Code = "enrollment.view", Name = "Xem ghi danh", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 7, Code = "enrollment.approve", Name = "Duyệt ghi danh", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 8, Code = "enrollment.assign", Name = "Gán học viên", Category = "Enrollment", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 9, Code = "doc.view", Name = "Xem tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 10, Code = "doc.upload", Name = "Tải tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 11, Code = "doc.delete", Name = "Xóa tài liệu", Category = "Document", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 12, Code = "quiz.create", Name = "Tạo bài tập", Category = "Quiz", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 13, Code = "quiz.manage", Name = "Quản lý bài tập", Category = "Quiz", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 14, Code = "report.view", Name = "Xem báo cáo", Category = "Report", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 15, Code = "user.manage", Name = "Quản lý người dùng", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 16, Code = "role.manage", Name = "Quản lý phân quyền", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 17, Code = "group.manage", Name = "Quản lý nhóm", Category = "Admin", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 18, Code = "certificate.view", Name = "Xem chứng chỉ", Category = "Certificate", CreatedAt = staticDate, UpdatedAt = staticDate },
-            new Permission { Id = 19, Code = "certificate.manage", Name = "Quản lý chứng chỉ", Category = "Certificate", CreatedAt = staticDate, UpdatedAt = staticDate }
+            new Permission
+            {
+                Id = 1,
+                Code = "course.view",
+                Name = "Xem khóa học",
+                Category = "Course",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 2,
+                Code = "course.create",
+                Name = "Tạo khóa học",
+                Category = "Course",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 3,
+                Code = "course.edit",
+                Name = "Sửa khóa học",
+                Category = "Course",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 4,
+                Code = "course.delete",
+                Name = "Xóa khóa học",
+                Category = "Course",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 5,
+                Code = "course.publish",
+                Name = "Xuất bản khóa học",
+                Category = "Course",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 6,
+                Code = "enrollment.view",
+                Name = "Xem ghi danh",
+                Category = "Enrollment",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 7,
+                Code = "enrollment.approve",
+                Name = "Duyệt ghi danh",
+                Category = "Enrollment",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 8,
+                Code = "enrollment.assign",
+                Name = "Gán học viên",
+                Category = "Enrollment",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 9,
+                Code = "doc.view",
+                Name = "Xem tài liệu",
+                Category = "Document",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 10,
+                Code = "doc.upload",
+                Name = "Tải tài liệu",
+                Category = "Document",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 11,
+                Code = "doc.delete",
+                Name = "Xóa tài liệu",
+                Category = "Document",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 12,
+                Code = "quiz.create",
+                Name = "Tạo bài tập",
+                Category = "Quiz",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 13,
+                Code = "quiz.manage",
+                Name = "Quản lý bài tập",
+                Category = "Quiz",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 14,
+                Code = "report.view",
+                Name = "Xem báo cáo",
+                Category = "Report",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 15,
+                Code = "user.manage",
+                Name = "Quản lý người dùng",
+                Category = "Admin",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 16,
+                Code = "role.manage",
+                Name = "Quản lý phân quyền",
+                Category = "Admin",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 17,
+                Code = "group.manage",
+                Name = "Quản lý nhóm",
+                Category = "Admin",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 18,
+                Code = "certificate.view",
+                Name = "Xem chứng chỉ",
+                Category = "Certificate",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 19,
+                Code = "certificate.manage",
+                Name = "Quản lý chứng chỉ",
+                Category = "Certificate",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            }
         };
         m.Entity<Permission>().HasData(permissions);
 
@@ -641,14 +800,16 @@ public class AppDbContext : DbContext
                     UpdatedAt = staticDate
                 });
 
-        var adminPermissions = permissions.Select(p => new RolePermission 
-        { 
-            RoleId = 1, 
-            PermissionId = p.Id,
-            GrantedAt = staticDate,
-            CreatedAt = staticDate,
-            UpdatedAt = staticDate
-        }).ToList();
+        var adminPermissions = permissions.Select(
+            p => new RolePermission
+            {
+                RoleId = 1,
+                PermissionId = p.Id,
+                GrantedAt = staticDate,
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            })
+            .ToList();
         m.Entity<RolePermission>().HasData(adminPermissions);
     }
 }

@@ -223,7 +223,7 @@ public class FFmpegDownloader : IFFmpegDownloader
     {
         if(!_isWindows && File.Exists(path))
         {
-           var process = Process.Start(
+            var process = Process.Start(
                 new ProcessStartInfo
                 {
                     FileName = "chmod",

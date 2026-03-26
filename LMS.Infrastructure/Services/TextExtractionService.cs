@@ -27,7 +27,7 @@ public class TextExtractionService
         using var pdfDocument = new PdfDocument(pdfReader);
         for(int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
         {
-            var strategy = new LocationTextExtractionStrategy();
+            var strategy = new SimpleTextExtractionStrategy();
             var text = PdfTextExtractor.GetTextFromPage(pdfDocument.GetPage(i), strategy);
             sb.AppendLine(text);
         }

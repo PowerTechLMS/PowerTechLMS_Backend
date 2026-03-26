@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
     [DbContext(typeof(PostgreSqlDbContext))]
-    [Migration("20260324072539_AddIsAiProcessedToLessonAttachment")]
-    partial class AddIsAiProcessedToLessonAttachment
+    [Migration("20260326011540_AddDocumentChat")]
+    partial class AddDocumentChat
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -563,6 +563,49 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.HasIndex("UploadedById");
 
                     b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.DocumentChat", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiResponse")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserMessage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DocumentChats");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.DocumentPermission", b =>
@@ -2250,6 +2293,25 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Navigation("CurrentVersion");
 
                     b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.DocumentChat", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LMS.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.DocumentPermission", b =>

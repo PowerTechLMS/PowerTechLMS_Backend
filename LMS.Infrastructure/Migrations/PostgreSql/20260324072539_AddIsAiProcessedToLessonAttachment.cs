@@ -4,10 +4,10 @@
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddIsAiProcessedToLessonAttachment : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
@@ -18,12 +18,8 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 defaultValue: false);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "IsAiProcessed",
-                table: "LessonAttachments");
-        }
+        { migrationBuilder.DropColumn(name: "IsAiProcessed", table: "LessonAttachments"); }
     }
 }

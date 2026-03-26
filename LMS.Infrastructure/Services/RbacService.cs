@@ -1,6 +1,6 @@
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Infrastructure.Services;

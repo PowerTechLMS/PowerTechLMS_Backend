@@ -106,15 +106,18 @@ public class DocumentsController : ControllerBase
         try
         {
             using var stream = file.OpenReadStream();
-            return Ok(
-                await _docService.AddVersionAsync(
-                    id,
-                    UserId,
-                    stream,
-                    file.FileName,
-                    file.Length,
-                    request.ChangeNote,
-                    IsAdmin));
+            var result = await _docService.AddVersionAsync(
+                id,
+                UserId,
+                stream,
+                file.FileName,
+                file.Length,
+                request.ChangeNote,
+                IsAdmin);
+
+            BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessDocumentAsync(id));
+
+            return Ok(result);
         } catch(KeyNotFoundException)
         {
             return NotFound();

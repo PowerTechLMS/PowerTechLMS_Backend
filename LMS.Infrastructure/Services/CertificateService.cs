@@ -1,7 +1,7 @@
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -765,7 +765,6 @@ public class DocumentService : IDocumentService
         if(!isAdmin && doc.UploadedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền xóa tài liệu này.");
 
-        // Xoá vector của tài liệu
         await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
 
         doc.IsDeleted = true;

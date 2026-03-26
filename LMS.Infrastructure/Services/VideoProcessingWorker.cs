@@ -1,6 +1,6 @@
 using Hangfire;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,7 +41,7 @@ public class VideoProcessingWorker : BackgroundService
             } catch(OperationCanceledException)
             {
                 break;
-            } 
+            }
         }
     }
 
@@ -77,7 +77,7 @@ public class VideoProcessingWorker : BackgroundService
             var duration = await GetVideoDurationAsync(ffprobePath, inputPath);
             lesson.VideoDurationSeconds = (int)duration;
 
-            var arguments = $"-y -i \"{inputPath}\" -c copy -bsf:a aac_adtstoasc -map 0 -f hls -hls_time 10 -hls_list_size 0 -hls_flags independent_segments -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
+            var arguments = $"-y -hwaccel auto -i \"{inputPath}\" -c:v h264_nvenc -preset p1 -tune hq -vf \"scale='min(1920,iw)':-2\" -c:a aac -b:a 128k -ac 2 -f hls -hls_time 10 -hls_list_size 0 -hls_flags independent_segments -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
 
             var process = new Process
             {
