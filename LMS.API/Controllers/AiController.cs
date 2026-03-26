@@ -1,8 +1,8 @@
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Text;
 
 namespace LMS.API.Controllers;
 
@@ -23,7 +23,7 @@ public class AiController : ControllerBase
     [HttpPost("suggest-content")]
     public async Task<IActionResult> SuggestContent([FromBody] SuggestContentRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
+        if(string.IsNullOrWhiteSpace(request.Title))
         {
             return BadRequest(new { message = "Tiêu đề không được để trống." });
         }
@@ -39,7 +39,7 @@ public class AiController : ControllerBase
             "Hãy viết bằng tiếng Việt, phong cách giảng dạy chuyên sâu và thực tế.";
 
         var userPrompt = $"Tiêu đề bài học: {request.Title}";
-        if (!string.IsNullOrWhiteSpace(request.Context))
+        if(!string.IsNullOrWhiteSpace(request.Context))
         {
             userPrompt += $"\nYêu cầu thêm/Ngữ cảnh: {request.Context}";
         }
@@ -48,8 +48,7 @@ public class AiController : ControllerBase
         {
             var suggestedContent = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
             return Ok(new { content = suggestedContent });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi gọi AI: " + ex.Message });
         }
@@ -58,7 +57,7 @@ public class AiController : ControllerBase
     [HttpPost("generate-quiz")]
     public async Task<IActionResult> GenerateQuiz([FromBody] GenerateQuizRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request?.Content))
+        if(string.IsNullOrWhiteSpace(request?.Content))
             return BadRequest(new { message = "Nội dung bài học không được để trống." });
 
         int count = request.Count <= 0 ? 5 : request.Count;
@@ -75,16 +74,15 @@ public class AiController : ControllerBase
             "5. Không trả về bất kỳ văn bản nào khác ngoài JSON mảng. Không bao gồm ```json ... ```.";
 
         var userPrompt = $"Số lượng câu hỏi cần tạo: {count}\n" +
-                         $"Nội dung bài học:\n{request.Content}\n" +
-                         (string.IsNullOrWhiteSpace(request.Context) ? "" : $"Lưu ý thêm/Phong cách: {request.Context}");
+            $"Nội dung bài học:\n{request.Content}\n" +
+            (string.IsNullOrWhiteSpace(request.Context) ? string.Empty : $"Lưu ý thêm/Phong cách: {request.Context}");
 
         try
         {
             var response = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
             var json = CleanJsonResponse(response);
             return Ok(new { questionsJson = json });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi gọi AI: " + ex.Message });
         }
@@ -93,16 +91,17 @@ public class AiController : ControllerBase
     [HttpPost("generate-lesson-quiz")]
     public async Task<IActionResult> GenerateLessonQuiz([FromBody] GenerateLessonQuizRequest request)
     {
-        if (request.LessonId <= 0)
+        if(request.LessonId <= 0)
             return BadRequest(new { message = "LessonId không hợp lệ." });
 
         var lesson = await _db.Lessons.FindAsync(request.LessonId);
-        if (lesson == null)
+        if(lesson == null)
             return NotFound(new { message = "Không tìm thấy bài học." });
 
         var content = lesson.Transcript ?? lesson.AiSummary ?? lesson.Content;
-        if (string.IsNullOrWhiteSpace(content) || content.Length < 50)
-            return BadRequest(new { message = "Nội dung bài học quá ngắn hoặc trống để AI có thể tạo câu hỏi chất lượng." });
+        if(string.IsNullOrWhiteSpace(content) || content.Length < 50)
+            return BadRequest(
+                new { message = "Nội dung bài học quá ngắn hoặc trống để AI có thể tạo câu hỏi chất lượng." });
 
         int count = request.Count <= 0 ? 5 : request.Count;
 
@@ -118,16 +117,15 @@ public class AiController : ControllerBase
             "5. Không trả về bất kỳ văn bản nào khác ngoài JSON mảng. Không bao gồm ```json ... ```.";
 
         var userPrompt = $"Số lượng câu hỏi cần tạo: {count}\n" +
-                         $"Nội dung bài học:\n{content}\n" +
-                         (string.IsNullOrWhiteSpace(request.Context) ? "" : $"Lưu ý thêm/Phong cách: {request.Context}");
+            $"Nội dung bài học:\n{content}\n" +
+            (string.IsNullOrWhiteSpace(request.Context) ? string.Empty : $"Lưu ý thêm/Phong cách: {request.Context}");
 
         try
         {
             var response = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
             var json = CleanJsonResponse(response);
             return Ok(new { questionsJson = json });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi gọi AI: " + ex.Message });
         }
@@ -136,7 +134,7 @@ public class AiController : ControllerBase
     [HttpPost("generate-course-quiz")]
     public async Task<IActionResult> GenerateCourseQuiz([FromBody] GenerateCourseQuizRequest request)
     {
-        if (request?.Lessons == null || request.Lessons.Count == 0)
+        if(request?.Lessons == null || request.Lessons.Count == 0)
             return BadRequest(new { message = "Danh sách bài học không được để trống." });
 
         var systemPrompt = 
@@ -150,33 +148,36 @@ public class AiController : ControllerBase
             "   { \"questionText\": \"...\", \"optionA\": \"...\", \"optionB\": \"...\", \"optionC\": \"...\", \"optionD\": \"...\", \"correctAnswer\": \"A/B/C/D\", \"explanation\": \"...\" }\n" +
             "5. Không trả về bất kỳ văn bản nào khác ngoài JSON mảng. Không bao gồm ```json ... ```.";
 
-        var contentBuilder = new System.Text.StringBuilder();
-        foreach (var item in request.Lessons)
+        var contentBuilder = new StringBuilder();
+        foreach(var item in request.Lessons)
         {
             var lesson = await _db.Lessons.FindAsync(item.LessonId);
-            if (lesson == null) continue;
+            if(lesson == null)
+                continue;
 
             var content = lesson.Transcript ?? lesson.AiSummary ?? lesson.Content;
-            if (string.IsNullOrWhiteSpace(content)) continue;
+            if(string.IsNullOrWhiteSpace(content))
+                continue;
 
             contentBuilder.AppendLine($"--- BÀI HỌC: {lesson.Title} (Số câu đề nghị: {item.Count}) ---");
             contentBuilder.AppendLine(content);
             contentBuilder.AppendLine();
         }
 
-        if (contentBuilder.Length == 0)
+        if(contentBuilder.Length == 0)
             return BadRequest(new { message = "Không tìm thấy nội dung bài giảng hợp lệ để tạo đề thi." });
 
         var userPrompt = $"Tổng hợp nội dung khóa học:\n{contentBuilder}\n" +
-                         (string.IsNullOrWhiteSpace(request.GlobalContext) ? "" : $"Lưu ý chung cho đề thi: {request.GlobalContext}");
+            (string.IsNullOrWhiteSpace(request.GlobalContext)
+                ? string.Empty
+                : $"Lưu ý chung cho đề thi: {request.GlobalContext}");
 
         try
         {
             var response = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
             var json = CleanJsonResponse(response);
             return Ok(new { questionsJson = json });
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi gọi AI: " + ex.Message });
         }
@@ -185,11 +186,14 @@ public class AiController : ControllerBase
     private string CleanJsonResponse(string response)
     {
         var json = response.Trim();
-        if (json.StartsWith("```json")) json = json.Substring(7);
-        else if (json.StartsWith("```")) json = json.Substring(3);
-        
-        if (json.EndsWith("```")) json = json.Substring(0, json.Length - 3);
-        
+        if(json.StartsWith("```json"))
+            json = json.Substring(7);
+        else if(json.StartsWith("```"))
+            json = json.Substring(3);
+
+        if(json.EndsWith("```"))
+            json = json.Substring(0, json.Length - 3);
+
         return json.Trim();
     }
 }
@@ -197,31 +201,38 @@ public class AiController : ControllerBase
 public class GenerateLessonQuizRequest
 {
     public int LessonId { get; set; }
+
     public int Count { get; set; }
+
     public string? Context { get; set; }
 }
 
 public class SuggestContentRequest
 {
     public string Title { get; set; } = string.Empty;
+
     public string? Context { get; set; }
 }
 
 public class GenerateQuizRequest
 {
     public string Content { get; set; } = string.Empty;
+
     public int Count { get; set; }
+
     public string? Context { get; set; }
 }
 
 public class GenerateCourseQuizRequest
 {
     public List<LessonQuizRequestItem> Lessons { get; set; } = new();
+
     public string? GlobalContext { get; set; }
 }
 
 public class LessonQuizRequestItem
 {
     public int LessonId { get; set; }
+
     public int Count { get; set; }
 }

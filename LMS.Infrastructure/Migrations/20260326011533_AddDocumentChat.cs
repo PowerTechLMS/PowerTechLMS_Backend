@@ -1,22 +1,21 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddDocumentChat : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "DocumentChats",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     DocumentId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     UserMessage = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -47,17 +46,11 @@ namespace LMS.Infrastructure.Migrations
                 table: "DocumentChats",
                 column: "DocumentId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_DocumentChats_UserId",
-                table: "DocumentChats",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_DocumentChats_UserId", table: "DocumentChats", column: "UserId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropTable(
-                name: "DocumentChats");
-        }
+        { migrationBuilder.DropTable(name: "DocumentChats"); }
     }
 }

@@ -1,7 +1,7 @@
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace LMS.Infrastructure.Services;
@@ -532,13 +532,9 @@ public class CourseService : ICourseService
         if(!isAdmin && course.CreatedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền xóa khóa học này.");
 
-        // Xoá toàn bộ vector của các bài học trong khóa học
-        var lessonIds = await _db.Lessons
-            .Where(l => l.Module.CourseId == courseId)
-            .Select(l => l.Id)
-            .ToListAsync();
+        var lessonIds = await _db.Lessons.Where(l => l.Module.CourseId == courseId).Select(l => l.Id).ToListAsync();
 
-        foreach (var lessonId in lessonIds)
+        foreach(var lessonId in lessonIds)
         {
             await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
         }

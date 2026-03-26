@@ -157,11 +157,7 @@ public class LessonsController : ControllerBase
                         Directory.CreateDirectory(finalDir);
                     var finalPath = Path.Combine(finalDir, finalFileName);
 
-                    using(var finalStream = new FileStream(
-                        finalPath,
-                        FileMode.Create,
-                        FileAccess.Write,
-                        FileShare.None))
+                    using(var finalStream = new FileStream(finalPath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
                         for(int i = 0; i < totalChunks; i++)
                         {

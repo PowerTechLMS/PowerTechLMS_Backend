@@ -1,6 +1,6 @@
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,11 +42,11 @@ public class DocumentChatController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var document = await _db.Documents.FindAsync(request.DocumentId);
-        if (document is null)
+        if(document is null)
             return NotFound("Không tìm thấy tài liệu.");
 
         var searchResults = await _vectorDb.SearchByDocumentAsync(request.Message, request.DocumentId, limit: 5);
-        
+
         var contextText = string.Join("\n", searchResults.Select(r => $"- {r.Content}"));
 
         var systemPrompt = 
@@ -78,6 +78,7 @@ public class DocumentChatController : ControllerBase
     public class DocumentChatRequest
     {
         public int DocumentId { get; set; }
+
         public string Message { get; set; } = string.Empty;
     }
 }

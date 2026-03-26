@@ -1,9 +1,9 @@
+using Hangfire;
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Hangfire;
 
 
 namespace LMS.Infrastructure.Services;
@@ -87,12 +87,11 @@ public class ModuleService : IModuleService
             throw new UnauthorizedAccessException("Bạn không có quyền quản lý chương cho khóa học này.");
 
         var module = await _db.Modules
-            .Include(m => m.Lessons)
-            .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId) ??
+                .Include(m => m.Lessons)
+                .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId) ??
             throw new KeyNotFoundException("Không tìm thấy chương trong khóa học này.");
 
-        // Xoá vector cho tất cả bài học trong module
-        foreach (var lesson in module.Lessons)
+        foreach(var lesson in module.Lessons)
         {
             await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lesson.Id);
         }
@@ -100,7 +99,6 @@ public class ModuleService : IModuleService
         module.IsDeleted = true;
         module.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-
     }
 
     public async Task UpdateSortOrderAsync(int courseId, List<SortOrderItem> items, int userId, bool isAdmin = false)
@@ -185,7 +183,7 @@ public class LessonService : ILessonService
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
 
-        if (lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
+        if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
         }
@@ -263,7 +261,7 @@ public class LessonService : ILessonService
         lesson.VideoStatus = request.VideoStatus;
         await _db.SaveChangesAsync();
 
-        if (lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
+        if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
         }
@@ -295,13 +293,11 @@ public class LessonService : ILessonService
         var lesson = await _db.Lessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId) ??
             throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
 
-        // Xoá vector của bài học
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
 
         lesson.IsDeleted = true;
         lesson.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-
     }
 
     public async Task UpdateSortOrderAsync(int moduleId, List<SortOrderItem> items, int userId, bool isAdmin = false)
@@ -359,11 +355,9 @@ public class LessonService : ILessonService
         _db.LessonAttachments.Add(attachment);
         await _db.SaveChangesAsync();
 
-        // Kích hoạt xử lý AI cho tài liệu đính kèm
         BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonAttachmentAsync(attachment.Id));
 
         return $"/uploads/attachments/{newFileName}";
-
     }
 
     public async Task<string> UploadVideoAsync(int lessonId, Stream fileStream, string fileName)
@@ -415,12 +409,10 @@ public class LessonService : ILessonService
                 .FirstOrDefaultAsync(a => a.Id == attachmentId && a.Lesson.ModuleId == moduleId) ??
             throw new KeyNotFoundException("Không tìm thấy tệp đính kèm trong chương này.");
 
-        // Xoá vector của tài liệu đính kèm
         await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
 
         attachment.IsDeleted = true;
         attachment.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-
     }
 }

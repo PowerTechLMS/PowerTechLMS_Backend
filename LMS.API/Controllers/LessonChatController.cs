@@ -1,6 +1,6 @@
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +20,11 @@ public class LessonChatController : ControllerBase
     private readonly ILlmService _llm;
     private readonly ILogger<LessonChatController> _logger;
 
-    public LessonChatController(AppDbContext db, VectorDbService vectorDb, ILlmService llm, ILogger<LessonChatController> logger)
+    public LessonChatController(
+        AppDbContext db,
+        VectorDbService vectorDb,
+        ILlmService llm,
+        ILogger<LessonChatController> logger)
     {
         _db = db;
         _vectorDb = vectorDb;
@@ -48,12 +52,10 @@ public class LessonChatController : ControllerBase
         if(lesson is null)
             return NotFound("Không tìm thấy bài học.");
 
-        // RAG: Search for relevant context
         var searchResults = await _vectorDb.SearchAsync(request.Message, request.LessonId, limit: 20);
-        
+
         var expandedContexts = new HashSet<string>();
-        
-        // Lấy toàn bộ các đoạn của bài học để tìm các đoạn kế tiếp (context expansion)
+
         var allSegments = await _vectorDb.GetAllSegmentsAsync(request.LessonId);
         var sortedVideoSegments = allSegments
             .Where(s => s.Metadata.Contains("\"Type\":\"Video\"") || s.Metadata.Contains("Type = Video"))
@@ -61,36 +63,34 @@ public class LessonChatController : ControllerBase
             .OrderBy(s => s.Timestamp)
             .ToList();
 
-        foreach (var res in searchResults)
+        foreach(var res in searchResults)
         {
             var metaDict = TryParseMetadata(res.Metadata);
             var type = metaDict.GetValueOrDefault("Type")?.ToString();
 
-            if (type == "Video")
+            if(type == "Video")
             {
                 var currentTS = ExtractTimestamp(res.Metadata);
                 var index = sortedVideoSegments.FindIndex(s => Math.Abs(s.Timestamp - currentTS) < 0.1);
-                
-                if (index != -1)
+
+                if(index != -1)
                 {
-                    // Thêm đoạn hiện tại và tối đa 2 đoạn kế tiếp cho video
-                    for (int i = index; i <= index + 2 && i < sortedVideoSegments.Count; i++)
+                    for(int i = index; i <= index + 2 && i < sortedVideoSegments.Count; i++)
                     {
                         var seg = sortedVideoSegments[i];
-                        expandedContexts.Add($"- Nội dung bài giảng (Video tại [[{FormatTime(seg.Timestamp)}]]): {seg.Content}");
+                        expandedContexts.Add(
+                            $"- Nội dung bài giảng (Video tại [[{FormatTime(seg.Timestamp)}]]): {seg.Content}");
                     }
-                }
-                else 
+                } else
                 {
-                    expandedContexts.Add($"- Nội dung bài giảng: {res.Content} (Thời gian: [[{FormatTime(currentTS)}]])");
+                    expandedContexts.Add(
+                        $"- Nội dung bài giảng: {res.Content} (Thời gian: [[{FormatTime(currentTS)}]])");
                 }
-            }
-            else if (type == "Attachment")
+            } else if(type == "Attachment")
             {
                 var fileName = metaDict.GetValueOrDefault("FileName")?.ToString() ?? "Tài liệu đính kèm";
                 expandedContexts.Add($"- Trích dẫn từ tài liệu [{fileName}]: {res.Content}");
-            }
-            else 
+            } else
             {
                 expandedContexts.Add($"- Nội dung bổ sung: {res.Content}");
             }
@@ -137,21 +137,18 @@ public class LessonChatController : ControllerBase
 
     private Dictionary<string, object> TryParseMetadata(string metadata)
     {
-        try 
+        try
         {
-            // Thử parse JSON
             return JsonSerializer.Deserialize<Dictionary<string, object>>(metadata) ?? new();
-        }
-        catch 
+        } catch
         {
-            // Fallback parse định dạng cũ "{ LessonId = 2, Type = Attachment }"
             var dict = new Dictionary<string, object>();
             var clean = metadata.Trim('{', '}', ' ');
             var parts = clean.Split(',');
-            foreach (var part in parts)
+            foreach(var part in parts)
             {
                 var kv = part.Split('=');
-                if (kv.Length == 2)
+                if(kv.Length == 2)
                 {
                     dict[kv[0].Trim()] = kv[1].Trim();
                 }
@@ -163,10 +160,12 @@ public class LessonChatController : ControllerBase
     private double ExtractTimestamp(string metadata)
     {
         var meta = TryParseMetadata(metadata);
-        if (meta.TryGetValue("Start", out var val))
+        if(meta.TryGetValue("Start", out var val))
         {
-            if (val is JsonElement je && je.ValueKind == JsonValueKind.Number) return je.GetDouble();
-            if (double.TryParse(val.ToString(), out var d)) return d;
+            if(val is JsonElement je && je.ValueKind == JsonValueKind.Number)
+                return je.GetDouble();
+            if(double.TryParse(val.ToString(), out var d))
+                return d;
         }
         return 0;
     }
@@ -174,7 +173,9 @@ public class LessonChatController : ControllerBase
     public class ChatRequest
     {
         public int LessonId { get; set; }
+
         public string Message { get; set; } = string.Empty;
+
         public double? CurrentTimestamp { get; set; }
     }
 }

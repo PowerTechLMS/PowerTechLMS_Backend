@@ -43,7 +43,7 @@ public class MailBackgroundService : BackgroundService
                 }
             } catch(OperationCanceledException)
             {
-            } 
+            }
         }
     }
 }

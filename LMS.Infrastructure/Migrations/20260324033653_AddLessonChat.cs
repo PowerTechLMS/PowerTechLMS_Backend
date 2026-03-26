@@ -1,22 +1,21 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddLessonChat : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "LessonChats",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     UserMessage = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -43,22 +42,13 @@ namespace LMS.Infrastructure.Migrations
                         principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonChats_LessonId",
-                table: "LessonChats",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_LessonChats_LessonId", table: "LessonChats", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_LessonChats_UserId",
-                table: "LessonChats",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_LessonChats_UserId", table: "LessonChats", column: "UserId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropTable(
-                name: "LessonChats");
-        }
+        { migrationBuilder.DropTable(name: "LessonChats"); }
     }
 }

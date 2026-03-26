@@ -1,6 +1,6 @@
 using Hangfire;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,7 +41,7 @@ public class VideoProcessingWorker : BackgroundService
             } catch(OperationCanceledException)
             {
                 break;
-            } 
+            }
         }
     }
 

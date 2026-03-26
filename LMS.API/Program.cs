@@ -1,7 +1,8 @@
 using Hangfire;
+using Hangfire.PostgreSql;
 using Hangfire.SqlServer;
 using LMS.Core.Interfaces;
-using LMS.Infrastructure.Data;
+using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.Services;
 using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,10 +10,9 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json;
-using Microsoft.OpenApi;
-using Hangfire.PostgreSql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,21 +37,22 @@ builder.Services
 var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "SqlServer";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
 
-builder.Services.AddDbContext<PostgreSqlDbContext>(
-    options => options.UseNpgsql(
-        connectionString,
-        o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
-
-if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
-{
-    builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<PostgreSqlDbContext>());
-}
-else
-{
-    builder.Services.AddDbContext<AppDbContext>(
-        options => options.UseSqlServer(
+builder.Services
+    .AddDbContext<PostgreSqlDbContext>(
+        options => options.UseNpgsql(
             connectionString,
             o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+
+if(databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<PostgreSqlDbContext>());
+} else
+{
+    builder.Services
+        .AddDbContext<AppDbContext>(
+            options => options.UseSqlServer(
+                connectionString,
+                o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 }
 
 builder.Services
@@ -164,12 +165,14 @@ builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddHttpClient<ILlmService, LlmService>();
 
 builder.Services.AddSingleton<TextExtractionService>();
-builder.Services.AddSingleton<VectorDbService>(sp => 
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    var url = config["Qdrant:Url"] ?? "http://localhost:6334";
-    return new VectorDbService(url);
-});
+builder.Services
+    .AddSingleton<VectorDbService>(
+        sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var url = config["Qdrant:Url"] ?? "http://localhost:6334";
+            return new VectorDbService(url);
+        });
 builder.Services
     .AddSingleton<ITranscriptionService>(
         sp => new WhisperService(Path.Combine(builder.Environment.ContentRootPath, "models", "ggml-small-vi.bin")));
@@ -177,16 +180,15 @@ builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 
 builder.Services
     .AddHangfire(
-        configuration => 
+        configuration =>
         {
-            if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+            if(databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
             {
                 configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                     .UseSimpleAssemblyNameTypeSerializer()
                     .UseRecommendedSerializerSettings()
                     .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString));
-            }
-            else
+            } else
             {
                 configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                     .UseSimpleAssemblyNameTypeSerializer()
@@ -221,16 +223,14 @@ builder.Services
         {
             var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
             var origins = new List<string> { "http://localhost:3000", "http://localhost:5173" };
-            if (!origins.Contains(frontendUrl)) origins.Add(frontendUrl);
+            if(!origins.Contains(frontendUrl))
+                origins.Add(frontendUrl);
 
             options.AddPolicy(
                 "AllowFrontend",
                 policy =>
                 {
-                    policy.WithOrigins(origins.ToArray())
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                    policy.WithOrigins(origins.ToArray()).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                 });
         });
 
@@ -242,39 +242,39 @@ builder.Services
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(
-            options =>
-    {
-                options.AddSecurityDefinition(
-                    "bearer",
-                    new OpenApiSecurityScheme
+builder.Services
+    .AddSwaggerGen(
+        options =>
+        {
+            options.AddSecurityDefinition(
+                "bearer",
+                new OpenApiSecurityScheme
                     {
-                            Description =
-                                "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-                            Name = "Authorization",
-                            In = ParameterLocation.Header,
-                            Type = SecuritySchemeType.Http,
-                            Scheme = "bearer",
-                            BearerFormat = "JWT",
-                        });
-                options.AddSecurityRequirement(
-                    document => new OpenApiSecurityRequirement
-                        {
-                            [new OpenApiSecuritySchemeReference("bearer", document)] = []
-            });
-    });
+                        Description =
+                            "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                        Name = "Authorization",
+                        In = ParameterLocation.Header,
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer",
+                        BearerFormat = "JWT",
+                    });
+            options.AddSecurityRequirement(
+                document => new OpenApiSecurityRequirement
+                    {
+                        [new OpenApiSecuritySchemeReference("bearer", document)] = []
+                    });
+        });
 
 var app = builder.Build();
 
-if (args.Contains("--migrate"))
+if(args.Contains("--migrate"))
 {
     using var scope = app.Services.CreateScope();
-    if (databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
+    if(databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
     {
         var context = scope.ServiceProvider.GetRequiredService<PostgreSqlDbContext>();
         context.Database.Migrate();
-    }
-    else
+    } else
     {
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         context.Database.Migrate();
