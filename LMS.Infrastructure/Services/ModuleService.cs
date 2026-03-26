@@ -75,7 +75,8 @@ public class ModuleService : IModuleService
                             l.SortOrder,
                             l.IsFreePreview,
                             l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
-                            l.QuizId))
+                            l.QuizId,
+                            l.AiSummary))
                 .ToList());
     }
 
@@ -183,6 +184,12 @@ public class LessonService : ILessonService
         };
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
+
+        if (lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
+        {
+            BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
+        }
+
         return new LessonResponse(
             lesson.Id,
             lesson.Title,
@@ -195,7 +202,8 @@ public class LessonService : ILessonService
             lesson.SortOrder,
             lesson.IsFreePreview,
             new List<AttachmentResponse>(),
-            lesson.QuizId);
+            lesson.QuizId,
+            lesson.AiSummary);
     }
 
     public async Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request)
@@ -255,6 +263,11 @@ public class LessonService : ILessonService
         lesson.VideoStatus = request.VideoStatus;
         await _db.SaveChangesAsync();
 
+        if (lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
+        {
+            BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
+        }
+
         return new LessonResponse(
             lesson.Id,
             lesson.Title,
@@ -267,7 +280,8 @@ public class LessonService : ILessonService
             lesson.SortOrder,
             lesson.IsFreePreview,
             lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
-            lesson.QuizId);
+            lesson.QuizId,
+            lesson.AiSummary);
     }
 
     public async Task DeleteLessonAsync(int moduleId, int lessonId, int userId, bool isAdmin = false)

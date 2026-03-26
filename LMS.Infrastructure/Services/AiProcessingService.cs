@@ -18,6 +18,7 @@ public class AiProcessingService : IAiProcessingService
     private readonly ILogger<AiProcessingService> _logger;
     private readonly IHubContext<VideoHub> _hubContext;
     private readonly IFFmpegDownloader _ffmpegDownloader;
+    private readonly ILlmService _llm;
 
     public AiProcessingService(
         AppDbContext db,
@@ -26,7 +27,8 @@ public class AiProcessingService : IAiProcessingService
         TextExtractionService textExtractor,
         ILogger<AiProcessingService> logger,
         IHubContext<VideoHub> hubContext,
-        IFFmpegDownloader ffmpegDownloader)
+        IFFmpegDownloader ffmpegDownloader,
+        ILlmService llm)
     {
         _db = db;
         _whisper = whisper;
@@ -35,6 +37,7 @@ public class AiProcessingService : IAiProcessingService
         _logger = logger;
         _hubContext = hubContext;
         _ffmpegDownloader = ffmpegDownloader;
+        _llm = llm;
     }
 
     public async Task ProcessLessonVideoAsync(int lessonId)
@@ -82,7 +85,12 @@ public class AiProcessingService : IAiProcessingService
                     await _vectorDb.UpsertVectorAsync(
                         Guid.NewGuid(),
                         refined,
-                        new { LessonId = lessonId, Type = "Video", Start = seg.StartTime });
+                        new Dictionary<string, object> 
+                        { 
+                            { "LessonId", lessonId }, 
+                            { "Type", "Video" }, 
+                            { "Start", seg.StartTime } 
+                        });
                 } catch
                 {
                     skipVectorDb = true;
@@ -162,6 +170,22 @@ public class AiProcessingService : IAiProcessingService
         lesson.Transcript = string.Join(" ", processedSegments.Select(x => x.RefinedText));
         lesson.SubtitlesPath = $"/uploads/subtitles/{lessonId}.vtt";
         lesson.IsAiProcessed = true;
+
+        if (!string.IsNullOrEmpty(lesson.Transcript))
+        {
+            try
+            {
+                var summaryPrompt = "Bạn là một trợ lý giáo dục. Dưới đây là bản gỡ băng (transcript) của một bài giảng video. " +
+                                    "Hãy viết một bản tóm tắt ngắn gọn, súc tích (khoảng 3-5 gạch đầu dòng) về các nội dung chính của bài giảng này.\n\n" +
+                                    "Transcript:\n" + lesson.Transcript;
+                lesson.AiSummary = await _llm.GenerateResponseAsync(summaryPrompt, "Hãy tóm tắt bài giảng này.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[AI] Lỗi khi tạo tóm tắt cho bài học {lessonId}: {ex.Message}");
+            }
+        }
+
         await _db.SaveChangesAsync();
 
         // Gửi thông báo cập nhật URL mới (master.m3u8) để frontend chuyển sang luồng có phụ đề
@@ -182,14 +206,17 @@ public class AiProcessingService : IAiProcessingService
             doc.CurrentVersion.StorageKey?.TrimStart('/') ?? string.Empty);
         var fullText = _textExtractor.ExtractText(filePath);
 
-        var chunks = SplitText(fullText, 500);
+        var chunks = SplitText(fullText, 1000, 200);
         
         // Xoá các vector cũ của tài liệu trước khi xử lý mới
         await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
 
         foreach(var chunk in chunks)
         {
-            await _vectorDb.UpsertVectorAsync(Guid.NewGuid(), chunk, new { DocumentId = documentId, Type = "Document" });
+            await _vectorDb.UpsertVectorAsync(
+                Guid.NewGuid(), 
+                chunk, 
+                new Dictionary<string, object> { { "DocumentId", documentId }, { "Type", "Document" } });
         }
 
 
@@ -197,12 +224,20 @@ public class AiProcessingService : IAiProcessingService
         await _db.SaveChangesAsync();
     }
 
-    private List<string> SplitText(string text, int chunkSize)
+    private List<string> SplitText(string text, int chunkSize, int overlap = 100)
     {
         var list = new List<string>();
-        for(int i = 0; i < text.Length; i += chunkSize)
+        if (text.Length <= chunkSize)
         {
-            list.Add(text.Substring(i, Math.Min(chunkSize, text.Length - i)));
+            list.Add(text);
+            return list;
+        }
+
+        for (int i = 0; i < text.Length; i += (chunkSize - overlap))
+        {
+            var length = Math.Min(chunkSize, text.Length - i);
+            list.Add(text.Substring(i, length));
+            if (i + length >= text.Length) break;
         }
         return list;
     }
@@ -213,29 +248,51 @@ public class AiProcessingService : IAiProcessingService
         if (attachment == null || string.IsNullOrEmpty(attachment.StorageKey))
             return;
 
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", attachment.StorageKey.TrimStart('/'));
-        if (!File.Exists(filePath))
-            return;
-
-        var fullText = _textExtractor.ExtractText(filePath);
-        if (string.IsNullOrWhiteSpace(fullText))
-            return;
-
-        var chunks = SplitText(fullText, 500);
-
-        // Xoá các vector cũ của đính kèm này (nếu có)
-        await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
-
-        foreach (var chunk in chunks)
+        try 
         {
-            await _vectorDb.UpsertVectorAsync(
-                Guid.NewGuid(),
-                chunk,
-                new { LessonId = attachment.LessonId, AttachmentId = attachmentId, Type = "Attachment" });
-        }
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", attachment.StorageKey.TrimStart('/'));
+            if (!File.Exists(filePath))
+                return;
 
-        attachment.IsAiProcessed = true;
-        await _db.SaveChangesAsync();
+            var fullText = _textExtractor.ExtractText(filePath);
+            if (!string.IsNullOrWhiteSpace(fullText))
+            {
+                var chunks = SplitText(fullText, 1000, 200);
+
+                // Xoá các vector cũ của đính kèm này (nếu có)
+                await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
+
+                foreach (var chunk in chunks)
+                {
+                    try 
+                    {
+                        await _vectorDb.UpsertVectorAsync(
+                            Guid.NewGuid(),
+                            chunk,
+                            new Dictionary<string, object> 
+                            { 
+                                { "LessonId", attachment.LessonId }, 
+                                { "AttachmentId", attachmentId }, 
+                                { "Type", "Attachment" },
+                                { "FileName", attachment.FileName }
+                            });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"[AI] Lỗi khi tạo vector cho một chunk của tài liệu {attachmentId}: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"[AI] Lỗi nghiêm trọng khi xử lý tài liệu {attachmentId}: {ex.Message}");
+        }
+        finally
+        {
+            attachment.IsAiProcessed = true;
+            await _db.SaveChangesAsync();
+        }
     }
 
 
@@ -287,6 +344,33 @@ public class AiProcessingService : IAiProcessingService
             t.Minutes,
             t.Seconds,
             t.Milliseconds);
+    }
+
+    public async Task ProcessLessonTextAsync(int lessonId)
+    {
+        var lesson = await _db.Lessons.FindAsync(lessonId);
+        if (lesson == null || string.IsNullOrWhiteSpace(lesson.Content))
+            return;
+
+        // Xoá các vector cũ của bài học văn bản này
+        await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
+        // Lưu ý: Chúng ta lọc thêm theo Type = "Text" nếu cần, nhưng thường một bài học chỉ có 1 loại nội dung chính.
+        // Tuy nhiên để an toàn, VectorDbService.DeleteVectorsByFilterAsync hiện tại xóa theo LessonId. 
+        // Nếu là bài học Video, nó đã có vectors Type="Video". 
+        // Vì vậy ta nên cẩn thận không xóa nhầm Video vectors nếu sau này bài học đổi từ Video sang Text.
+
+        var chunks = SplitText(lesson.Content, 1000, 200);
+
+        foreach (var chunk in chunks)
+        {
+            await _vectorDb.UpsertVectorAsync(
+                Guid.NewGuid(),
+                chunk,
+                new Dictionary<string, object> { { "LessonId", lessonId }, { "Type", "Text" } });
+        }
+
+        lesson.IsAiProcessed = true;
+        await _db.SaveChangesAsync();
     }
 
     private async Task ExtractAudioAsync(string videoPath, string audioPath)

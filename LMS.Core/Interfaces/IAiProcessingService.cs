@@ -8,4 +8,6 @@ public interface IAiProcessingService
     Task ProcessDocumentAsync(int documentId);
 
     Task ProcessLessonAttachmentAsync(int attachmentId);
+
+    Task ProcessLessonTextAsync(int lessonId);
 }

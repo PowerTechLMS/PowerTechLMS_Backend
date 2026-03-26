@@ -6,7 +6,7 @@ namespace LMS.Infrastructure.Data;
 /// <summary>
 /// Password mặc định là Password@123
 /// </summary>
-public class AppDbContext : DbContext
+public class AppDbContext : Microsoft.EntityFrameworkCore.DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
@@ -80,6 +80,8 @@ public class AppDbContext : DbContext
 
     public DbSet<LessonChat> LessonChats => Set<LessonChat>();
 
+    public DbSet<DocumentChat> DocumentChats => Set<DocumentChat>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -116,6 +118,7 @@ public class AppDbContext : DbContext
         m.Entity<UserRole>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<LessonChat>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<DocumentChat>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -339,6 +342,19 @@ public class AppDbContext : DbContext
                 e.HasOne(lc => lc.User)
                     .WithMany()
                     .HasForeignKey(lc => lc.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+            });
+
+        m.Entity<DocumentChat>(
+            e =>
+            {
+                e.HasOne(dc => dc.Document)
+                    .WithMany()
+                    .HasForeignKey(dc => dc.DocumentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(dc => dc.User)
+                    .WithMany()
+                    .HasForeignKey(dc => dc.UserId)
                     .OnDelete(DeleteBehavior.NoAction);
             });
 

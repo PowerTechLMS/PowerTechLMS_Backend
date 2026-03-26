@@ -276,7 +276,8 @@ public record LessonResponse(
     int SortOrder,
     bool IsFreePreview,
     List<AttachmentResponse> Attachments,
-    int? QuizId = null
+    int? QuizId = null,
+    string? AiSummary = null
 );
 
 public record AttachmentResponse(int Id, string FileName, long FileSize);

@@ -141,7 +141,6 @@ public class CourseService : ICourseService
         var total = await query.CountAsync();
 
         var items = await query
-            .AsSplitQuery()
             .OrderByDescending(c => c.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -181,7 +180,7 @@ public class CourseService : ICourseService
     public async Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId)
     {
         var course = await _db.Courses
-            .AsSplitQuery()
+
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
@@ -271,7 +270,8 @@ public class CourseService : ICourseService
                                                                                             a.FileSize))
                                                             .ToList()
                                                         : new List<AttachmentResponse>(),
-                                                    l.QuizId))
+                                                    l.QuizId,
+                                                    l.AiSummary))
                                 .ToList()))
                 .ToList(),
             course.Enrollments?.Count ?? 0,
@@ -292,7 +292,7 @@ public class CourseService : ICourseService
     public async Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId, int? userId = null)
     {
         var course = await _db.Courses
-            .AsSplitQuery()
+
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
@@ -378,7 +378,8 @@ public class CourseService : ICourseService
                                                     l.SortOrder,
                                                     l.IsFreePreview,
                                                     new List<AttachmentResponse>(),
-                                                    l.QuizId))
+                                                    l.QuizId,
+                                                    l.AiSummary))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),

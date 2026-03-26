@@ -25,7 +25,6 @@ public class DashboardService : IDashboardService
             response.DepartmentName = userGroup?.Group?.Name ?? "Chưa phân bổ";
 
             var enrollments = await _db.Enrollments
-                .AsSplitQuery()
                 .Include(e => e.Course)
                 .ThenInclude(c => c.Modules)
                 .ThenInclude(m => m.Lessons)
