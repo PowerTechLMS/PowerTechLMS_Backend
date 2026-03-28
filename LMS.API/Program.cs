@@ -223,8 +223,16 @@ builder.Services
         options =>
         {
             var frontendUrl = builder.Configuration["FrontendUrl"] ?? "http://localhost:5173";
-            var origins = new List<string> { "http://localhost:3000", "http://localhost:5173" };
-            if(!origins.Contains(frontendUrl))
+            var origins = new List<string>
+            {
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://banhcauba.com:5173",
+                "https://banhcauba.com",
+                "http://banhcauba.com"
+            };
+
+            if (!string.IsNullOrEmpty(frontendUrl) && !origins.Contains(frontendUrl))
                 origins.Add(frontendUrl);
 
             options.AddPolicy(
