@@ -14,9 +14,8 @@ using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json;
 
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 var builder = WebApplication.CreateBuilder(args);
-
-builder.WebHost.UseUrls("http://localhost:5100");
 
 builder.WebHost
     .ConfigureKestrel(
