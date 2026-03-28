@@ -110,11 +110,9 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /var/www/powertech/backend_temp
+            cd /var/www/powertech/backend
             tar -xzf publish.tar.gz
             rm publish.tar.gz
-            rsync -av --delete /var/www/powertech/backend_temp/ /var/www/powertech/backend/
-            cd /var/www/powertech/backend
             sudo apt-get update && sudo apt-get install -y libgomp1
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
