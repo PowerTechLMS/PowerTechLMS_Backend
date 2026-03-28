@@ -41,7 +41,9 @@ builder.Services
     .AddDbContext<PostgreSqlDbContext>(
         options => options.UseNpgsql(
             connectionString,
-            o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+            o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                .MigrationsAssembly("LMS.Infrastructure")
+                .MigrationsHistoryTable("__EFMigrationsHistory", "public")));
 
 if(databaseProvider.Equals("PostgreSql", StringComparison.OrdinalIgnoreCase))
 {
