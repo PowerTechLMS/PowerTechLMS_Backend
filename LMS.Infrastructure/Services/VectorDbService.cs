@@ -10,13 +10,13 @@ namespace LMS.Infrastructure.Services;
 public class VectorDbService
 {
     private readonly QdrantClient _client;
-    private readonly LocalEmbedder _embedder;
+    private readonly Lazy<LocalEmbedder> _lazyEmbedder;
     private const string CollectionName = "powertech_knowledge";
 
     public VectorDbService(string qdrantUrl)
     {
         _client = new QdrantClient(new Uri(qdrantUrl));
-        _embedder = new LocalEmbedder();
+        _lazyEmbedder = new Lazy<LocalEmbedder>(() => new LocalEmbedder());
     }
 
     private bool _collectionVerified = false;
@@ -24,7 +24,7 @@ public class VectorDbService
     public async Task UpsertVectorAsync(Guid pointId, string content, IDictionary<string, object> metadata)
     {
         await EnsureCollectionReadyAsync();
-        var embedding = _embedder.Embed(content);
+        var embedding = _lazyEmbedder.Value.Embed(content);
         var point = new PointStruct
         {
             Id = pointId,
@@ -60,7 +60,7 @@ public class VectorDbService
         int limit = 5)
     {
         await EnsureCollectionReadyAsync();
-        var embedding = _embedder.Embed(query);
+        var embedding = _lazyEmbedder.Value.Embed(query);
 
         var filter = new Filter();
         filter.Must
@@ -103,7 +103,7 @@ public class VectorDbService
         int limit = 5)
     {
         await EnsureCollectionReadyAsync();
-        var embedding = _embedder.Embed(query);
+        var embedding = _lazyEmbedder.Value.Embed(query);
 
         var filter = new Filter();
         filter.Must
