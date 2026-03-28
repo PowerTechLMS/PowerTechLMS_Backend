@@ -113,6 +113,6 @@ jobs:
             cd /var/www/powertech/backend
             tar -xzf publish.tar.gz
             rm publish.tar.gz
-            sudo apt-get update && sudo apt-get install -y libgomp1
+            sudo apt-get update && sudo apt-get install -y libgomp1 xz-utils
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
