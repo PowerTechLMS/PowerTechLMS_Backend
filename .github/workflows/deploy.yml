@@ -89,8 +89,8 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            mkdir -p /var/www/powertech/backend_temp
-            rm -rf /var/www/powertech/backend_temp/*
+            mkdir -p /var/www/powertech/backend
+            rm -rf /var/www/powertech/backend/*
 
       - name: Copy Archive
         uses: appleboy/scp-action@master
@@ -100,7 +100,7 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           source: "publish.tar.gz"
-          target: "/var/www/powertech/backend_temp"
+          target: "/var/www/powertech/backend"
 
       - name: Finalize Deployment
         uses: appleboy/ssh-action@master
