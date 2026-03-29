@@ -133,7 +133,7 @@ public class CourseService : ICourseService
                             allowedCourseIdsForMyDepts.Contains(c.Id));
                 }
             }
-        } else
+        } else if(!isAdmin)
         {
             query = query.Where(c => c.Level != 2);
         }
