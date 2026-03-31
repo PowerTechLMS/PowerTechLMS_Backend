@@ -824,6 +824,31 @@ public class AppDbContext : DbContext
                 UpdatedAt = staticDate
             })
             .ToList();
+        
+        var instructorPermissionIds = new List<int> { 1, 2, 3, 6, 9, 10, 12, 13, 14, 18 };
+        var instructorPermissions = instructorPermissionIds.Select(
+            id => new RolePermission
+            {
+                RoleId = 2,
+                PermissionId = id,
+                GrantedAt = staticDate,
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            }).ToList();
+
+        var employeePermissionIds = new List<int> { 1, 9, 18 };
+        var employeePermissions = employeePermissionIds.Select(
+            id => new RolePermission
+            {
+                RoleId = 3,
+                PermissionId = id,
+                GrantedAt = staticDate,
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            }).ToList();
+
         m.Entity<RolePermission>().HasData(adminPermissions);
+        m.Entity<RolePermission>().HasData(instructorPermissions);
+        m.Entity<RolePermission>().HasData(employeePermissions);
     }
 }

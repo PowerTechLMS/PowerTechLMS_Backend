@@ -156,7 +156,14 @@ public class QuizService : IQuizService
         decimal finalScore = Math.Round(rawScore, 1);
 
         attempt.Score = finalScore;
-        attempt.IsPassed = finalScore >= (decimal)attempt.Quiz.PassScore;
+        
+        // Bảo vệ: Nếu PassScore đang để thang 100 (ví dụ 80) thì tự quy đổi về thang 10 (8.0)
+        decimal passThreshold = (decimal)attempt.Quiz.PassScore;
+        if (passThreshold > 10) 
+            passThreshold = passThreshold / 10.0m;
+
+        attempt.IsPassed = finalScore >= passThreshold;
+
         attempt.Status = "Submitted";
         attempt.SubmittedAt = DateTime.UtcNow;
 
@@ -187,6 +194,7 @@ public class QuizService : IQuizService
                     a.StartedAt >= startOfToday &&
                     a.Status == "Submitted");
         int maxAllowed = attempt.Quiz.MaxRetakesPerDay ?? attempt.Quiz.Course.QuizMaxRetakesPerDay;
+        if (maxAllowed <= 0) maxAllowed = 5;
         int remainingAttempts = Math.Max(0, maxAllowed - attemptsDoneToday);
         int waitMinutes = attempt.Quiz.RetakeWaitTimeMinutes ?? attempt.Quiz.Course.QuizRetakeWaitTimeMinutes;
 
@@ -253,7 +261,8 @@ public class QuizService : IQuizService
             .OrderByDescending(a => a.SubmittedAt)
             .ToListAsync();
 
-        int maxRetakes = quiz.MaxRetakesPerDay ?? quiz.Course.QuizMaxRetakesPerDay;
+        int maxRetakes = (quiz.MaxRetakesPerDay ?? quiz.Course.QuizMaxRetakesPerDay);
+        if (maxRetakes <= 0) maxRetakes = 5;
         int remainingAttempts = maxRetakes - finishedAttemptsToday.Count;
 
         if(remainingAttempts <= 0)
@@ -339,5 +348,50 @@ public class QuizService : IQuizService
                     0,
                     0))
             .ToListAsync();
+    }
+
+    public async Task UpdateQuizAsync(int quizId, CreateQuizRequest request)
+    {
+        var quiz = await _db.Quizzes.FindAsync(quizId) ??
+            throw new KeyNotFoundException("Không tìm thấy bài thi.");
+
+        quiz.Title = request.Title;
+        quiz.TimeLimitMinutes = request.TimeLimitMinutes;
+        quiz.PassScore = request.PassScore;
+        quiz.QuestionCount = request.QuestionCount;
+        quiz.ShuffleQuestions = request.ShuffleQuestions;
+        quiz.ShuffleAnswers = request.ShuffleAnswers;
+        quiz.RetakeWaitTimeMinutes = request.RetakeWaitTimeMinutes;
+        quiz.MaxRetakesPerDay = request.MaxRetakesPerDay;
+        quiz.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task UpdateQuestionAsync(int questionId, CreateQuestionRequest request)
+    {
+        var question = await _db.QuestionBanks.FindAsync(questionId) ??
+            throw new KeyNotFoundException("Không tìm thấy câu hỏi.");
+
+        question.QuestionText = request.Content;
+        question.OptionA = request.OptionA;
+        question.OptionB = request.OptionB;
+        question.OptionC = request.OptionC;
+        question.OptionD = request.OptionD;
+        question.CorrectAnswer = request.CorrectAnswer;
+        question.Points = request.Points;
+        question.Explanation = request.Explanation;
+        question.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteQuestionAsync(int questionId)
+    {
+        var question = await _db.QuestionBanks.FindAsync(questionId) ??
+            throw new KeyNotFoundException("Không tìm thấy câu hỏi.");
+
+        _db.QuestionBanks.Remove(question);
+        await _db.SaveChangesAsync();
     }
 }

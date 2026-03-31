@@ -12,6 +12,7 @@ public class User : BaseEntity
     public string PasswordHash { get; set; } = string.Empty;
 
     public string Role { get; set; } = "Employee";
+    public string? Position { get; set; }
 
     public string? Avatar { get; set; }
 

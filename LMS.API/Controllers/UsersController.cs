@@ -109,4 +109,16 @@ public class UsersController : ControllerBase
         var result = await _userService.ImportUsersAsync(stream);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Đồng bộ lại bảng UserRoles dựa trên cột Role của tất cả user.
+    /// Gọi API này một lần để fix toàn bộ tài khoản hiện có.
+    /// </summary>
+    [HttpPost("sync-rbac")]
+    [Authorize(Policy = "UserManage")]
+    public async Task<ActionResult> SyncAllUserRoles()
+    {
+        var result = await _userService.SyncAllUserRolesAsync();
+        return Ok(result);
+    }
 }

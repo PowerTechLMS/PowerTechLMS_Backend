@@ -1,4 +1,4 @@
-﻿using LMS.Core.DTOs;
+using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -120,4 +120,28 @@ public class QuizzesController : ControllerBase
     [HttpGet("{quizId}/results")]
     public async Task<ActionResult> GetResults(int quizId) => Ok(
         await _quizService.GetUserQuizResultsAsync(UserId, quizId));
+
+    [HttpPut("{quizId}")]
+    [Authorize(Policy = "QuizCreate")]
+    public async Task<ActionResult> UpdateQuiz(int quizId, [FromBody] CreateQuizRequest request)
+    {
+        await _quizService.UpdateQuizAsync(quizId, request);
+        return Ok();
+    }
+
+    [HttpPut("questions/{questionId}")]
+    [Authorize(Policy = "QuizCreate")]
+    public async Task<ActionResult> UpdateQuestion(int questionId, [FromBody] CreateQuestionRequest request)
+    {
+        await _quizService.UpdateQuestionAsync(questionId, request);
+        return Ok();
+    }
+
+    [HttpDelete("questions/{questionId}")]
+    [Authorize(Policy = "QuizCreate")]
+    public async Task<ActionResult> DeleteQuestion(int questionId)
+    {
+        await _quizService.DeleteQuestionAsync(questionId);
+        return Ok();
+    }
 }

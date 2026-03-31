@@ -50,6 +50,9 @@ public class ModuleService : IModuleService
         var module = await _db.Modules
                 .Include(m => m.Lessons.OrderBy(l => l.SortOrder))
                 .ThenInclude(l => l.Attachments)
+                .Include(m => m.Lessons)
+                .ThenInclude(l => l.Quiz)
+                .ThenInclude(q => q.Questions)
                 .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId) ??
             throw new KeyNotFoundException("Không tìm thấy chương trong khóa học này.");
 
@@ -76,6 +79,7 @@ public class ModuleService : IModuleService
                             l.IsFreePreview,
                             l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
                             l.QuizId,
+                            l.Quiz?.Questions.Count ?? 0,
                             l.AiSummary))
                 .ToList());
     }
@@ -201,6 +205,7 @@ public class LessonService : ILessonService
             lesson.IsFreePreview,
             new List<AttachmentResponse>(),
             lesson.QuizId,
+            0, // New lesson, no quiz questions yet
             lesson.AiSummary);
     }
 
@@ -279,6 +284,7 @@ public class LessonService : ILessonService
             lesson.IsFreePreview,
             lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
             lesson.QuizId,
+            lesson.Quiz?.Questions.Count ?? 0,
             lesson.AiSummary);
     }
 
@@ -338,11 +344,11 @@ public class LessonService : ILessonService
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
 
-        var ext = Path.GetExtension(fileName);
+        var ext = System.IO.Path.GetExtension(fileName);
         var newFileName = $"{lessonId}_{Guid.NewGuid():N}{ext}";
-        var filePath = Path.Combine(uploadsDir, newFileName);
+        var filePath = System.IO.Path.Combine(uploadsDir, newFileName);
 
-        using(var fs = new FileStream(filePath, FileMode.Create))
+        using(var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             await fileStream.CopyToAsync(fs);
 
         var attachment = new LessonAttachment

@@ -22,39 +22,64 @@ public class LlmService : ILlmService
 
     public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
     {
-        var requestBody = new
+        if (string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
         {
-            model = "gemini-3-flash",
-            messages = new[]
+            return "Hệ thống AI chưa được kích hoạt: Bạn cần cấu hình Gemini API Key hợp lệ trong file appsettings.json của Backend.";
+        }
+
+        try
+        {
+            var requestBody = new
             {
-                new { role = "system", content = systemPrompt },
-                new { role = "user", content = userPrompt }
-            },
-            temperature = 0.7
-        };
+                model = "gemini-1.5-flash",
+                messages = new[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = userPrompt }
+                },
+                temperature = 0.7
+            };
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions");
-        request.Headers.Add("Authorization", $"Bearer {_apiKey}");
-        request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com")
+                ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions?key={_apiKey}"
+                : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
 
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
+            var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+            if (!endpoint.Contains("key="))
+            {
+                request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+            }
+            
+            request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
 
-        var responseString = await response.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(responseString);
-        var content = doc.RootElement.GetProperty("choices")[0]
-            .GetProperty("message")
-            .GetProperty("content")
-            .GetString();
+            var response = await _httpClient.SendAsync(request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await response.Content.ReadAsStringAsync();
+                return $"Lỗi kết nối AI (Status {response.StatusCode}): {errorMsg}";
+            }
 
-        return content ?? string.Empty;
+            var responseString = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseString);
+            var content = doc.RootElement.GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            return content ?? "AI không trả về kết quả.";
+        }
+        catch (Exception ex)
+        {
+            return $"Lỗi xử lý AI: {ex.Message}";
+        }
     }
 
     public async Task<LlmChatResponse> ChatWithToolsAsync(List<LlmChatMessage> messages, List<LlmTool>? tools = null)
     {
         var requestBody = new
         {
-            model = "gemini-3-flash",
+            model = "gemini-1.5-flash",
             messages = messages.Select(
                 m => new
                 {
@@ -82,7 +107,11 @@ public class LlmService : ILlmService
             temperature = 0.7
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions");
+        var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com") && !_apiBaseUrl.Contains("v1beta/openai")
+            ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions"
+            : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
+
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         request.Headers.Add("Authorization", $"Bearer {_apiKey}");
         request.Content = new StringContent(
             JsonSerializer.Serialize(
