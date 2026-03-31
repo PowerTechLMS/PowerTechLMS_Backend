@@ -22,7 +22,7 @@ public class LlmService : ILlmService
 
     public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
     {
-        if (string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
+        if(string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
         {
             return "Hệ thống AI chưa được kích hoạt: Bạn cần cấu hình Gemini API Key hợp lệ trong file appsettings.json của Backend.";
         }
@@ -45,16 +45,19 @@ public class LlmService : ILlmService
                 : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
 
             var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-            if (!endpoint.Contains("key="))
+            if(!endpoint.Contains("key="))
             {
                 request.Headers.Add("Authorization", $"Bearer {_apiKey}");
             }
-            
-            request.Content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+            request.Content = new StringContent(
+                JsonSerializer.Serialize(requestBody),
+                Encoding.UTF8,
+                "application/json");
 
             var response = await _httpClient.SendAsync(request);
-            
-            if (!response.IsSuccessStatusCode)
+
+            if(!response.IsSuccessStatusCode)
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
                 return $"Lỗi kết nối AI (Status {response.StatusCode}): {errorMsg}";
@@ -68,8 +71,7 @@ public class LlmService : ILlmService
                 .GetString();
 
             return content ?? "AI không trả về kết quả.";
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return $"Lỗi xử lý AI: {ex.Message}";
         }
@@ -107,7 +109,8 @@ public class LlmService : ILlmService
             temperature = 0.7
         };
 
-        var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com") && !_apiBaseUrl.Contains("v1beta/openai")
+        var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com") &&
+                !_apiBaseUrl.Contains("v1beta/openai")
             ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions"
             : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
 

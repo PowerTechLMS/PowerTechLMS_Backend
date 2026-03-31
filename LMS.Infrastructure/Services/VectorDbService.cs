@@ -249,14 +249,14 @@ public class VectorDbService
             return false;
         }
 
-            if (!_serviceUnreachable)
-            {
-                Console.WriteLine(
-                    $"[VectorDbService] Note: Qdrant (VectorDB) is not available. AI-driven search features will be disabled. (Message suppressed for future retries)");
-            }
-            _serviceUnreachable = true;
-            _lastRetryTime = DateTime.Now;
-            return false;
+        if(!_serviceUnreachable)
+        {
+            Console.WriteLine(
+                $"[VectorDbService] Note: Qdrant (VectorDB) is not available. AI-driven search features will be disabled. (Message suppressed for future retries)");
+        }
+        _serviceUnreachable = true;
+        _lastRetryTime = DateTime.Now;
+        return false;
     }
 
     private async Task EnsureCollectionExistsAsync()

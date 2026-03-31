@@ -32,31 +32,27 @@ public class ProgressService : IProgressService
             _db.LessonProgresses.Add(progress);
         }
 
-        // Ghi nhận tiến độ đọc/xem
         progress.CompletedAt = DateTime.UtcNow;
         progress.WatchedPercent = 100;
-        if (lesson.VideoDurationSeconds > 0)
+        if(lesson.VideoDurationSeconds > 0)
             progress.PositionSeconds = lesson.VideoDurationSeconds;
 
-        // Chỉ đánh dấu IsCompleted nếu không có bài tập, hoặc bài tập đã đạt
         bool actuallyPassed = isQuizPassed;
-        if (lesson.QuizId.HasValue && !actuallyPassed)
+        if(lesson.QuizId.HasValue && !actuallyPassed)
         {
             actuallyPassed = await _db.QuizAttempts
                 .AnyAsync(qa => qa.UserId == userId && qa.QuizId == lesson.QuizId.Value && qa.IsPassed);
         }
 
-        if (!lesson.QuizId.HasValue || actuallyPassed)
+        if(!lesson.QuizId.HasValue || actuallyPassed)
         {
             progress.IsCompleted = true;
-        }
-        else
+        } else
         {
-            progress.IsCompleted = false; // Phải qua quiz mới được tick xanh
+            progress.IsCompleted = false;
         }
 
         await _db.SaveChangesAsync();
-
 
 
         var status = await GetCourseProgressAsync(userId, lesson.Module.CourseId);
@@ -289,15 +285,14 @@ public class ProgressService : IProgressService
         var lp = await _db.LessonProgresses
             .FirstOrDefaultAsync(lp => lp.UserId == userId && lp.LessonId == prevLessonId);
 
-        if (lp == null || !lp.IsCompleted)
+        if(lp == null || !lp.IsCompleted)
             return false;
 
-        // Nếu bài trước có Quiz, phải đạt Quiz mới được qua bài sau
-        if (prevLesson.QuizId.HasValue)
+        if(prevLesson.QuizId.HasValue)
         {
             bool quizPassed = await _db.QuizAttempts
                 .AnyAsync(qa => qa.UserId == userId && qa.QuizId == prevLesson.QuizId.Value && qa.IsPassed);
-            if (!quizPassed)
+            if(!quizPassed)
                 return false;
         }
 

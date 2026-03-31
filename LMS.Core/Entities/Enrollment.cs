@@ -24,6 +24,7 @@ public class Enrollment : BaseEntity
     public DateTime? ApprovedAt { get; set; }
 
     public string? RejectionReason { get; set; }
+
     public User User { get; set; } = null!;
 
     public Course Course { get; set; } = null!;

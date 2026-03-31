@@ -48,6 +48,8 @@ public class Course : BaseEntity
     public int QuizMaxRetakesPerDay { get; set; } = 3;
 
     public int Level { get; set; } = 3;
+
     public int? UserGroupId { get; set; }
+
     public UserGroup? UserGroup { get; set; }
 }

@@ -1,17 +1,19 @@
+using iText.IO.Font;
+using iText.IO.Font.Constants;
+using iText.Kernel.Colors;
+using iText.Kernel.Font;
+using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
-using iText.Layout;
+using iText.Kernel.Pdf.Canvas;
+using iText.Layout.Borders;
 using iText.Layout.Element;
 using iText.Layout.Properties;
-using iText.Kernel.Geom;
-using iText.Kernel.Colors;
-using iText.Layout.Borders;
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.IO;
 
 namespace LMS.Infrastructure.Services;
 
@@ -22,6 +24,9 @@ public class CertificateService : ICertificateService
 
     public CertificateService(AppDbContext db) { _db = db; }
 
+    private PdfFont? boldFont;
+    private PdfFont? italicFont;
+
     public async Task<CertificateResponse?> IssueCertificateAsync(int userId, int courseId)
     {
         var existing = await _db.Certificates
@@ -31,15 +36,38 @@ public class CertificateService : ICertificateService
 
         if(existing != null)
         {
-            return new CertificateResponse(
-                existing.Id,
-                existing.User?.FullName ?? "Ẩn danh",
-                existing.Course?.Title ?? "Khóa học",
-                existing.CertificateCode ?? string.Empty,
-                existing.PdfUrl,
-                existing.IssuedAt,
-                existing.Status ?? "Issued",
-                existing.RevokedAt);
+            var wwwroot = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var absolutePath = System.IO.Path.Combine(wwwroot, existing.PdfUrl.TrimStart('/'));
+
+            if(File.Exists(absolutePath))
+            {
+                return new CertificateResponse(
+                    existing.Id,
+                    existing.User?.FullName ?? "Ẩn danh",
+                    existing.Course?.Title ?? "Khóa học",
+                    existing.CertificateCode ?? string.Empty,
+                    existing.PdfUrl,
+                    existing.IssuedAt,
+                    existing.Status ?? "Issued",
+                    existing.RevokedAt);
+            }
+
+            var userObj = existing.User ?? await _db.Users.FindAsync(userId);
+            var courseObj = existing.Course ?? await _db.Courses.FindAsync(courseId);
+            if(userObj != null && courseObj != null)
+            {
+                existing.PdfUrl = await GenerateCertificatePdf(existing, userObj, courseObj);
+                await _db.SaveChangesAsync();
+                return new CertificateResponse(
+                    existing.Id,
+                    userObj.FullName,
+                    courseObj.Title,
+                    existing.CertificateCode,
+                    existing.PdfUrl,
+                    existing.IssuedAt,
+                    existing.Status,
+                    existing.RevokedAt);
+            }
         }
 
         var lessonIds = await _db.Modules
@@ -101,9 +129,8 @@ public class CertificateService : ICertificateService
             enrollment.Status = "Completed";
         }
 
-        await _db.SaveChangesAsync(); // Lưu để có ID
+        await _db.SaveChangesAsync();
 
-        // Phát sinh PDF thực tế
         var user = await _db.Users.FindAsync(userId);
         var course = await _db.Courses.FindAsync(courseId);
         if(user != null && course != null)
@@ -123,91 +150,210 @@ public class CertificateService : ICertificateService
             cert.RevokedAt);
     }
 
-    private async Task<string> GenerateCertificatePdf(Certificate cert, User user, LMS.Core.Entities.Course course)
+    private async Task<string> GenerateCertificatePdf(Certificate cert, User user, Course course)
     {
         var wwwroot = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
         var uploadDir = System.IO.Path.Combine(wwwroot, "uploads", "certificates");
-        if(!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+        if(!Directory.Exists(uploadDir))
+            Directory.CreateDirectory(uploadDir);
 
         var fileName = $"{cert.CertificateCode}.pdf";
         var filePath = System.IO.Path.Combine(uploadDir, fileName);
         var relativeUrl = $"/uploads/certificates/{fileName}";
 
-        using (var writer = new PdfWriter(filePath))
-        using (var pdf = new PdfDocument(writer))
-        using (var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate()))
-        {
-            // Cố gắng load font để hỗ trợ Tiếng Việt (Vietnamese Support)
-            try {
-                var fontPath = @"C:\Windows\Fonts\arial.ttf";
-                if (System.IO.File.Exists(fontPath)) {
-                    var font = iText.Kernel.Font.PdfFontFactory.CreateFont(fontPath, iText.IO.Font.PdfEncodings.IDENTITY_H);
-                    document.SetFont(font);
+        using(var writer = new PdfWriter(filePath))
+            using(var pdf = new PdfDocument(writer))
+                using(var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate()))
+                {
+                    var goldColor = new DeviceRgb(212, 175, 55);
+                    var darkBlue = new DeviceRgb(15, 23, 42);
+                    var greyText = new DeviceRgb(100, 116, 139);
+
+                    var regularFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                    var localBoldFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                    var localItalicFont = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_OBLIQUE);
+
+                    try
+                    {
+                        var fontPath = @"C:\Windows\Fonts\arial.ttf";
+                        var boldFontPath = @"C:\Windows\Fonts\arialbd.ttf";
+                        var italicFontPath = @"C:\Windows\Fonts\ariali.ttf";
+
+                        if(File.Exists(fontPath))
+                        {
+                            regularFont = PdfFontFactory.CreateFont(fontPath, PdfEncodings.IDENTITY_H);
+                            document.SetFont(regularFont);
+                        }
+                        if(File.Exists(boldFontPath))
+                        {
+                            localBoldFont = PdfFontFactory.CreateFont(boldFontPath, PdfEncodings.IDENTITY_H);
+                        } else if(File.Exists(fontPath))
+                        {
+                            localBoldFont = regularFont;
+                        }
+                        if(File.Exists(italicFontPath))
+                        {
+                            localItalicFont = PdfFontFactory.CreateFont(italicFontPath, PdfEncodings.IDENTITY_H);
+                        } else if(File.Exists(fontPath))
+                        {
+                            localItalicFont = regularFont;
+                        }
+                    } catch
+                    {
+                    }
+
+                    boldFont = localBoldFont;
+                    italicFont = localItalicFont;
+
+                    document.SetMargins(25, 25, 25, 25);
+                    var pageSize = pdf.GetDefaultPageSize();
+                    var canvas = new PdfCanvas(pdf.AddNewPage());
+
+                    canvas.SetStrokeColor(darkBlue)
+                        .SetLineWidth(10)
+                        .Rectangle(10, 10, pageSize.GetWidth() - 20, pageSize.GetHeight() - 20)
+                        .Stroke();
+                    canvas.SetStrokeColor(goldColor)
+                        .SetLineWidth(1.5f)
+                        .Rectangle(18, 18, pageSize.GetWidth() - 36, pageSize.GetHeight() - 36)
+                        .Stroke();
+
+                    canvas.SetFillColor(goldColor)
+                        .Circle(18, 18, 3)
+                        .Fill()
+                        .Circle(pageSize.GetWidth() - 18, 18, 3)
+                        .Fill()
+                        .Circle(18, pageSize.GetHeight() - 18, 3)
+                        .Fill()
+                        .Circle(pageSize.GetWidth() - 18, pageSize.GetHeight() - 18, 3)
+                        .Fill();
+
+                    var centerX = pageSize.GetWidth() / 2;
+                    canvas.SaveState()
+                        .SetFillColor(goldColor)
+                        .MoveTo(centerX - 15, pageSize.GetHeight() - 65)
+                        .LineTo(centerX, pageSize.GetHeight() - 55)
+                        .LineTo(centerX + 15, pageSize.GetHeight() - 65)
+                        .LineTo(centerX, pageSize.GetHeight() - 75)
+                        .ClosePath()
+                        .Fill()
+                        .Rectangle(centerX - 8, pageSize.GetHeight() - 82, 16, 8)
+                        .Fill()
+                        .RestoreState();
+
+                    document.Add(
+                        new Paragraph("CHỨNG NHẬN HOÀN THÀNH")
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(38)
+                            .SetFont(boldFont)
+                            .SetFontColor(darkBlue)
+                            .SetMarginTop(55)
+                            .SetCharacterSpacing(3f));
+
+                    document.Add(
+                        new Paragraph("GIẤY CHỨNG NHẬN")
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(14)
+                            .SetFont(boldFont)
+                            .SetFontColor(greyText)
+                            .SetMarginTop(10));
+
+                    document.Add(
+                        new Paragraph("GIẤY CHỨNG NHẬN NÀY ĐƯỢC TRÂN TRỌNG TRAO TẶNG CHO")
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(10)
+                            .SetFontColor(greyText)
+                            .SetCharacterSpacing(1.5f));
+
+                    document.Add(
+                        new Paragraph(user.FullName.ToUpper())
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(48)
+                            .SetFontColor(goldColor)
+                            .SetFont(boldFont)
+                            .SetMarginTop(10)
+                            .SetMarginBottom(10));
+
+                    document.Add(
+                        new Paragraph("Vì đã xuất sắc hoàn thành chương trình đào tạo chuyên môn")
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(15)
+                            .SetFont(italicFont)
+                            .SetFontColor(darkBlue));
+
+                    document.Add(
+                        new Paragraph(course.Title.ToUpper())
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(24)
+                            .SetFont(boldFont)
+                            .SetFontColor(darkBlue)
+                            .SetMarginTop(5)
+                            .SetMarginBottom(50));
+
+                    var footerTable = new Table(UnitValue.CreatePercentArray(new float[] { 33, 34, 33 })).SetWidth(
+                        UnitValue.CreatePercentValue(100))
+                        .SetMarginTop(20);
+
+                    var dateStr = $"Ngày {cert.IssuedAt:dd} tháng {cert.IssuedAt:MM} năm {cert.IssuedAt:yyyy}";
+                    var leftCell = new Cell().Add(
+                        new Paragraph(dateStr).SetFontSize(13).SetFont(boldFont).SetTextAlignment(TextAlignment.CENTER))
+                        .Add(
+                            new Paragraph("--------------------").SetTextAlignment(TextAlignment.CENTER)
+                                .SetMarginTop(-5))
+                        .Add(
+                            new Paragraph("NGÀY CẤP PHÁT").SetFontSize(9)
+                                .SetFont(boldFont)
+                                .SetFontColor(greyText)
+                                .SetTextAlignment(TextAlignment.CENTER))
+                        .SetBorder(Border.NO_BORDER);
+                    footerTable.AddCell(leftCell);
+
+                    footerTable.AddCell(new Cell().SetBorder(Border.NO_BORDER));
+
+                    var rightCell = new Cell().Add(
+                        new Paragraph("LMS Administrator").SetFontSize(18)
+                            .SetFont(italicFont)
+                            .SetTextAlignment(TextAlignment.CENTER))
+                        .Add(
+                            new Paragraph("--------------------").SetTextAlignment(TextAlignment.CENTER)
+                                .SetMarginTop(-5))
+                        .Add(
+                            new Paragraph("GIÁM ĐỐC ĐÀO TẠ").SetFontSize(9)
+                                .SetFont(boldFont)
+                                .SetFontColor(greyText)
+                                .SetTextAlignment(TextAlignment.CENTER))
+                        .SetBorder(Border.NO_BORDER);
+                    footerTable.AddCell(rightCell);
+
+                    document.Add(footerTable);
+
+                    var sealY = 85;
+                    canvas.SaveState().SetFillColor(goldColor).Circle(centerX, sealY, 42).Fill().RestoreState();
+                    canvas.SaveState()
+                        .SetStrokeColor(DeviceGray.WHITE)
+                        .SetLineWidth(0.5f)
+                        .SetLineDash(new float[] { 3, 1 }, 0f)
+                        .Circle(centerX, sealY, 36)
+                        .Stroke()
+                        .RestoreState();
+
+                    canvas.BeginText()
+                        .SetFontAndSize(boldFont, 9)
+                        .SetFillColor(DeviceGray.WHITE)
+                        .MoveText(centerX - 20, sealY + 5)
+                        .ShowText("OFFICIAL")
+                        .MoveText(7, -11)
+                        .ShowText("SEAL")
+                        .EndText();
+
+                    document.Add(
+                        new Paragraph($"ID: {cert.CertificateCode}")
+                .SetTextAlignment(TextAlignment.CENTER)
+                            .SetFontSize(8)
+                            .SetFontColor(greyText)
+                            .SetMarginTop(40)
+                            .SetMarginBottom(0));
                 }
-            } catch { /* Fallback to default if font fails */ }
-
-            document.SetMargins(20, 20, 20, 20);
-            
-            // Vẽ Border trang trí nâng cao
-            var canvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(pdf.AddNewPage());
-            canvas.SetStrokeColor(new DeviceRgb(22, 163, 74))
-                  .SetLineWidth(3)
-                  .Rectangle(15, 15, pdf.GetDefaultPageSize().GetWidth() - 30, pdf.GetDefaultPageSize().GetHeight() - 30)
-                  .Stroke();
-            
-            canvas.SetLineWidth(1)
-                  .SetStrokeColor(new DeviceRgb(30, 58, 138))
-                  .Rectangle(20, 20, pdf.GetDefaultPageSize().GetWidth() - 40, pdf.GetDefaultPageSize().GetHeight() - 40)
-                  .Stroke();
-
-            // Nội dung chính
-            document.Add(new Paragraph("CHỨNG CHỈ HOÀN THÀNH")
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(38)
-                .SetFontColor(new DeviceRgb(22, 163, 74))
-                .SetMarginTop(40));
-
-            document.Add(new Paragraph("PowerTech Learning Management System")
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(14)
-                .SetFontColor(new DeviceRgb(100, 116, 139))
-                .SetMarginBottom(30));
-
-            document.Add(new Paragraph("Chứng nhận học viên")
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(18)
-                .SetMarginTop(20));
-
-            document.Add(new Paragraph(user.FullName.ToUpper())
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(32)
-                .SetMarginBottom(10));
-
-            document.Add(new Paragraph("Đã hoàn thành xuất sắc khóa học")
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(18));
-
-            document.Add(new Paragraph(course.Title)
-                .SetTextAlignment(TextAlignment.CENTER)
-                .SetFontSize(24)
-                .SetFontColor(new DeviceRgb(30, 58, 138))
-                .SetMarginBottom(50));
-
-            var infoTable = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).SetWidth(UnitValue.CreatePercentValue(100));
-            
-            infoTable.AddCell(new Cell().Add(new Paragraph($"Ngày cấp: {cert.IssuedAt:dd/MM/yyyy}"))
-                .SetBorder(Border.NO_BORDER)
-                .SetFontSize(12)
-                .SetTextAlignment(TextAlignment.LEFT));
-            
-            infoTable.AddCell(new Cell().Add(new Paragraph($"Mã chứng chỉ: {cert.CertificateCode}"))
-                .SetBorder(Border.NO_BORDER)
-                .SetFontSize(12)
-                .SetTextAlignment(TextAlignment.RIGHT));
-
-            document.Add(infoTable.SetMarginTop(60).SetPaddingLeft(40).SetPaddingRight(40));
-        }
-
         return relativeUrl;
     }
 
@@ -469,7 +615,7 @@ public class LeaderboardService : ILeaderboardService
                 u => new
                 {
                     u.Id,
-                    u.FullName,
+                    UserName = u.FullName,
                     u.Avatar,
                     CompletedCourses = _db.Certificates.Count(c => c.UserId == u.Id),
                     Badges = _db.UserBadges
@@ -493,7 +639,7 @@ public class LeaderboardService : ILeaderboardService
             (u, i) => new LeaderboardEntry(
                 i + 1,
                 u.Id,
-                u.FullName,
+                u.UserName,
                 u.Avatar,
                 u.CompletedCourses,
                 u.CompletedCourses * 100,
@@ -663,8 +809,8 @@ public class DocumentService : IDocumentService
         long fileSize)
     {
         var uploadsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
-        if(!System.IO.Directory.Exists(uploadsDir))
-            System.IO.Directory.CreateDirectory(uploadsDir);
+        if(!Directory.Exists(uploadsDir))
+            Directory.CreateDirectory(uploadsDir);
 
         var ext = System.IO.Path.GetExtension(fileName);
         var storageKey = $"documents/{Guid.NewGuid():N}{ext}";
@@ -773,13 +919,13 @@ public class DocumentService : IDocumentService
         if(!isAdmin && doc.UploadedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền thêm phiên bản cho tài liệu này.");
 
-        var uploadsDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
-        if(!System.IO.Directory.Exists(uploadsDir))
-            System.IO.Directory.CreateDirectory(uploadsDir);
+        var uploadsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
+        if(!Directory.Exists(uploadsDir))
+            Directory.CreateDirectory(uploadsDir);
         var ext = System.IO.Path.GetExtension(fileName);
         var storageKey = $"documents/{Guid.NewGuid():N}{ext}";
         var filePath = System.IO.Path.Combine(uploadsDir, System.IO.Path.GetFileName(storageKey));
-        using(var fs = new System.IO.FileStream(filePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+        using(var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             await fileStream.CopyToAsync(fs);
 
         var nextVersionNum = (doc.Versions.Any() ? doc.Versions.Max(v => v.VersionNumber) : 0) + 1;
@@ -840,15 +986,16 @@ public class DocumentService : IDocumentService
         var version = await _db.DocumentVersions.FindAsync(versionId) ??
             throw new KeyNotFoundException("Không tìm thấy phiên bản.");
         var storageKey = version.StorageKey ?? string.Empty;
-        var filePath = System.IO.Path.Combine(
-            System.IO.Directory.GetCurrentDirectory(),
-            "wwwroot",
-            "uploads",
-            "documents",
-            System.IO.Path.GetFileName(storageKey));
-        if(!System.IO.File.Exists(filePath))
+        var filePath = System.IO.Path
+            .Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "documents",
+                System.IO.Path.GetFileName(storageKey));
+        if(!File.Exists(filePath))
             throw new FileNotFoundException("Tệp vật lý không tồn tại.");
-        var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
         var contentType = version.FileType switch
         {
             "pdf" => "application/pdf",
@@ -882,13 +1029,14 @@ public class DocumentService : IDocumentService
             throw new InvalidOperationException("Tài liệu không có nội dung.");
 
         var storageKey = doc.CurrentVersion.StorageKey ?? string.Empty;
-        var filePath = System.IO.Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "wwwroot",
-            "uploads",
-            "documents",
-            System.IO.Path.GetFileName(storageKey));
-        if(!System.IO.File.Exists(filePath))
+        var filePath = System.IO.Path
+            .Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "documents",
+                System.IO.Path.GetFileName(storageKey));
+        if(!File.Exists(filePath))
             throw new FileNotFoundException("Tệp vật lý không tồn tại.");
 
         var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);

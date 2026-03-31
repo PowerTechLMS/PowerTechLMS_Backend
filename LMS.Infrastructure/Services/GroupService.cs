@@ -146,7 +146,9 @@ public class GroupService : IGroupService
         {
             var courseIds = await _db.CourseGroupCourses
                 .Where(cgc => activeCourseGroupIds.Contains(cgc.GroupId) && !cgc.IsDeleted)
-                .Select(cgc => cgc.CourseId)
+                .Join(_db.Courses, cgc => cgc.CourseId, c => c.Id, (cgc, c) => new { cgc, c })
+                .Where(x => x.c.Level != 3)
+                .Select(x => x.cgc.CourseId)
                 .Distinct()
                 .ToListAsync();
 
@@ -210,7 +212,9 @@ public class GroupService : IGroupService
 
         var courseIds = await _db.CourseGroupCourses
             .Where(cgc => cgc.GroupId == courseGroupId && !cgc.IsDeleted)
-            .Select(cgc => cgc.CourseId)
+            .Join(_db.Courses, cgc => cgc.CourseId, c => c.Id, (cgc, c) => new { cgc, c })
+            .Where(x => x.c.Level != 3)
+            .Select(x => x.cgc.CourseId)
             .ToListAsync();
 
         var existingEnrollments = await _db.Enrollments

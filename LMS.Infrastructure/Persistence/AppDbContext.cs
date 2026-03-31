@@ -82,20 +82,6 @@ public class AppDbContext : DbContext
 
     public DbSet<DocumentChat> DocumentChats => Set<DocumentChat>();
 
-    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-    {
-        configurationBuilder.Properties<DateTime>().HaveConversion<DateTimeToUtcConverter>();
-        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableDateTimeToUtcConverter>();
-    }
-
-    private class DateTimeToUtcConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
-        v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
-        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
-
-    private class NullableDateTimeToUtcConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
-        v => v.HasValue ? (v.Value.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)) : v,
-        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
-
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -824,7 +810,7 @@ public class AppDbContext : DbContext
                 UpdatedAt = staticDate
             })
             .ToList();
-        
+
         var instructorPermissionIds = new List<int> { 1, 2, 3, 6, 9, 10, 12, 13, 14, 18 };
         var instructorPermissions = instructorPermissionIds.Select(
             id => new RolePermission
@@ -834,7 +820,8 @@ public class AppDbContext : DbContext
                 GrantedAt = staticDate,
                 CreatedAt = staticDate,
                 UpdatedAt = staticDate
-            }).ToList();
+            })
+            .ToList();
 
         var employeePermissionIds = new List<int> { 1, 9, 18 };
         var employeePermissions = employeePermissionIds.Select(
@@ -845,7 +832,8 @@ public class AppDbContext : DbContext
                 GrantedAt = staticDate,
                 CreatedAt = staticDate,
                 UpdatedAt = staticDate
-            }).ToList();
+            })
+            .ToList();
 
         m.Entity<RolePermission>().HasData(adminPermissions);
         m.Entity<RolePermission>().HasData(instructorPermissions);

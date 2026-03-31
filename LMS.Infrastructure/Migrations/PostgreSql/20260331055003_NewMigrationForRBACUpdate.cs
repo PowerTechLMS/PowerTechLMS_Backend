@@ -1,5 +1,5 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
@@ -7,17 +7,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class NewMigrationForRBACUpdate : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Position",
-                table: "Users",
-                type: "text",
-                nullable: true);
+            migrationBuilder.AddColumn<string>(name: "Position", table: "Users", type: "text", nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "RejectionReason",
@@ -25,43 +21,158 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 type: "text",
                 nullable: true);
 
-            migrationBuilder.AddColumn<int>(
-                name: "UserGroupId",
-                table: "Courses",
-                type: "integer",
-                nullable: true);
+            migrationBuilder.AddColumn<int>(name: "UserGroupId", table: "Courses", type: "integer", nullable: true);
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
+                columns: new[]
+                {
+                    "PermissionId",
+                    "RoleId",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "GrantedAt",
+                    "GrantedById",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 6, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 10, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 12, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 13, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 14, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 1, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    6,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    10,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    12,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    13,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    14,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    1,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
 
-            migrationBuilder.UpdateData(
-                table: "Users",
-                keyColumn: "Id",
-                keyValue: 1,
-                column: "Position",
-                value: null);
+            migrationBuilder.UpdateData(table: "Users", keyColumn: "Id", keyValue: 1, column: "Position", value: null);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Courses_UserGroupId",
-                table: "Courses",
-                column: "UserGroupId");
+            migrationBuilder.CreateIndex(name: "IX_Courses_UserGroupId", table: "Courses", column: "UserGroupId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Courses_UserGroups_UserGroupId",
@@ -71,16 +182,12 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_Courses_UserGroups_UserGroupId",
-                table: "Courses");
+            migrationBuilder.DropForeignKey(name: "FK_Courses_UserGroups_UserGroupId", table: "Courses");
 
-            migrationBuilder.DropIndex(
-                name: "IX_Courses_UserGroupId",
-                table: "Courses");
+            migrationBuilder.DropIndex(name: "IX_Courses_UserGroupId", table: "Courses");
 
             migrationBuilder.DeleteData(
                 table: "RolePermissions",
@@ -147,17 +254,11 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 keyColumns: new[] { "PermissionId", "RoleId" },
                 keyValues: new object[] { 18, 3 });
 
-            migrationBuilder.DropColumn(
-                name: "Position",
-                table: "Users");
+            migrationBuilder.DropColumn(name: "Position", table: "Users");
 
-            migrationBuilder.DropColumn(
-                name: "RejectionReason",
-                table: "Enrollments");
+            migrationBuilder.DropColumn(name: "RejectionReason", table: "Enrollments");
 
-            migrationBuilder.DropColumn(
-                name: "UserGroupId",
-                table: "Courses");
+            migrationBuilder.DropColumn(name: "UserGroupId", table: "Courses");
         }
     }
 }

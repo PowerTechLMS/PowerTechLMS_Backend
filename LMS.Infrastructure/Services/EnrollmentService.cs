@@ -32,7 +32,7 @@ public class EnrollmentService : IEnrollmentService
                     await ValidateEnrollmentInternalAsync(userId, courseId, course);
 
                 existing.Status = course.RequiresApproval ? "Pending" : "Approved";
-                existing.IsDeleted = false; // Reset soft delete
+                existing.IsDeleted = false;
                 existing.EnrolledAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 return await MapEnrollmentAsync(existing);
@@ -113,6 +113,25 @@ public class EnrollmentService : IEnrollmentService
                 if(completedLevel1Count < level1CourseIds.Count)
                     throw new InvalidOperationException(
                         "Bạn cần hoàn thành TOÀN BỘ các khóa học Bắt buộc (Cấp 1) trước khi đăng ký khóa học này.");
+            }
+        }
+
+        if(course.Level == 3)
+        {
+            var level1And2CourseIds = await _db.Courses
+                .Where(c => (c.Level == 1 || c.Level == 2) && !c.IsDeleted && c.IsPublished)
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if(level1And2CourseIds.Any())
+            {
+                var completedCount = await _db.Enrollments
+                    .CountAsync(
+                        e => e.UserId == userId && level1And2CourseIds.Contains(e.CourseId) && e.Status == "Completed");
+
+                if(completedCount < level1And2CourseIds.Count)
+                    throw new InvalidOperationException(
+                        "Bạn cần hoàn thành TOÀN BỘ các khóa học Cấp 1 & Cấp 2 trước khi đăng ký khóa học tự chọn này.");
             }
         }
     }
@@ -259,11 +278,6 @@ public class EnrollmentService : IEnrollmentService
         var result = new List<EnrollmentResponse>();
         foreach(var e in enrollments)
         {
-            if(e.Course.Level == 2 && !isLevel1Completed)
-            {
-                continue;
-            }
-
             if(e.GroupEnrollId.HasValue)
             {
                 if(!myDepartmentIds.Contains(e.GroupEnrollId.Value) ||
@@ -382,16 +396,11 @@ public class EnrollmentService : IEnrollmentService
             e.Course?.CoverImageUrl,
             e.RejectionReason);
         return res;
-
     }
 
     public async Task<object> GetAllEnrollmentsAsync(int page, int pageSize, int userId, bool isAdmin = false)
     {
-        var query = _db.Enrollments
-            .Include(e => e.Course)
-            .Include(e => e.User)
-            .Where(e => !e.IsDeleted)
-            .AsQueryable();
+        var query = _db.Enrollments.Include(e => e.Course).Include(e => e.User).Where(e => !e.IsDeleted).AsQueryable();
 
         if(!isAdmin)
             query = query.Where(e => e.Course.CreatedById == userId);

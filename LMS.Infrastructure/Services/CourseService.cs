@@ -54,96 +54,6 @@ public class CourseService : ICourseService
         if(level.HasValue)
         {
             query = query.Where(c => c.Level == level.Value);
-
-            if(level.Value == 3 && userId.HasValue)
-            {
-                var enrolledCourseIds = await _db.Enrollments
-                    .Where(e => e.UserId == userId.Value && !e.IsDeleted && e.Status != "Rejected")
-                    .Select(e => e.CourseId)
-                    .ToListAsync();
-
-                var deptCourseIds = await _db.UserGroupMembers
-                    .Where(m => m.UserId == userId.Value && !m.IsDeleted)
-                    .Join(
-                        _db.DepartmentCourseGroups,
-                        m => m.GroupId,
-                        dcg => dcg.DepartmentId,
-                        (m, dcg) => dcg.CourseGroupId)
-                    .Join(
-                        _db.CourseGroupCourses.Where(cgc => !cgc.IsDeleted),
-                        cgid => cgid,
-                        cgc => cgc.GroupId,
-                        (cgid, cgc) => cgc.CourseId)
-                    .Distinct()
-                    .ToListAsync();
-
-                var excludedIds = enrolledCourseIds.Union(deptCourseIds).ToList();
-                query = query.Where(c => !excludedIds.Contains(c.Id));
-            }
-        }
-
-        if(userId.HasValue && !isAdmin)
-        {
-            var user = await _db.Users.FindAsync(userId);
-            if(user?.Role != "Admin" && user?.Role != "Instructor" && user?.Role != "Giảng viên")
-            {
-                var level1CourseIds = await _db.Courses
-                    .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
-                    .Select(c => c.Id)
-                    .ToListAsync();
-
-                bool isLevel1Completed = true;
-                if(level1CourseIds.Any())
-                {
-                    var completedCount = await _db.Enrollments
-                        .CountAsync(
-                            e => e.UserId == userId.Value &&
-                                level1CourseIds.Contains(e.CourseId) &&
-                                e.Status == "Completed");
-                    isLevel1Completed = completedCount >= level1CourseIds.Count;
-                }
-
-                if(!isLevel1Completed)
-                {
-                    query = query.Where(c => c.Level != 2);
-                } else
-                {
-                    var allowedCourseIdsForMyDepts = await _db.UserGroupMembers
-                        .Where(m => m.UserId == userId.Value && !m.IsDeleted)
-                        .Join(
-                            _db.DepartmentCourseGroups,
-                            m => m.GroupId,
-                            dcg => dcg.DepartmentId,
-                            (m, dcg) => dcg.CourseGroupId)
-                        .Join(
-                            _db.CourseGroupCourses.Where(cgc => !cgc.IsDeleted),
-                            cgid => cgid,
-                            cgc => cgc.GroupId,
-                            (cgid, cgc) => cgc.CourseId)
-                        .Distinct()
-                        .ToListAsync();
-
-                    var myEnrolledCourseIds = await _db.Enrollments
-                        .Where(e => e.UserId == userId.Value && !e.IsDeleted && e.Status != "Rejected")
-                        .Select(e => e.CourseId)
-                        .ToListAsync();
-
-                    var myDepartmentIds = await _db.UserGroupMembers
-                        .Where(m => m.UserId == userId.Value && !m.IsDeleted)
-                        .Select(m => m.GroupId)
-                        .ToListAsync();
-
-                    query = query.Where(
-                        c => c.Level != 2 ||
-                            myEnrolledCourseIds.Contains(c.Id) ||
-                            allowedCourseIdsForMyDepts.Contains(c.Id) ||
-                            (c.UserGroupId == null || myDepartmentIds.Contains(c.UserGroupId.Value)));
-                }
-            }
-        }
-        else if(!isAdmin)
-        {
-            query = query.Where(c => c.Level != 2);
         }
 
         var total = await query.CountAsync();
@@ -206,25 +116,7 @@ public class CourseService : ICourseService
         if(course == null)
             return null;
 
-        // User fetching not needed since isAdmin is passed, but kept if other logic needs user object
         var user = await _db.Users.FindAsync(userId);
-        // Removed local isAdmin calculation to use the passed parameter instead
-
-        if(course.Level == 2 && !isAdmin)
-        {
-            var level1Ids = await _db.Courses
-                .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
-                .Select(c => c.Id)
-                .ToListAsync();
-            if(level1Ids.Any())
-            {
-                var completedCount = await _db.Enrollments
-                    .CountAsync(e => e.UserId == userId && level1Ids.Contains(e.CourseId) && e.Status == "Completed");
-                if(completedCount < level1Ids.Count)
-                    return null;
-            }
-        }
-
         var enrollment = await _db.Enrollments
             .FirstOrDefaultAsync(
                 e => e.UserId == userId && e.CourseId == courseId && (e.Status == "Approved" || e.Status == "Completed"));
@@ -247,7 +139,7 @@ public class CourseService : ICourseService
         var quizIdsWithQuestions = quizCounts.Keys.ToList();
         var extraQuizzes = await _db.Quizzes
             .Where(q => q.CourseId == courseId && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
-            .Where(q => quizIdsWithQuestions.Contains(q.Id)) // Only quizzes with questions
+            .Where(q => quizIdsWithQuestions.Contains(q.Id))
             .OrderBy(q => q.CreatedAt)
             .Select(q => new QuizSummaryResponse(q.Id, q.Title, quizCounts.GetValueOrDefault(q.Id)))
             .ToListAsync();
@@ -270,7 +162,10 @@ public class CourseService : ICourseService
                             m.Title,
                             m.SortOrder,
                             m.Lessons
-                                .Where(l => l.Type != "Quiz" || (l.QuizId.HasValue && quizCounts.GetValueOrDefault(l.QuizId.Value) > 0))
+                                .Where(
+                                    l => l.Type != "Quiz" ||
+                                                    (l.QuizId.HasValue &&
+                                                        quizCounts.GetValueOrDefault(l.QuizId.Value) > 0))
                                 .OrderBy(l => l.SortOrder)
                                 .Select(
                                     l => new LessonResponse(
@@ -332,51 +227,6 @@ public class CourseService : ICourseService
         if(course == null)
             return null;
 
-        if(course.Level == 2)
-        {
-            var isAdmin = false;
-            var isAllowed = false;
-
-            if(userId.HasValue)
-            {
-                var user = await _db.Users.FindAsync(userId);
-                isAdmin = user?.Role == "Admin";
-
-                if(!isAdmin)
-                {
-                    var level1Ids = await _db.Courses
-                        .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)
-                        .Select(c => c.Id)
-                        .ToListAsync();
-                    if(level1Ids.Any())
-                    {
-                        var completedCount = await _db.Enrollments
-                            .CountAsync(
-                                enroll => enroll.UserId == userId &&
-                                    level1Ids.Contains(enroll.CourseId) &&
-                                    enroll.Status == "Completed");
-                        if(completedCount < level1Ids.Count)
-                            return null;
-                    }
-                }
-
-                var myCourseGroupIds = await _db.UserGroupMembers
-                    .Where(m => m.UserId == userId)
-                    .Join(
-                        _db.DepartmentCourseGroups,
-                        m => m.GroupId,
-                        dcg => dcg.DepartmentId,
-                        (m, dcg) => dcg.CourseGroupId)
-                    .ToListAsync();
-
-                isAllowed = await _db.CourseGroupCourses
-                        .AnyAsync(cgi => cgi.CourseId == courseId && myCourseGroupIds.Contains(cgi.GroupId)) ||
-                    await _db.Enrollments.AnyAsync(e => e.CourseId == courseId && e.UserId == userId);
-            }
-
-            if(!isAdmin && !isAllowed)
-                return null;
-        }
 
         return new CourseDetailResponse(
             course.Id,

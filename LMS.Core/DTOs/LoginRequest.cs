@@ -301,7 +301,7 @@ public record EnrollmentResponse(
     int Id,
     int UserId,
     string FullName,
-    string Email, // Added Email
+    string Email,
     string? AvatarUrl,
     int CourseId,
     string CourseTitle,
@@ -567,7 +567,7 @@ public record InactiveUserReport(
     DateTime EnrolledAt,
     int DaysSinceEnroll);
 
-public record LeaderboardResponse(int Rank, int UserId, string FullName, string? Avatar, int LessonsCompleted);
+public record LeaderboardResponse(int Rank, int UserId, string UserName, string? Avatar, int LessonsCompleted);
 
 public record UserBadgeResponse(int BadgeId, string BadgeName, string Description, string? IconUrl, DateTime EarnedAt);
 
@@ -590,7 +590,7 @@ public record QuizAnalyticsResponse(
 public record LeaderboardEntry(
     int Rank,
     int UserId,
-    string FullName,
+    string UserName,
     string? Avatar,
     int CompletedCourses,
     int TotalScore,

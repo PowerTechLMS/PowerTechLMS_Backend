@@ -156,10 +156,9 @@ public class QuizService : IQuizService
         decimal finalScore = Math.Round(rawScore, 1);
 
         attempt.Score = finalScore;
-        
-        // Bảo vệ: Nếu PassScore đang để thang 100 (ví dụ 80) thì tự quy đổi về thang 10 (8.0)
-        decimal passThreshold = (decimal)attempt.Quiz.PassScore;
-        if (passThreshold > 10) 
+
+        decimal passThreshold = attempt.Quiz.PassScore;
+        if(passThreshold > 10)
             passThreshold = passThreshold / 10.0m;
 
         attempt.IsPassed = finalScore >= passThreshold;
@@ -194,7 +193,8 @@ public class QuizService : IQuizService
                     a.StartedAt >= startOfToday &&
                     a.Status == "Submitted");
         int maxAllowed = attempt.Quiz.MaxRetakesPerDay ?? attempt.Quiz.Course.QuizMaxRetakesPerDay;
-        if (maxAllowed <= 0) maxAllowed = 5;
+        if(maxAllowed <= 0)
+            maxAllowed = 5;
         int remainingAttempts = Math.Max(0, maxAllowed - attemptsDoneToday);
         int waitMinutes = attempt.Quiz.RetakeWaitTimeMinutes ?? attempt.Quiz.Course.QuizRetakeWaitTimeMinutes;
 
@@ -262,7 +262,8 @@ public class QuizService : IQuizService
             .ToListAsync();
 
         int maxRetakes = (quiz.MaxRetakesPerDay ?? quiz.Course.QuizMaxRetakesPerDay);
-        if (maxRetakes <= 0) maxRetakes = 5;
+        if(maxRetakes <= 0)
+            maxRetakes = 5;
         int remainingAttempts = maxRetakes - finishedAttemptsToday.Count;
 
         if(remainingAttempts <= 0)
@@ -352,8 +353,7 @@ public class QuizService : IQuizService
 
     public async Task UpdateQuizAsync(int quizId, CreateQuizRequest request)
     {
-        var quiz = await _db.Quizzes.FindAsync(quizId) ??
-            throw new KeyNotFoundException("Không tìm thấy bài thi.");
+        var quiz = await _db.Quizzes.FindAsync(quizId) ?? throw new KeyNotFoundException("Không tìm thấy bài thi.");
 
         quiz.Title = request.Title;
         quiz.TimeLimitMinutes = request.TimeLimitMinutes;

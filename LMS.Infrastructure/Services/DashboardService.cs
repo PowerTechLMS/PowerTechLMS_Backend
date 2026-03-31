@@ -132,7 +132,6 @@ public class DashboardService : IDashboardService
                                 nextTitle,
                                 estTime,
                                 e.Course.CoverImageUrl));
-
                 }
 
                 if(compCount < allLessons.Count && response.TodayTasks.Count < 5)

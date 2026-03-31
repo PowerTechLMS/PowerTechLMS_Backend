@@ -205,7 +205,7 @@ public class LessonService : ILessonService
             lesson.IsFreePreview,
             new List<AttachmentResponse>(),
             lesson.QuizId,
-            0, // New lesson, no quiz questions yet
+            0,
             lesson.AiSummary);
     }
 
@@ -344,9 +344,9 @@ public class LessonService : ILessonService
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
 
-        var ext = System.IO.Path.GetExtension(fileName);
+        var ext = Path.GetExtension(fileName);
         var newFileName = $"{lessonId}_{Guid.NewGuid():N}{ext}";
-        var filePath = System.IO.Path.Combine(uploadsDir, newFileName);
+        var filePath = Path.Combine(uploadsDir, newFileName);
 
         using(var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             await fileStream.CopyToAsync(fs);
