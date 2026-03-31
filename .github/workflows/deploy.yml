@@ -93,5 +93,6 @@ jobs:
             cd /var/www/powertech/backend
             tar -xzf publish.tar.gz
             rm publish.tar.gz
+            sudo systemctl stop powertech.service
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
