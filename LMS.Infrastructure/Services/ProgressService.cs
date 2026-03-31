@@ -22,38 +22,8 @@ public class ProgressService : IProgressService
         var lesson = await _db.Lessons.Include(l => l.Module).FirstOrDefaultAsync(l => l.Id == lessonId) ??
             throw new KeyNotFoundException("Không tìm thấy bài học.");
 
-        bool actuallyPassed = isQuizPassed;
-        if(lesson.QuizId.HasValue && !actuallyPassed)
-        {
-            actuallyPassed = await _db.QuizAttempts
-                .AnyAsync(qa => qa.UserId == userId && qa.QuizId == lesson.QuizId.Value && qa.IsPassed);
-
-            if(!actuallyPassed)
-            {
-                var current = await _db.LessonProgresses
-                    .FirstOrDefaultAsync(lp => lp.UserId == userId && lp.LessonId == lessonId);
-                if(current == null)
-                {
-                    current = new LessonProgress
-                    {
-                        UserId = userId,
-                        LessonId = lessonId,
-                        WatchedPercent = 100,
-                        PositionSeconds = lesson.VideoDurationSeconds
-                    };
-                    _db.LessonProgresses.Add(current);
-                } else
-                {
-                    current.WatchedPercent = 100;
-                    current.PositionSeconds = lesson.VideoDurationSeconds;
-                }
-                await _db.SaveChangesAsync();
-
-                return new ProgressResponse(lessonId, false, current.PositionSeconds, 100, false, true);
-            }
-        }
-
         var progress = await _db.LessonProgresses
+
             .FirstOrDefaultAsync(lp => lp.UserId == userId && lp.LessonId == lessonId);
 
         if(progress == null)
@@ -62,10 +32,32 @@ public class ProgressService : IProgressService
             _db.LessonProgresses.Add(progress);
         }
 
-        progress.IsCompleted = true;
+        // Ghi nhận tiến độ đọc/xem
         progress.CompletedAt = DateTime.UtcNow;
         progress.WatchedPercent = 100;
+        if (lesson.VideoDurationSeconds > 0)
+            progress.PositionSeconds = lesson.VideoDurationSeconds;
+
+        // Chỉ đánh dấu IsCompleted nếu không có bài tập, hoặc bài tập đã đạt
+        bool actuallyPassed = isQuizPassed;
+        if (lesson.QuizId.HasValue && !actuallyPassed)
+        {
+            actuallyPassed = await _db.QuizAttempts
+                .AnyAsync(qa => qa.UserId == userId && qa.QuizId == lesson.QuizId.Value && qa.IsPassed);
+        }
+
+        if (!lesson.QuizId.HasValue || actuallyPassed)
+        {
+            progress.IsCompleted = true;
+        }
+        else
+        {
+            progress.IsCompleted = false; // Phải qua quiz mới được tick xanh
+        }
+
         await _db.SaveChangesAsync();
+
+
 
         var status = await GetCourseProgressAsync(userId, lesson.Module.CourseId);
         if(status.IsCompleted)
@@ -291,7 +283,24 @@ public class ProgressService : IProgressService
         var idx = allLessons.FindIndex(l => l.Id == lessonId);
         if(idx == 0)
             return true;
-        return await _db.LessonProgresses
-            .AnyAsync(lp => lp.UserId == userId && lp.LessonId == allLessons[idx - 1].Id && lp.IsCompleted);
+        var prevLessonId = allLessons[idx - 1].Id;
+        var prevLesson = allLessons[idx - 1];
+
+        var lp = await _db.LessonProgresses
+            .FirstOrDefaultAsync(lp => lp.UserId == userId && lp.LessonId == prevLessonId);
+
+        if (lp == null || !lp.IsCompleted)
+            return false;
+
+        // Nếu bài trước có Quiz, phải đạt Quiz mới được qua bài sau
+        if (prevLesson.QuizId.HasValue)
+        {
+            bool quizPassed = await _db.QuizAttempts
+                .AnyAsync(qa => qa.UserId == userId && qa.QuizId == prevLesson.QuizId.Value && qa.IsPassed);
+            if (!quizPassed)
+                return false;
+        }
+
+        return true;
     }
 }

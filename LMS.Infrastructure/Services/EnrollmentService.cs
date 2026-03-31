@@ -26,12 +26,13 @@ public class EnrollmentService : IEnrollmentService
 
         if(existing != null)
         {
-            if(existing.Status == "Rejected")
+            if(existing.Status == "Rejected" || existing.IsDeleted)
             {
                 if(!isAdmin)
                     await ValidateEnrollmentInternalAsync(userId, courseId, course);
 
                 existing.Status = course.RequiresApproval ? "Pending" : "Approved";
+                existing.IsDeleted = false; // Reset soft delete
                 existing.EnrolledAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 return await MapEnrollmentAsync(existing);
@@ -120,8 +121,20 @@ public class EnrollmentService : IEnrollmentService
     {
         var existing = await _db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == request.UserId && e.CourseId == request.CourseId);
-        if(existing != null)
+        if(existing != null && !existing.IsDeleted)
             throw new InvalidOperationException("Nhân viên đã ghi danh khóa học này.");
+
+        if(existing != null && existing.IsDeleted)
+        {
+            existing.IsDeleted = false;
+            existing.Status = "Approved";
+            existing.Deadline = request.Deadline;
+            existing.IsMandatory = request.IsMandatory;
+            existing.AssignedById = assignedById;
+            existing.EnrolledAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return await MapEnrollmentAsync(existing);
+        }
 
         var enrollment = new Enrollment
         {
@@ -145,12 +158,18 @@ public class EnrollmentService : IEnrollmentService
         return await MapEnrollmentAsync(enrollment);
     }
 
-    public async Task<EnrollmentResponse> ApproveEnrollmentAsync(int enrollmentId, bool approved)
+    public async Task<EnrollmentResponse> ApproveEnrollmentAsync(int enrollmentId, bool approved, string? reason = null)
     {
         var enrollment = await _db.Enrollments.FindAsync(enrollmentId) ??
             throw new KeyNotFoundException("Không tìm thấy ghi danh.");
 
+        if(!approved && string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Phải cung cấp lý do khi từ chối.");
+
         enrollment.Status = approved ? "Approved" : "Rejected";
+        if(!approved)
+            enrollment.RejectionReason = reason;
+
         await _db.SaveChangesAsync();
 
         await _notificationService.CreateNotificationAsync(
@@ -158,7 +177,7 @@ public class EnrollmentService : IEnrollmentService
             approved ? "Yêu cầu ghi danh được chấp nhận" : "Yêu cầu ghi danh bị từ chối",
             approved
                 ? $"Yêu cầu tham gia khóa học {enrollment.Course?.Title} của bạn đã được phê duyệt."
-                : $"Yêu cầu tham gia khóa học {enrollment.Course?.Title} của bạn không được chấp nhận.",
+                : $"Yêu cầu tham gia khóa học {enrollment.Course?.Title} của bạn không được chấp nhận. Lý do: {reason}",
             approved ? $"/courses/{enrollment.CourseId}" : null,
             "EnrollmentStatus");
 
@@ -295,8 +314,10 @@ public class EnrollmentService : IEnrollmentService
 
     private async Task<EnrollmentResponse> MapEnrollmentAsync(Enrollment e)
     {
-        await _db.Entry(e).Reference(x => x.User).LoadAsync();
-        await _db.Entry(e).Reference(x => x.Course).LoadAsync();
+        if(e.User == null)
+            await _db.Entry(e).Reference(x => x.User).LoadAsync();
+        if(e.Course == null)
+            await _db.Entry(e).Reference(x => x.Course).LoadAsync();
 
         var lessonIds = await _db.Lessons
             .Where(l => l.Module.CourseId == e.CourseId && !l.IsDeleted)
@@ -338,13 +359,14 @@ public class EnrollmentService : IEnrollmentService
             .Select(m => m.Group.Name)
             .FirstOrDefaultAsync();
 
-        return new EnrollmentResponse(
+        var res = new EnrollmentResponse(
             e.Id,
             e.UserId,
-            e.User.FullName,
-            e.User.Avatar,
+            e.User?.FullName ?? "Học viên",
+            e.User?.Email ?? "---",
+            e.User?.Avatar,
             e.CourseId,
-            e.Course.Title,
+            e.Course?.Title ?? "Khóa học",
             e.Status,
             e.Deadline,
             e.IsMandatory,
@@ -354,17 +376,20 @@ public class EnrollmentService : IEnrollmentService
             totalLessons,
             completedLessons,
             isLocked,
-            e.Course.Level,
+            e.Course?.Level ?? 3,
             e.GroupEnrollId,
-            deptName);
+            deptName,
+            e.Course?.CoverImageUrl,
+            e.RejectionReason);
+        return res;
+
     }
 
     public async Task<object> GetAllEnrollmentsAsync(int page, int pageSize, int userId, bool isAdmin = false)
     {
         var query = _db.Enrollments
             .Include(e => e.Course)
-            .ThenInclude(c => c.Modules)
-            .ThenInclude(m => m.Lessons)
+            .Include(e => e.User)
             .Where(e => !e.IsDeleted)
             .AsQueryable();
 
@@ -379,31 +404,11 @@ public class EnrollmentService : IEnrollmentService
             .Take(pageSize)
             .ToListAsync();
 
-        var userIds = enrollments.Select(e => e.UserId).Distinct().ToList();
-        var allProgresses = await _db.LessonProgresses
-            .Where(lp => userIds.Contains(lp.UserId) && lp.IsCompleted && !lp.IsDeleted)
-            .ToListAsync();
-
-        var items = new List<EnrollmentProgressResponse>();
+        var items = new List<EnrollmentResponse>();
 
         foreach(var e in enrollments)
         {
-            if(e.Course == null)
-                continue;
-
-            var lessonIds = e.Course.Modules != null
-                ? e.Course.Modules.SelectMany(m => m.Lessons ?? new List<Lesson>()).Select(l => l.Id).ToList()
-                : new List<int>();
-
-            var totalLessons = lessonIds.Count;
-
-            var completedLessons = allProgresses.Count(lp => lp.UserId == e.UserId && lessonIds.Contains(lp.LessonId));
-
-            double progress = totalLessons == 0 ? 0 : Math.Round(((double)completedLessons / totalLessons) * 100, 2);
-
-            string currentStatus = string.IsNullOrEmpty(e.Status) ? "Pending" : e.Status;
-
-            items.Add(new EnrollmentProgressResponse(e.UserId, e.CourseId, currentStatus, progress));
+            items.Add(await MapEnrollmentAsync(e));
         }
 
         return new { Items = items, TotalCount = total, Page = page, PageSize = pageSize };

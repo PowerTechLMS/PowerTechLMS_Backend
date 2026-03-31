@@ -44,7 +44,8 @@ public class UserService : IUserService
                     u.Avatar,
                     u.CreatedAt,
                     _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => gm.Group.Name).FirstOrDefault(),
-                    _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => (int?)gm.GroupId).FirstOrDefault()))
+                    _db.UserGroupMembers.Where(gm => gm.UserId == u.Id).Select(gm => (int?)gm.GroupId).FirstOrDefault(),
+                    u.Position))
             .ToListAsync();
 
         return new PagedResponse<UserResponse>(items, total, page, pageSize);
@@ -84,7 +85,8 @@ public class UserService : IUserService
             user.Avatar,
             user.CreatedAt,
             group?.Name,
-            group?.Id);
+            group?.Id,
+            user.Position);
     }
 
     public async Task<UserProfileReportResponse> GetUserProfileReportAsync(int userId)
@@ -167,13 +169,30 @@ public class UserService : IUserService
 
     public async Task<UserResponse> UpdateUserAsync(int userId, UpdateUserRequest request)
     {
-        var user = await _db.Users.FindAsync(userId) ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
+        var user = await _db.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId) ?? throw new KeyNotFoundException("Không tìm thấy người dùng.");
 
         user.FullName = request.FullName;
         user.Email = request.Email;
         user.Role = request.Role;
+        user.Position = request.Position;
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
+        
+        // Cập nhật RBAC
+        var existingRole = user.UserRoles.FirstOrDefault();
+        if(existingRole == null || existingRole.Role.Name != request.Role)
+        {
+            if(existingRole != null) _db.UserRoles.Remove(existingRole);
+            
+            var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
+            if(newRole != null)
+            {
+                _db.UserRoles.Add(new UserRole { UserId = userId, RoleId = newRole.Id });
+            }
+        }
 
         if(!string.IsNullOrWhiteSpace(request.Password))
         {
@@ -257,6 +276,7 @@ public class UserService : IUserService
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password ?? "123456"),
             Role = request.Role,
+            Position = request.Position,
             IsActive = request.IsActive,
             CreatedAt = DateTime.UtcNow
         };
@@ -360,10 +380,67 @@ public class UserService : IUserService
             };
 
             _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            var r = await _db.Roles.FirstOrDefaultAsync(r => r.Name == role);
+            if(r != null)
+            {
+                _db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = r.Id });
+            }
             successCount++;
         }
 
         await _db.SaveChangesAsync();
         return new ImportResultResponse(successCount, errors);
+    }
+
+    public async Task<object> SyncAllUserRolesAsync()
+    {
+        // Tải tất cả roles từ DB
+        var allRoles = await _db.Roles.ToListAsync();
+        var roleMap = allRoles.ToDictionary(r => r.Name, r => r.Id, StringComparer.OrdinalIgnoreCase);
+
+        // Tải tất cả users kèm UserRoles hiện tại
+        var users = await _db.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ToListAsync();
+
+        int updated = 0;
+        int skipped = 0;
+
+        foreach(var user in users)
+        {
+            if(string.IsNullOrWhiteSpace(user.Role)) { skipped++; continue; }
+
+            var currentRoleNames = user.UserRoles.Select(ur => ur.Role?.Name).ToList();
+            bool alreadyCorrect = currentRoleNames.Any(r => 
+                string.Equals(r, user.Role, StringComparison.OrdinalIgnoreCase));
+
+            if(!alreadyCorrect)
+            {
+                // Xóa tất cả roles cũ
+                _db.UserRoles.RemoveRange(user.UserRoles);
+
+                // Gán role đúng
+                if(roleMap.TryGetValue(user.Role, out var roleId))
+                {
+                    _db.UserRoles.Add(new UserRole
+                    {
+                        UserId = user.Id,
+                        RoleId = roleId,
+                        AssignedAt = DateTime.UtcNow
+                    });
+                    updated++;
+                }
+            }
+            else
+            {
+                skipped++;
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        return new { message = $"Đồng bộ RBAC hoàn tất. Đã cập nhật: {updated}, Bỏ qua: {skipped}." };
     }
 }

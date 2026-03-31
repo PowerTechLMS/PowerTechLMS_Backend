@@ -1,9 +1,17 @@
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
+using iText.Kernel.Geom;
+using iText.Kernel.Colors;
+using iText.Layout.Borders;
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.IO;
 
 namespace LMS.Infrastructure.Services;
 
@@ -93,10 +101,16 @@ public class CertificateService : ICertificateService
             enrollment.Status = "Completed";
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(); // Lưu để có ID
 
+        // Phát sinh PDF thực tế
         var user = await _db.Users.FindAsync(userId);
         var course = await _db.Courses.FindAsync(courseId);
+        if(user != null && course != null)
+        {
+            cert.PdfUrl = await GenerateCertificatePdf(cert, user, course);
+            await _db.SaveChangesAsync();
+        }
 
         return new CertificateResponse(
             cert.Id,
@@ -107,6 +121,94 @@ public class CertificateService : ICertificateService
             cert.IssuedAt,
             cert.Status,
             cert.RevokedAt);
+    }
+
+    private async Task<string> GenerateCertificatePdf(Certificate cert, User user, LMS.Core.Entities.Course course)
+    {
+        var wwwroot = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var uploadDir = System.IO.Path.Combine(wwwroot, "uploads", "certificates");
+        if(!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+        var fileName = $"{cert.CertificateCode}.pdf";
+        var filePath = System.IO.Path.Combine(uploadDir, fileName);
+        var relativeUrl = $"/uploads/certificates/{fileName}";
+
+        using (var writer = new PdfWriter(filePath))
+        using (var pdf = new PdfDocument(writer))
+        using (var document = new iText.Layout.Document(pdf, PageSize.A4.Rotate()))
+        {
+            // Cố gắng load font để hỗ trợ Tiếng Việt (Vietnamese Support)
+            try {
+                var fontPath = @"C:\Windows\Fonts\arial.ttf";
+                if (System.IO.File.Exists(fontPath)) {
+                    var font = iText.Kernel.Font.PdfFontFactory.CreateFont(fontPath, iText.IO.Font.PdfEncodings.IDENTITY_H);
+                    document.SetFont(font);
+                }
+            } catch { /* Fallback to default if font fails */ }
+
+            document.SetMargins(20, 20, 20, 20);
+            
+            // Vẽ Border trang trí nâng cao
+            var canvas = new iText.Kernel.Pdf.Canvas.PdfCanvas(pdf.AddNewPage());
+            canvas.SetStrokeColor(new DeviceRgb(22, 163, 74))
+                  .SetLineWidth(3)
+                  .Rectangle(15, 15, pdf.GetDefaultPageSize().GetWidth() - 30, pdf.GetDefaultPageSize().GetHeight() - 30)
+                  .Stroke();
+            
+            canvas.SetLineWidth(1)
+                  .SetStrokeColor(new DeviceRgb(30, 58, 138))
+                  .Rectangle(20, 20, pdf.GetDefaultPageSize().GetWidth() - 40, pdf.GetDefaultPageSize().GetHeight() - 40)
+                  .Stroke();
+
+            // Nội dung chính
+            document.Add(new Paragraph("CHỨNG CHỈ HOÀN THÀNH")
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(38)
+                .SetFontColor(new DeviceRgb(22, 163, 74))
+                .SetMarginTop(40));
+
+            document.Add(new Paragraph("PowerTech Learning Management System")
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(14)
+                .SetFontColor(new DeviceRgb(100, 116, 139))
+                .SetMarginBottom(30));
+
+            document.Add(new Paragraph("Chứng nhận học viên")
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(18)
+                .SetMarginTop(20));
+
+            document.Add(new Paragraph(user.FullName.ToUpper())
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(32)
+                .SetMarginBottom(10));
+
+            document.Add(new Paragraph("Đã hoàn thành xuất sắc khóa học")
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(18));
+
+            document.Add(new Paragraph(course.Title)
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetFontSize(24)
+                .SetFontColor(new DeviceRgb(30, 58, 138))
+                .SetMarginBottom(50));
+
+            var infoTable = new Table(UnitValue.CreatePercentArray(new float[] { 50, 50 })).SetWidth(UnitValue.CreatePercentValue(100));
+            
+            infoTable.AddCell(new Cell().Add(new Paragraph($"Ngày cấp: {cert.IssuedAt:dd/MM/yyyy}"))
+                .SetBorder(Border.NO_BORDER)
+                .SetFontSize(12)
+                .SetTextAlignment(TextAlignment.LEFT));
+            
+            infoTable.AddCell(new Cell().Add(new Paragraph($"Mã chứng chỉ: {cert.CertificateCode}"))
+                .SetBorder(Border.NO_BORDER)
+                .SetFontSize(12)
+                .SetTextAlignment(TextAlignment.RIGHT));
+
+            document.Add(infoTable.SetMarginTop(60).SetPaddingLeft(40).SetPaddingRight(40));
+        }
+
+        return relativeUrl;
     }
 
     public async Task<List<CertificateResponse>> GetUserCertificatesAsync(int userId)
@@ -560,18 +662,18 @@ public class DocumentService : IDocumentService
         string fileName,
         long fileSize)
     {
-        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
-        if(!Directory.Exists(uploadsDir))
-            Directory.CreateDirectory(uploadsDir);
+        var uploadsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
+        if(!System.IO.Directory.Exists(uploadsDir))
+            System.IO.Directory.CreateDirectory(uploadsDir);
 
-        var ext = Path.GetExtension(fileName);
+        var ext = System.IO.Path.GetExtension(fileName);
         var storageKey = $"documents/{Guid.NewGuid():N}{ext}";
-        var filePath = Path.Combine(uploadsDir, Path.GetFileName(storageKey));
+        var filePath = System.IO.Path.Combine(uploadsDir, System.IO.Path.GetFileName(storageKey));
 
-        using(var fs = new FileStream(filePath, FileMode.Create))
+        using(var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             await fileStream.CopyToAsync(fs);
 
-        var doc = new Document
+        var doc = new LMS.Core.Entities.Document
         {
             Title = request.Title,
             Description = request.Description,
@@ -671,13 +773,13 @@ public class DocumentService : IDocumentService
         if(!isAdmin && doc.UploadedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền thêm phiên bản cho tài liệu này.");
 
-        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
-        if(!Directory.Exists(uploadsDir))
-            Directory.CreateDirectory(uploadsDir);
-        var ext = Path.GetExtension(fileName);
+        var uploadsDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
+        if(!System.IO.Directory.Exists(uploadsDir))
+            System.IO.Directory.CreateDirectory(uploadsDir);
+        var ext = System.IO.Path.GetExtension(fileName);
         var storageKey = $"documents/{Guid.NewGuid():N}{ext}";
-        var filePath = Path.Combine(uploadsDir, Path.GetFileName(storageKey));
-        using(var fs = new FileStream(filePath, FileMode.Create))
+        var filePath = System.IO.Path.Combine(uploadsDir, System.IO.Path.GetFileName(storageKey));
+        using(var fs = new System.IO.FileStream(filePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
             await fileStream.CopyToAsync(fs);
 
         var nextVersionNum = (doc.Versions.Any() ? doc.Versions.Max(v => v.VersionNumber) : 0) + 1;
@@ -738,15 +840,15 @@ public class DocumentService : IDocumentService
         var version = await _db.DocumentVersions.FindAsync(versionId) ??
             throw new KeyNotFoundException("Không tìm thấy phiên bản.");
         var storageKey = version.StorageKey ?? string.Empty;
-        var filePath = Path.Combine(
-            Directory.GetCurrentDirectory(),
+        var filePath = System.IO.Path.Combine(
+            System.IO.Directory.GetCurrentDirectory(),
             "wwwroot",
             "uploads",
             "documents",
-            Path.GetFileName(storageKey));
-        if(!File.Exists(filePath))
+            System.IO.Path.GetFileName(storageKey));
+        if(!System.IO.File.Exists(filePath))
             throw new FileNotFoundException("Tệp vật lý không tồn tại.");
-        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
         var contentType = version.FileType switch
         {
             "pdf" => "application/pdf",
@@ -780,13 +882,13 @@ public class DocumentService : IDocumentService
             throw new InvalidOperationException("Tài liệu không có nội dung.");
 
         var storageKey = doc.CurrentVersion.StorageKey ?? string.Empty;
-        var filePath = Path.Combine(
+        var filePath = System.IO.Path.Combine(
             Directory.GetCurrentDirectory(),
             "wwwroot",
             "uploads",
             "documents",
-            Path.GetFileName(storageKey));
-        if(!File.Exists(filePath))
+            System.IO.Path.GetFileName(storageKey));
+        if(!System.IO.File.Exists(filePath))
             throw new FileNotFoundException("Tệp vật lý không tồn tại.");
 
         var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
@@ -967,14 +1069,14 @@ public class ReportService : IReportService
 
         var analytics = await _db.QuizAnswers
             .Include(qa => qa.Attempt)
-            .Where(qa => qa.Attempt.QuizId == quizId && !qa.IsDeleted)
+            .Where(qa => qa.Attempt.QuizId == quizId && qa.Attempt.Status == "Submitted" && !qa.IsDeleted)
             .GroupBy(qa => qa.QuestionId)
             .Select(
                 g => new
                 {
                     QuestionId = g.Key,
                     TotalAttempts = g.Count(),
-                    WrongAnswers = g.Count(qa => qa.IsCorrect == false)
+                    WrongAnswers = g.Count(qa => qa.IsCorrect != true)
                 })
             .ToListAsync();
 

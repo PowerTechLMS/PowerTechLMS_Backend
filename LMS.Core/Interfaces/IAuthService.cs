@@ -32,6 +32,8 @@ public interface IUserService
     Task<UserResponse> CreateUserAsync(UpdateUserRequest request);
 
     Task<ImportResultResponse> ImportUsersAsync(Stream fileStream);
+
+    Task<object> SyncAllUserRolesAsync();
 }
 
 public interface IGroupService
@@ -84,7 +86,7 @@ public interface ICourseService
         bool isInstructorManagement = false,
         bool isAdmin = false);
 
-    Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId);
+    Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId, bool isAdmin = false);
 
     Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId, int? userId = null);
 
@@ -166,7 +168,7 @@ public interface IEnrollmentService
 
     Task<EnrollmentResponse> AdminEnrollAsync(AdminEnrollRequest request, int assignedById);
 
-    Task<EnrollmentResponse> ApproveEnrollmentAsync(int enrollmentId, bool approved);
+    Task<EnrollmentResponse> ApproveEnrollmentAsync(int enrollmentId, bool approved, string? reason = null);
 
     Task<List<EnrollmentResponse>> GetUserEnrollmentsAsync(int userId);
 
@@ -209,6 +211,12 @@ public interface IQuizService
     Task<QuizResultResponse> SubmitQuizAsync(int userId, int attemptId, SubmitQuizRequest request);
 
     Task<List<QuizResultResponse>> GetUserQuizResultsAsync(int userId, int quizId);
+
+    Task UpdateQuizAsync(int quizId, CreateQuizRequest request);
+
+    Task UpdateQuestionAsync(int questionId, CreateQuestionRequest request);
+
+    Task DeleteQuestionAsync(int questionId);
 }
 
 public interface ICertificateService

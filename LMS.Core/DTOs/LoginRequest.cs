@@ -29,7 +29,8 @@ public record UserResponse(
     string? Avatar,
     DateTime CreatedAt,
     string? GroupName = null,
-    int? GroupId = null);
+    int? GroupId = null,
+    string? Position = null);
 
 public record UpdateProfileRequest(string FullName, string? Phone, string? Address, string? Bio, string? Avatar);
 
@@ -49,7 +50,8 @@ public record UpdateUserRequest(
     string Role,
     int? GroupId,
     bool IsActive,
-    string? Password
+    string? Password,
+    string? Position
 );
 
 public class UserImportRow
@@ -130,7 +132,8 @@ public record CreateCourseRequest(
     DateTime? CompletionEndDate = null,
     int Level = 3,
     int QuizRetakeWaitTimeMinutes = 5,
-    int QuizMaxRetakesPerDay = 3);
+    int QuizMaxRetakesPerDay = 3,
+    int? UserGroupId = null);
 
 public record UpdateCourseRequest(
     string Title,
@@ -144,7 +147,8 @@ public record UpdateCourseRequest(
     DateTime? CompletionEndDate = null,
     int Level = 3,
     int QuizRetakeWaitTimeMinutes = 5,
-    int QuizMaxRetakesPerDay = 3);
+    int QuizMaxRetakesPerDay = 3,
+    int? UserGroupId = null);
 
 public record CourseResponse(
     int Id,
@@ -168,7 +172,9 @@ public record CourseResponse(
     string? CategoryName,
     int Level,
     int QuizRetakeWaitTimeMinutes,
-    int QuizMaxRetakesPerDay
+    int QuizMaxRetakesPerDay,
+    int? DepartmentId = null,
+    string? DepartmentName = null
 );
 
 public record CourseDetailResponse(
@@ -193,10 +199,12 @@ public record CourseDetailResponse(
     int Level,
     List<QuizSummaryResponse>? ExtraQuizzes = null,
     int QuizRetakeWaitTimeMinutes = 5,
-    int QuizMaxRetakesPerDay = 3
+    int QuizMaxRetakesPerDay = 3,
+    int? DepartmentId = null,
+    string? DepartmentName = null
 );
 
-public record QuizSummaryResponse(int Id, string Title);
+public record QuizSummaryResponse(int Id, string Title, int QuestionCount = 0);
 
 
 public record QuizDetailResponse(
@@ -277,6 +285,7 @@ public record LessonResponse(
     bool IsFreePreview,
     List<AttachmentResponse> Attachments,
     int? QuizId = null,
+    int QuizQuestionCount = 0,
     string? AiSummary = null
 );
 
@@ -286,12 +295,13 @@ public record EnrollRequest(int CourseId);
 
 public record AdminEnrollRequest(int UserId, int CourseId, DateTime? Deadline, bool IsMandatory);
 
-public record ApproveEnrollmentRequest(bool Approved);
+public record ApproveEnrollmentRequest(bool Approved, string? Reason = null);
 
 public record EnrollmentResponse(
     int Id,
     int UserId,
     string FullName,
+    string Email, // Added Email
     string? AvatarUrl,
     int CourseId,
     string CourseTitle,
@@ -306,8 +316,11 @@ public record EnrollmentResponse(
     bool IsLocked = false,
     int CourseLevel = 3,
     int? GroupEnrollId = null,
-    string? DepartmentName = null
+    string? DepartmentName = null,
+    string? CoverImageUrl = null,
+    string? RejectionReason = null
 );
+
 
 public record CompleteLessonRequest(int LessonId, bool IsQuizPassed = false);
 
@@ -423,7 +436,7 @@ public record QuizAnswerDetailResponse(
 
 public record CertificateResponse(
     int Id,
-    string UserName,
+    string FullName,
     string CourseTitle,
     string CertificateCode,
     string? PdfUrl,
@@ -448,7 +461,7 @@ public record CreateQARequest(string Content, int? ParentId);
 public record QAResponse(
     int Id,
     string Content,
-    string UserName,
+    string FullName,
     string? UserAvatar,
     int? ParentId,
     DateTime CreatedAt,
@@ -535,7 +548,7 @@ public record DocumentConfigResponse(
 
 public record TrainingReportResponse(
     int UserId,
-    string UserName,
+    string FullName,
     string Email,
     int CourseId,
     string CourseTitle,
@@ -547,7 +560,7 @@ public record TrainingReportResponse(
 
 public record InactiveUserReport(
     int UserId,
-    string UserName,
+    string FullName,
     string Email,
     int CourseId,
     string CourseTitle,
@@ -577,7 +590,7 @@ public record QuizAnalyticsResponse(
 public record LeaderboardEntry(
     int Rank,
     int UserId,
-    string UserName,
+    string FullName,
     string? Avatar,
     int CompletedCourses,
     int TotalScore,
@@ -653,7 +666,9 @@ public record DashboardCourseDto(
     int CompletedLessons,
     int TotalLessons,
     string? NextLessonTitle = null,
-    string? NextLessonDuration = null);
+    string? NextLessonDuration = null,
+    string? CoverImageUrl = null);
+
 
 public record DashboardQuizDto(int Id, string Title, string Subtitle, string Status, string Badge, string Cover);
 

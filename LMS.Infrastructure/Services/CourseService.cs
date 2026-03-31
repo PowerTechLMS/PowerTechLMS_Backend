@@ -33,6 +33,7 @@ public class CourseService : ICourseService
         var query = _db.Courses
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
+            .Include(c => c.UserGroup)
             .Where(c => !c.IsDeleted)
             .AsQueryable();
 
@@ -127,13 +128,20 @@ public class CourseService : ICourseService
                         .Select(e => e.CourseId)
                         .ToListAsync();
 
+                    var myDepartmentIds = await _db.UserGroupMembers
+                        .Where(m => m.UserId == userId.Value && !m.IsDeleted)
+                        .Select(m => m.GroupId)
+                        .ToListAsync();
+
                     query = query.Where(
                         c => c.Level != 2 ||
                             myEnrolledCourseIds.Contains(c.Id) ||
-                            allowedCourseIdsForMyDepts.Contains(c.Id));
+                            allowedCourseIdsForMyDepts.Contains(c.Id) ||
+                            (c.UserGroupId == null || myDepartmentIds.Contains(c.UserGroupId.Value)));
                 }
             }
-        } else if(!isAdmin)
+        }
+        else if(!isAdmin)
         {
             query = query.Where(c => c.Level != 2);
         }
@@ -171,28 +179,36 @@ public class CourseService : ICourseService
                     c.Category != null ? c.Category.Name : null,
                     c.Level,
                     c.QuizRetakeWaitTimeMinutes,
-                    c.QuizMaxRetakesPerDay))
+                    c.QuizMaxRetakesPerDay,
+                    c.UserGroupId,
+                    c.UserGroup != null ? c.UserGroup.Name : null))
             .ToListAsync();
 
         return new PagedResponse<CourseResponse>(items, total, page, pageSize);
     }
 
-    public async Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId)
+    public async Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses
 
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
+            .Include(c => c.UserGroup)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
             .ThenInclude(m => m.Lessons.OrderBy(l => l.SortOrder))
             .ThenInclude(l => l.Attachments)
+            .Include(c => c.Modules)
+            .ThenInclude(m => m.Lessons)
+            .ThenInclude(l => l.Quiz)
+            .ThenInclude(q => q.Questions)
             .FirstOrDefaultAsync(c => c.Id == courseId);
 
         if(course == null)
             return null;
 
+        // User fetching not needed since isAdmin is passed, but kept if other logic needs user object
         var user = await _db.Users.FindAsync(userId);
-        var isAdmin = user?.Role == "Admin";
+        // Removed local isAdmin calculation to use the passed parameter instead
 
         if(course.Level == 2 && !isAdmin)
         {
@@ -223,10 +239,17 @@ public class CourseService : ICourseService
                 isEnrolled = false;
         }
 
+        var quizCounts = await _db.QuestionBanks
+            .Where(qb => !qb.IsDeleted && _db.Quizzes.Any(q => q.Id == qb.QuizId && q.CourseId == courseId))
+            .GroupBy(qb => qb.QuizId)
+            .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+        var quizIdsWithQuestions = quizCounts.Keys.ToList();
         var extraQuizzes = await _db.Quizzes
             .Where(q => q.CourseId == courseId && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
+            .Where(q => quizIdsWithQuestions.Contains(q.Id)) // Only quizzes with questions
             .OrderBy(q => q.CreatedAt)
-            .Select(q => new QuizSummaryResponse(q.Id, q.Title))
+            .Select(q => new QuizSummaryResponse(q.Id, q.Title, quizCounts.GetValueOrDefault(q.Id)))
             .ToListAsync();
 
         var finalQuizId = extraQuizzes.LastOrDefault()?.Id;
@@ -247,6 +270,8 @@ public class CourseService : ICourseService
                             m.Title,
                             m.SortOrder,
                             m.Lessons
+                                .Where(l => l.Type != "Quiz" || (l.QuizId.HasValue && quizCounts.GetValueOrDefault(l.QuizId.Value) > 0))
+                                .OrderBy(l => l.SortOrder)
                                 .Select(
                                     l => new LessonResponse(
                                                     l.Id,
@@ -271,6 +296,7 @@ public class CourseService : ICourseService
                                                             .ToList()
                                                         : new List<AttachmentResponse>(),
                                                     l.QuizId,
+                                                    l.QuizId.HasValue ? quizCounts.GetValueOrDefault(l.QuizId.Value) : 0,
                                                     l.AiSummary))
                                 .ToList()))
                 .ToList(),
@@ -286,7 +312,9 @@ public class CourseService : ICourseService
             course.Level,
             extraQuizzes,
             course.QuizRetakeWaitTimeMinutes,
-            course.QuizMaxRetakesPerDay);
+            course.QuizMaxRetakesPerDay,
+            course.UserGroupId,
+            course.UserGroup?.Name);
     }
 
     public async Task<CourseDetailResponse?> GetCoursePreviewAsync(int courseId, int? userId = null)
@@ -295,6 +323,7 @@ public class CourseService : ICourseService
 
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
+            .Include(c => c.UserGroup)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
             .ThenInclude(m => m.Lessons.OrderBy(l => l.SortOrder))
             .Where(c => c.Id == courseId && c.IsPublished && !c.IsDeleted)
@@ -379,6 +408,7 @@ public class CourseService : ICourseService
                                                     l.IsFreePreview,
                                                     new List<AttachmentResponse>(),
                                                     l.QuizId,
+                                                    l.Quiz?.Questions.Count ?? 0,
                                                     l.AiSummary))
                                 .ToList()))
                 .ToList(),
@@ -398,10 +428,12 @@ public class CourseService : ICourseService
             course.Level,
             await _db.Quizzes
                 .Where(q => q.CourseId == course.Id && !q.IsDeleted && !_db.Lessons.Any(l => l.QuizId == q.Id))
-                .Select(q => new QuizSummaryResponse(q.Id, q.Title))
+                .Select(q => new QuizSummaryResponse(q.Id, q.Title, q.Questions.Count))
                 .ToListAsync(),
             course.QuizRetakeWaitTimeMinutes,
-            course.QuizMaxRetakesPerDay);
+            course.QuizMaxRetakesPerDay,
+            course.UserGroupId,
+            course.UserGroup?.Name);
     }
 
     public async Task<CourseResponse> CreateCourseAsync(CreateCourseRequest request, int userId)
@@ -420,7 +452,8 @@ public class CourseService : ICourseService
             Level = request.Level,
             IsPublished = request.IsPublished,
             QuizRetakeWaitTimeMinutes = request.QuizRetakeWaitTimeMinutes,
-            QuizMaxRetakesPerDay = request.QuizMaxRetakesPerDay
+            QuizMaxRetakesPerDay = request.QuizMaxRetakesPerDay,
+            UserGroupId = request.UserGroupId
         };
 
         _db.Courses.Add(course);
@@ -456,7 +489,9 @@ public class CourseService : ICourseService
             categoryName,
             course.Level,
             course.QuizRetakeWaitTimeMinutes,
-            course.QuizMaxRetakesPerDay);
+            course.QuizMaxRetakesPerDay,
+            course.UserGroupId,
+            null);
     }
 
     public async Task<CourseResponse> UpdateCourseAsync(
@@ -484,6 +519,7 @@ public class CourseService : ICourseService
         course.Level = request.Level;
         course.QuizRetakeWaitTimeMinutes = request.QuizRetakeWaitTimeMinutes;
         course.QuizMaxRetakesPerDay = request.QuizMaxRetakesPerDay;
+        course.UserGroupId = request.UserGroupId;
 
         bool wasPublished = (bool)(_db.Entry(course).OriginalValues["IsPublished"] ?? false);
         await _db.SaveChangesAsync();
@@ -523,7 +559,9 @@ public class CourseService : ICourseService
             categoryName,
             course.Level,
             course.QuizRetakeWaitTimeMinutes,
-            course.QuizMaxRetakesPerDay);
+            course.QuizMaxRetakesPerDay,
+            course.UserGroupId,
+            course.UserGroup?.Name);
     }
 
     public async Task DeleteCourseAsync(int courseId, int userId, bool isAdmin = false)

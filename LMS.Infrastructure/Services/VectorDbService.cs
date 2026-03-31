@@ -10,48 +10,58 @@ namespace LMS.Infrastructure.Services;
 public class VectorDbService
 {
     private readonly QdrantClient _client;
-    private readonly Lazy<LocalEmbedder> _lazyEmbedder;
+    private readonly LocalEmbedder _embedder;
     private const string CollectionName = "powertech_knowledge";
 
     public VectorDbService(string qdrantUrl)
     {
         _client = new QdrantClient(new Uri(qdrantUrl));
-        _lazyEmbedder = new Lazy<LocalEmbedder>(() => new LocalEmbedder());
+        _embedder = new LocalEmbedder();
     }
 
     private bool _collectionVerified = false;
+    private bool _serviceUnreachable = false;
+    private DateTime _lastRetryTime = DateTime.MinValue;
+    private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(2);
 
     public async Task UpsertVectorAsync(Guid pointId, string content, IDictionary<string, object> metadata)
     {
-        await EnsureCollectionReadyAsync();
-        var embedding = _lazyEmbedder.Value.Embed(content);
-        var point = new PointStruct
+        if(!await EnsureCollectionReadyAsync())
+            return;
+        try
         {
-            Id = pointId,
-            Vectors = embedding.Values.ToArray(),
-            Payload = { ["content"] = content }
-        };
-
-        if(metadata != null)
-        {
-            point.Payload["metadata"] = JsonSerializer.Serialize(metadata);
-
-            foreach(var kvp in metadata)
+            var embedding = _embedder.Embed(content);
+            var point = new PointStruct
             {
-                point.Payload[kvp.Key] = kvp.Value switch
-                {
-                    string s => s,
-                    int i => (long)i,
-                    long l => l,
-                    float f => (double)f,
-                    double d => d,
-                    bool b => b,
-                    _ => kvp.Value?.ToString() ?? string.Empty
-                };
-            }
-        }
+                Id = pointId,
+                Vectors = embedding.Values.ToArray(),
+                Payload = { ["content"] = content }
+            };
 
-        await _client.UpsertAsync(CollectionName, new[] { point });
+            if(metadata != null)
+            {
+                point.Payload["metadata"] = JsonSerializer.Serialize(metadata);
+
+                foreach(var kvp in metadata)
+                {
+                    point.Payload[kvp.Key] = kvp.Value switch
+                    {
+                        string s => s,
+                        int i => (long)i,
+                        long l => l,
+                        float f => (double)f,
+                        double d => d,
+                        bool b => b,
+                        _ => kvp.Value?.ToString() ?? string.Empty
+                    };
+                }
+            }
+
+            await _client.UpsertAsync(CollectionName, new[] { point });
+        } catch(Exception ex)
+        {
+            Console.WriteLine($"[VectorDbService] Error in UpsertVectorAsync: {ex.Message}");
+        }
     }
 
     public async Task<List<(Guid Id, string Content, string Metadata)>> SearchAsync(
@@ -59,42 +69,51 @@ public class VectorDbService
         int lessonId,
         int limit = 5)
     {
-        await EnsureCollectionReadyAsync();
-        var embedding = _lazyEmbedder.Value.Embed(query);
+        if(!await EnsureCollectionReadyAsync())
+            return new List<(Guid Id, string Content, string Metadata)>();
 
-        var filter = new Filter();
-        filter.Must
-            .Add(
-                new Condition
-                {
-                    Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = lessonId } }
-                });
+        try
+        {
+            var embedding = _embedder.Embed(query);
 
-        var results = await _client.SearchAsync(
-            CollectionName,
-            embedding.Values.ToArray(),
-            filter: filter,
-            limit: (ulong)limit);
+            var filter = new Filter();
+            filter.Must
+                .Add(
+                    new Condition
+                    {
+                        Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = lessonId } }
+                    });
 
-        return results.Select(
-            r =>
-            {
-                Guid id = Guid.Parse(r.Id.Uuid);
-                string content = r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty;
-                string metadata;
-                if(r.Payload.ContainsKey("metadata"))
+            var results = await _client.SearchAsync(
+                CollectionName,
+                embedding.Values.ToArray(),
+                filter: filter,
+                limit: (ulong)limit);
+
+            return results.Select(
+                r =>
                 {
-                    metadata = r.Payload["metadata"].StringValue;
-                } else
-                {
-                    var dict = r.Payload
-                        .Where(kvp => kvp.Key != "content")
-                        .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
-                    metadata = JsonSerializer.Serialize(dict);
-                }
-                return (id, content, metadata);
-            })
-            .ToList();
+                    Guid id = Guid.Parse(r.Id.Uuid);
+                    string content = r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty;
+                    string metadata;
+                    if(r.Payload.ContainsKey("metadata"))
+                    {
+                        metadata = r.Payload["metadata"].StringValue;
+                    } else
+                    {
+                        var dict = r.Payload
+                            .Where(kvp => kvp.Key != "content")
+                            .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
+                        metadata = JsonSerializer.Serialize(dict);
+                    }
+                    return (id, content, metadata);
+                })
+                .ToList();
+        } catch(Exception ex)
+        {
+            Console.WriteLine($"[VectorDbService] Error in SearchAsync: {ex.Message}");
+            return new List<(Guid Id, string Content, string Metadata)>();
+        }
     }
 
     public async Task<List<(Guid Id, string Content)>> SearchByDocumentAsync(
@@ -102,100 +121,142 @@ public class VectorDbService
         int documentId,
         int limit = 5)
     {
-        await EnsureCollectionReadyAsync();
-        var embedding = _lazyEmbedder.Value.Embed(query);
+        if(!await EnsureCollectionReadyAsync())
+            return new List<(Guid Id, string Content)>();
 
-        var filter = new Filter();
-        filter.Must
-            .Add(
-                new Condition
-                {
-                    Field = new FieldCondition { Key = "DocumentId", Match = new Match { Integer = documentId } }
-                });
-
-        var results = await _client.SearchAsync(
-            CollectionName,
-            embedding.Values.ToArray(),
-            filter: filter,
-            limit: (ulong)limit);
-
-        return results.Select(
-            r => (
-            Guid.Parse(r.Id.Uuid),
-            r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty
-        ))
-            .ToList();
-    }
-
-    public async Task DeleteVectorsByFilterAsync(string key, object value)
-    {
-        await EnsureCollectionReadyAsync();
-        var filter = new Filter();
-
-        if(value is int i)
+        try
         {
-            filter.Must
-                .Add(
-                    new Condition { Field = new FieldCondition { Key = key, Match = new Match { Integer = (long)i } } });
-        } else if(value is long l)
-        {
-            filter.Must
-                .Add(new Condition { Field = new FieldCondition { Key = key, Match = new Match { Integer = l } } });
-        } else
-        {
+            var embedding = _embedder.Embed(query);
+
+            var filter = new Filter();
             filter.Must
                 .Add(
                     new Condition
                     {
-                        Field = new FieldCondition { Key = key, Match = new Match { Text = value.ToString() } }
+                        Field = new FieldCondition { Key = "DocumentId", Match = new Match { Integer = documentId } }
                     });
-        }
 
-        await _client.DeleteAsync(CollectionName, filter: filter);
+            var results = await _client.SearchAsync(
+                CollectionName,
+                embedding.Values.ToArray(),
+                filter: filter,
+                limit: (ulong)limit);
+
+            return results.Select(
+                r => (
+                Guid.Parse(r.Id.Uuid),
+                r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty
+            ))
+                .ToList();
+        } catch(Exception ex)
+        {
+            Console.WriteLine($"[VectorDbService] Error in SearchByDocumentAsync: {ex.Message}");
+            return new List<(Guid Id, string Content)>();
+        }
+    }
+
+    public async Task DeleteVectorsByFilterAsync(string key, object value)
+    {
+        if(!await EnsureCollectionReadyAsync())
+            return;
+
+        try
+        {
+            var filter = new Filter();
+
+            if(value is int i)
+            {
+                filter.Must
+                    .Add(
+                        new Condition
+                        {
+                            Field = new FieldCondition { Key = key, Match = new Match { Integer = (long)i } }
+                        });
+            } else if(value is long l)
+            {
+                filter.Must
+                    .Add(new Condition { Field = new FieldCondition { Key = key, Match = new Match { Integer = l } } });
+            } else
+            {
+                filter.Must
+                    .Add(
+                        new Condition
+                        {
+                            Field = new FieldCondition { Key = key, Match = new Match { Text = value.ToString() } }
+                        });
+            }
+
+            await _client.DeleteAsync(CollectionName, filter: filter);
+        } catch(Exception ex)
+        {
+            Console.WriteLine($"[VectorDbService] Error in DeleteVectorsByFilterAsync: {ex.Message}");
+        }
     }
 
 
     public async Task<List<(string Content, string Metadata)>> GetAllSegmentsAsync(int lessonId)
     {
-        await EnsureCollectionReadyAsync();
-        var filter = new Filter();
-        filter.Must
-            .Add(
-                new Condition
-                {
-                    Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = lessonId } }
-                });
+        if(!await EnsureCollectionReadyAsync())
+            return new List<(string Content, string Metadata)>();
 
-        var results = await _client.ScrollAsync(CollectionName, filter: filter, limit: 100);
+        try
+        {
+            var filter = new Filter();
+            filter.Must
+                .Add(
+                    new Condition
+                    {
+                        Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = lessonId } }
+                    });
 
-        return results.Result
-            .Select(
-                p =>
-                {
-                    string content = p.Payload.ContainsKey("content") ? p.Payload["content"].StringValue : string.Empty;
-                    string metadata;
-                    if(p.Payload.ContainsKey("metadata"))
+            var results = await _client.ScrollAsync(CollectionName, filter: filter, limit: 100);
+
+            return results.Result
+                .Select(
+                    p =>
                     {
-                        metadata = p.Payload["metadata"].StringValue;
-                    } else
-                    {
-                        var dict = p.Payload
-                            .Where(kvp => kvp.Key != "content")
-                            .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
-                        metadata = JsonSerializer.Serialize(dict);
-                    }
-                    return (content, metadata);
-                })
-            .ToList();
+                        string content = p.Payload.ContainsKey("content")
+                            ? p.Payload["content"].StringValue
+                            : string.Empty;
+                        string metadata;
+                        if(p.Payload.ContainsKey("metadata"))
+                        {
+                            metadata = p.Payload["metadata"].StringValue;
+                        } else
+                        {
+                            var dict = p.Payload
+                                .Where(kvp => kvp.Key != "content")
+                                .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
+                            metadata = JsonSerializer.Serialize(dict);
+                        }
+                        return (content, metadata);
+                    })
+                .ToList();
+        } catch(Exception ex)
+        {
+            Console.WriteLine($"[VectorDbService] Error in GetAllSegmentsAsync: {ex.Message}");
+            return new List<(string Content, string Metadata)>();
+        }
     }
 
-    private async Task EnsureCollectionReadyAsync()
+    private async Task<bool> EnsureCollectionReadyAsync()
     {
-        if(!_collectionVerified)
+        if(_collectionVerified)
+            return true;
+
+        if(_serviceUnreachable && DateTime.Now - _lastRetryTime < RetryInterval)
         {
-            await EnsureCollectionExistsAsync();
-            _collectionVerified = true;
+            return false;
         }
+
+            if (!_serviceUnreachable)
+            {
+                Console.WriteLine(
+                    $"[VectorDbService] Note: Qdrant (VectorDB) is not available. AI-driven search features will be disabled. (Message suppressed for future retries)");
+            }
+            _serviceUnreachable = true;
+            _lastRetryTime = DateTime.Now;
+            return false;
     }
 
     private async Task EnsureCollectionExistsAsync()

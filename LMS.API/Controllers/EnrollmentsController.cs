@@ -29,8 +29,10 @@ public class EnrollmentsController : ControllerBase
     }
 
     private bool IsAdmin => User.IsInRole("Admin") ||
+        User.IsInRole("admin") ||
         User.IsInRole("Quản trị viên") ||
-        User.HasClaim("permission", "user.manage");
+        User.HasClaim("permission", "user.manage") ||
+        User.HasClaim("permission", "enrollment.view");
 
     [HttpGet]
     [Authorize]
@@ -71,7 +73,10 @@ public class EnrollmentsController : ControllerBase
     {
         try
         {
-            return Ok(await _enrollmentService.ApproveEnrollmentAsync(id, request.Approved));
+            return Ok(await _enrollmentService.ApproveEnrollmentAsync(id, request.Approved, request.Reason));
+        } catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         } catch(KeyNotFoundException)
         {
             return NotFound();

@@ -73,7 +73,7 @@ public class CoursesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult> GetCourse(int id)
     {
-        var course = await _courseService.GetCourseDetailAsync(id, UserId);
+        var course = await _courseService.GetCourseDetailAsync(id, UserId, IsAdmin);
         return course == null ? NotFound() : Ok(course);
     }
 
