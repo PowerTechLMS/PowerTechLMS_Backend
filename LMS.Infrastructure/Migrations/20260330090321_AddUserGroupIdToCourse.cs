@@ -4,15 +4,22 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public partial class AddUserGroupIdToCourse : Migration
     {
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(name: "UserGroupId", table: "Courses", type: "int", nullable: true);
+            migrationBuilder.AddColumn<int>(
+                name: "UserGroupId",
+                table: "Courses",
+                type: "int",
+                nullable: true);
 
-            migrationBuilder.CreateIndex(name: "IX_Courses_UserGroupId", table: "Courses", column: "UserGroupId");
+            migrationBuilder.CreateIndex(
+                name: "IX_Courses_UserGroupId",
+                table: "Courses",
+                column: "UserGroupId");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_Courses_UserGroups_UserGroupId",
@@ -22,14 +29,20 @@ namespace LMS.Infrastructure.Migrations
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(name: "FK_Courses_UserGroups_UserGroupId", table: "Courses");
+            migrationBuilder.DropForeignKey(
+                name: "FK_Courses_UserGroups_UserGroupId",
+                table: "Courses");
 
-            migrationBuilder.DropIndex(name: "IX_Courses_UserGroupId", table: "Courses");
+            migrationBuilder.DropIndex(
+                name: "IX_Courses_UserGroupId",
+                table: "Courses");
 
-            migrationBuilder.DropColumn(name: "UserGroupId", table: "Courses");
+            migrationBuilder.DropColumn(
+                name: "UserGroupId",
+                table: "Courses");
         }
     }
 }

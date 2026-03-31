@@ -2,19 +2,21 @@
 
 #nullable disable
 
-namespace LMS.Infrastructure.Migrations
+namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc/>
-    public partial class InitPostgres : Migration
+    /// <inheritdoc />
+    public partial class UpdateMigration : Migration
     {
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+
         }
 
-        /// <inheritdoc/>
+        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+
         }
     }
 }

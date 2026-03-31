@@ -44,22 +44,31 @@ public class WhisperService : ITranscriptionService
             }
         }
 
-        using var factory = WhisperFactory.FromPath(_modelPath);
-
-        using var processor = factory.CreateBuilder().WithLanguage("vi").WithBeamSearchSamplingStrategy().ParentBuilder
-            .Build();
-
-        using var fileStream = File.OpenRead(audioPath);
-
-        await foreach(var result in processor.ProcessAsync(fileStream))
+        try
         {
-            segments.Add(
-                new TextSegment
-                {
-                    StartTime = result.Start.TotalSeconds,
-                    EndTime = result.End.TotalSeconds,
-                    Text = result.Text
-                });
+            using var factory = WhisperFactory.FromPath(_modelPath);
+
+            using var processor = factory.CreateBuilder()
+                .WithLanguage("vi")
+                .WithBeamSearchSamplingStrategy()
+                .ParentBuilder
+                .Build();
+
+            using var fileStream = File.OpenRead(audioPath);
+
+            await foreach(var result in processor.ProcessAsync(fileStream))
+            {
+                segments.Add(
+                    new TextSegment
+                    {
+                        StartTime = result.Start.TotalSeconds,
+                        EndTime = result.End.TotalSeconds,
+                        Text = result.Text
+                    });
+            }
+        } catch
+        {
+            // Fallback: segments rỗng nếu lỗi native
         }
 
         return segments;

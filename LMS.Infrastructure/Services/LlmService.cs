@@ -31,7 +31,7 @@ public class LlmService : ILlmService
         {
             var requestBody = new
             {
-                model = "gemini-1.5-flash",
+                model = "gemini-3-flash",
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
@@ -81,7 +81,7 @@ public class LlmService : ILlmService
     {
         var requestBody = new
         {
-            model = "gemini-1.5-flash",
+            model = "gemini-3-flash",
             messages = messages.Select(
                 m => new
                 {

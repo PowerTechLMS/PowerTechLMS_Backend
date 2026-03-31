@@ -10,14 +10,30 @@ namespace LMS.Infrastructure.Services;
 public class VectorDbService
 {
     private readonly QdrantClient _client;
-    private readonly LocalEmbedder _embedder;
+    private readonly Lazy<LocalEmbedder?> _embedder;
     private const string CollectionName = "powertech_knowledge";
+    private readonly SemaphoreSlim _initializationLock = new(1, 1);
 
     public VectorDbService(string qdrantUrl)
     {
         _client = new QdrantClient(new Uri(qdrantUrl));
-        _embedder = new LocalEmbedder();
+        _embedder = new Lazy<LocalEmbedder?>(
+            () =>
+            {
+                try
+                {
+                    return new LocalEmbedder();
+                } catch
+                {
+                    return null;
+                }
+            });
+        
+        // Khởi động chủ động ngay khi service được tạo
+        _ = EnsureCollectionReadyAsync();
     }
+
+    public bool IsEmbeddingAvailable => _embedder.Value is not null;
 
     private bool _collectionVerified = false;
     private bool _serviceUnreachable = false;
@@ -30,7 +46,10 @@ public class VectorDbService
             return;
         try
         {
-            var embedding = _embedder.Embed(content);
+            if(!IsEmbeddingAvailable)
+                return;
+
+            var embedding = _embedder.Value!.Embed(content);
             var point = new PointStruct
             {
                 Id = pointId,
@@ -60,7 +79,10 @@ public class VectorDbService
             await _client.UpsertAsync(CollectionName, new[] { point });
         } catch(Exception ex)
         {
-            Console.WriteLine($"[VectorDbService] Error in UpsertVectorAsync: {ex.Message}");
+            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
+            {
+                _collectionVerified = false;
+            }
         }
     }
 
@@ -74,7 +96,10 @@ public class VectorDbService
 
         try
         {
-            var embedding = _embedder.Embed(query);
+            if(!IsEmbeddingAvailable)
+                return new List<(Guid Id, string Content, string Metadata)>();
+
+            var embedding = _embedder.Value!.Embed(query);
 
             var filter = new Filter();
             filter.Must
@@ -126,7 +151,10 @@ public class VectorDbService
 
         try
         {
-            var embedding = _embedder.Embed(query);
+            if(!IsEmbeddingAvailable)
+                return new List<(Guid Id, string Content)>();
+
+            var embedding = _embedder.Value!.Embed(query);
 
             var filter = new Filter();
             filter.Must
@@ -244,29 +272,62 @@ public class VectorDbService
         if(_collectionVerified)
             return true;
 
-        if(_serviceUnreachable && DateTime.Now - _lastRetryTime < RetryInterval)
+        await _initializationLock.WaitAsync();
+        try
         {
-            return false;
-        }
+            if(_collectionVerified)
+                return true;
 
-        if(!_serviceUnreachable)
+            if(_serviceUnreachable && DateTime.UtcNow - _lastRetryTime < RetryInterval)
+            {
+                return false;
+            }
+
+            try
+            {
+                await EnsureCollectionExistsAsync();
+                _collectionVerified = true;
+                _serviceUnreachable = false;
+                return true;
+            } catch(Exception ex)
+            {
+                // Nếu lỗi là do collection đã tồn tại thì coi như đã sẵn sàng
+                if(ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+                {
+                    _collectionVerified = true;
+                    _serviceUnreachable = false;
+                    return true;
+                }
+
+                if(!_serviceUnreachable)
+                {
+                    Console.WriteLine($"[VectorDbService] Note: Qdrant (VectorDB) is not available or connection failed: {ex.Message}. AI-driven search features will be disabled. (Message suppressed for future retries)");
+                }
+
+                _serviceUnreachable = true;
+                _lastRetryTime = DateTime.UtcNow;
+                return false;
+            }
+        } finally
         {
-            Console.WriteLine(
-                $"[VectorDbService] Note: Qdrant (VectorDB) is not available. AI-driven search features will be disabled. (Message suppressed for future retries)");
+            _initializationLock.Release();
         }
-        _serviceUnreachable = true;
-        _lastRetryTime = DateTime.Now;
-        return false;
     }
 
     private async Task EnsureCollectionExistsAsync()
     {
         var collections = await _client.ListCollectionsAsync();
-        if(!collections.Contains(CollectionName))
+        if(!collections.Any(c => string.Equals(c, CollectionName, StringComparison.OrdinalIgnoreCase)))
         {
-            await _client.CreateCollectionAsync(
-                CollectionName,
-                new VectorParams { Size = 384, Distance = Distance.Cosine });
+            try
+            {
+                await _client.CreateCollectionAsync(
+                    CollectionName,
+                    new VectorParams { Size = 384, Distance = Distance.Cosine });
+            } catch(Exception ex) when (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                // Bỏ qua nếu collection đã được tạo bởi tiến trình khác
+            }
         }
     }
 }

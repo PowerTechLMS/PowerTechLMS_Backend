@@ -51,10 +51,10 @@ dotnet run --project "LMS.API\LMS.API.csproj" --launch-profile "http"
 
 _Backend sẽ chạy tại: http://localhost:5100_
 
-## 4. Tạo Migration mới cho EF Core
+## 4. Tạo Migration mới cho EF Core SQL Server
 
 ```
-dotnet ef migrations add <Tên Migration mới> --project LMS.Infrastructure --startup-project LMS.API
+dotnet ef migrations add <Tên Migration mới> --project LMS.Infrastructure --startup-project LMS.API --context AppDbContext
 dotnet ef database update --project LMS.Infrastructure --startup-project LMS.API --context AppDbContext
 ```
 
