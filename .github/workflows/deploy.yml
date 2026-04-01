@@ -36,6 +36,7 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           QDRANT_URL: ${{ secrets.QDRANT_URL }}
           FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          STORAGE_ROOT_PATH: ${{ secrets.STORAGE_ROOT_PATH }}
         run: |
           jq '
             .DatabaseProvider = "PostgreSql" |
@@ -52,7 +53,8 @@ jobs:
             .LlmSettings.ApiUrl = env.LLM_API_URL |
             .LlmSettings.ApiKey = env.LLM_API_KEY |
             .Qdrant.Url = env.QDRANT_URL |
-            .FrontendUrl = env.FRONTEND_URL
+            .FrontendUrl = env.FRONTEND_URL |
+            .Storage.RootPath = env.STORAGE_ROOT_PATH
           ' appsettings.Production.json > tmp.json && mv tmp.json appsettings.Production.json
       - name: Publish
         run: dotnet publish LMS.API/LMS.API.csproj --configuration Release --runtime linux-x64 --no-self-contained --output ./publish -p:CopyOutputSymbolsToPublishDirectory=false -p:DebugType=None
@@ -93,6 +95,8 @@ jobs:
             cd /var/www/powertech/backend
             tar -xzf publish.tar.gz
             rm publish.tar.gz
+            sudo mkdir -p ${{ secrets.STORAGE_ROOT_PATH }}
+            sudo chown -R $USER:$USER ${{ secrets.STORAGE_ROOT_PATH }}
             sudo systemctl stop powertech.service
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service

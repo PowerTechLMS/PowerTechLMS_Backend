@@ -19,6 +19,7 @@ public class AiProcessingService : IAiProcessingService
     private readonly IHubContext<VideoHub> _hubContext;
     private readonly IFFmpegDownloader _ffmpegDownloader;
     private readonly ILlmService _llm;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
 
     public AiProcessingService(
         AppDbContext db,
@@ -28,7 +29,8 @@ public class AiProcessingService : IAiProcessingService
         ILogger<AiProcessingService> logger,
         IHubContext<VideoHub> hubContext,
         IFFmpegDownloader ffmpegDownloader,
-        ILlmService llm)
+        ILlmService llm,
+        Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _db = db;
         _whisper = whisper;
@@ -38,6 +40,7 @@ public class AiProcessingService : IAiProcessingService
         _hubContext = hubContext;
         _ffmpegDownloader = ffmpegDownloader;
         _llm = llm;
+        _config = config;
     }
 
     public async Task ProcessLessonVideoAsync(int lessonId)
@@ -47,7 +50,10 @@ public class AiProcessingService : IAiProcessingService
         if(lesson == null || string.IsNullOrEmpty(lesson.VideoStorageUrl))
             return;
 
-        var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
         var videoPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey?.TrimStart('/') ?? string.Empty);
         var audioDir = Path.Combine(wwwroot, "uploads", "audio");
         if(!Directory.Exists(audioDir))
@@ -199,9 +205,13 @@ public class AiProcessingService : IAiProcessingService
         if(doc == null || doc.CurrentVersion == null)
             return;
 
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
         var filePath = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "wwwroot",
+            wwwroot,
             "uploads",
             doc.CurrentVersion.StorageKey?.TrimStart('/') ?? string.Empty);
         var fullText = _textExtractor.ExtractText(filePath);

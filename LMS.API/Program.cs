@@ -290,10 +290,15 @@ if(app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
-var wwwroot = builder.Environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-if(!Directory.Exists(wwwroot))
-    Directory.CreateDirectory(wwwroot);
-var uploadsPath = Path.Combine(wwwroot, "uploads");
+var storageRoot = builder.Configuration["Storage:RootPath"];
+if(string.IsNullOrEmpty(storageRoot))
+{
+    storageRoot = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+}
+if(!Directory.Exists(storageRoot))
+    Directory.CreateDirectory(storageRoot);
+
+var uploadsPath = Path.Combine(storageRoot, "uploads");
 if(!Directory.Exists(uploadsPath))
     Directory.CreateDirectory(uploadsPath);
 

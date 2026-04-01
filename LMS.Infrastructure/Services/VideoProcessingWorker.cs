@@ -17,17 +17,20 @@ public class VideoProcessingWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<VideoProcessingWorker> _logger;
     private readonly IFFmpegDownloader _ffmpegDownloader;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
 
     public VideoProcessingWorker(
         IVideoProcessingQueue queue,
         IServiceProvider serviceProvider,
         ILogger<VideoProcessingWorker> logger,
-        IFFmpegDownloader ffmpegDownloader)
+        IFFmpegDownloader ffmpegDownloader,
+        Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _queue = queue;
         _serviceProvider = serviceProvider;
         _logger = logger;
         _ffmpegDownloader = ffmpegDownloader;
+        _config = config;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -68,7 +71,10 @@ public class VideoProcessingWorker : BackgroundService
             var ffmpegPath = await _ffmpegDownloader.GetFFmpegPathAsync();
             var ffprobePath = await _ffmpegDownloader.GetFFprobePathAsync();
 
-            var wwwroot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var storageRoot = _config["Storage:RootPath"];
+            var wwwroot = string.IsNullOrEmpty(storageRoot) 
+                ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                : storageRoot;
             var inputPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey.TrimStart('/'));
             var outputDir = Path.Combine(wwwroot, "uploads", "hls", lessonId.ToString());
             if(!Directory.Exists(outputDir))

@@ -126,12 +126,14 @@ public class LessonService : ILessonService
     private readonly AppDbContext _db;
     private readonly VectorDbService _vectorDb;
     private readonly INotificationService _notificationService;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
 
-    public LessonService(AppDbContext db, VectorDbService vectorDb, INotificationService notificationService)
+    public LessonService(AppDbContext db, VectorDbService vectorDb, INotificationService notificationService, Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _db = db;
         _vectorDb = vectorDb;
         _notificationService = notificationService;
+        _config = config;
     }
 
 
@@ -141,7 +143,12 @@ public class LessonService : ILessonService
             throw new KeyNotFoundException("Không tìm thấy tài liệu đính kèm.");
 
         var storageKey = attachment.StorageKey ?? string.Empty;
-        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", storageKey.TrimStart('/'));
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var filePath = Path.Combine(wwwroot, "uploads", storageKey.TrimStart('/'));
         if(!File.Exists(filePath))
             throw new FileNotFoundException("Tệp vật lý không tồn tại trên máy chủ.");
 
@@ -346,7 +353,12 @@ public class LessonService : ILessonService
         var lesson = await _db.Lessons.FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId) ??
             throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
 
-        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "attachments");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var uploadsDir = Path.Combine(wwwroot, "uploads", "attachments");
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
 
@@ -376,7 +388,12 @@ public class LessonService : ILessonService
     {
         var lesson = await _db.Lessons.FindAsync(lessonId) ?? throw new KeyNotFoundException("Không tìm thấy bài học.");
 
-        var videosDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var videosDir = Path.Combine(wwwroot, "uploads", "videos");
         if(!Directory.Exists(videosDir))
             Directory.CreateDirectory(videosDir);
 
