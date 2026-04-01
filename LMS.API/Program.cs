@@ -170,8 +170,9 @@ builder.Services
         sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
+            var logger = sp.GetRequiredService<ILogger<VectorDbService>>();
             var url = config["Qdrant:Url"] ?? "http://localhost:6334";
-            return new VectorDbService(url);
+            return new VectorDbService(url, logger);
         });
 builder.Services.AddSingleton<IPythonEnvService, PythonEnvService>();
 builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();

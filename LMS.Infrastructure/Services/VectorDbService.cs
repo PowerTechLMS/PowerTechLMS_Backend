@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using SmartComponents.LocalEmbeddings;
@@ -11,25 +12,28 @@ public class VectorDbService
 {
     private readonly QdrantClient _client;
     private readonly Lazy<LocalEmbedder?> _embedder;
+    private readonly Microsoft.Extensions.Logging.ILogger<VectorDbService> _logger;
     private const string CollectionName = "powertech_knowledge";
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
 
-    public VectorDbService(string qdrantUrl)
+    public VectorDbService(string qdrantUrl, Microsoft.Extensions.Logging.ILogger<VectorDbService> logger)
     {
         _client = new QdrantClient(new Uri(qdrantUrl));
+        _logger = logger;
         _embedder = new Lazy<LocalEmbedder?>(
             () =>
             {
                 try
                 {
+                    _logger.LogInformation("[VectorDb] Đang khởi tạo LocalEmbedder...");
                     return new LocalEmbedder();
-                } catch
+                } catch(Exception ex)
                 {
+                    _logger.LogError("[VectorDb] Không thể khởi tạo LocalEmbedder: {Message}", ex.Message);
                     return null;
                 }
             });
         
-        // Khởi động chủ động ngay khi service được tạo
         _ = EnsureCollectionReadyAsync();
     }
 
@@ -47,7 +51,10 @@ public class VectorDbService
         try
         {
             if(!IsEmbeddingAvailable)
+            {
+                _logger.LogWarning("[VectorDb] Bỏ qua Upsert vì Embedding không khả dụng.");
                 return;
+            }
 
             var embedding = _embedder.Value!.Embed(content);
             var point = new PointStruct
@@ -79,6 +86,7 @@ public class VectorDbService
             await _client.UpsertAsync(CollectionName, new[] { point });
         } catch(Exception ex)
         {
+            _logger.LogError("[VectorDb] Lỗi trong UpsertVectorAsync: {Message}", ex.Message);
             if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
             {
                 _collectionVerified = false;

@@ -119,10 +119,9 @@ public class AiProcessingService : IAiProcessingService
 
         _logger.LogInformation("[AI] Đang tạo file phụ đề .srt và .vtt...");
         var srtContent = GenerateSrtContent(processedSegments);
-
         var vttContent = GenerateVttContent(processedSegments);
 
-        var subtitleDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "subtitles");
+        var subtitleDir = Path.Combine(wwwroot, "uploads", "subtitles");
         if(!Directory.Exists(subtitleDir))
             Directory.CreateDirectory(subtitleDir);
 
@@ -139,11 +138,19 @@ public class AiProcessingService : IAiProcessingService
             var masterM3u8Path = Path.Combine(hlsDir, "master.m3u8");
             var subtitleM3u8Path = Path.Combine(hlsDir, "subtitles.m3u8");
 
-            var localSubtitlePath = Path.Combine(hlsDir, "subtitles.vtt");
-            var sourceSubtitlePath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.vtt");
-            if(File.Exists(sourceSubtitlePath))
+            var localVttPath = Path.Combine(hlsDir, "subtitles.vtt");
+            var localSrtPath = Path.Combine(hlsDir, "subtitles.srt");
+            
+            var sourceVttPath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.vtt");
+            var sourceSrtPath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.srt");
+
+            if(File.Exists(sourceVttPath))
             {
-                File.Copy(sourceSubtitlePath, localSubtitlePath, true);
+                File.Copy(sourceVttPath, localVttPath, true);
+            }
+            if(File.Exists(sourceSrtPath))
+            {
+                File.Copy(sourceSrtPath, localSrtPath, true);
             }
 
             var utf8WithoutBom = new UTF8Encoding(false);
@@ -260,9 +267,13 @@ public class AiProcessingService : IAiProcessingService
 
         try
         {
+            var storageRoot = _config["Storage:RootPath"];
+            var wwwroot = string.IsNullOrEmpty(storageRoot) 
+                ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                : storageRoot;
+
             var filePath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
+                wwwroot,
                 "uploads",
                 attachment.StorageKey.TrimStart('/'));
             if(!File.Exists(filePath))
