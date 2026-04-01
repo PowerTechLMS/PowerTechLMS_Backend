@@ -108,6 +108,12 @@ public class PythonEnvService : IPythonEnvService
 
     private async Task RunCommandAsync(string fileName, string arguments)
     {
+        string tempDir = Path.Combine(_basePath, "temp");
+        if (!Directory.Exists(tempDir))
+        {
+            Directory.CreateDirectory(tempDir);
+        }
+
         var startInfo = new ProcessStartInfo
         {
             FileName = fileName,
@@ -116,6 +122,11 @@ public class PythonEnvService : IPythonEnvService
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        startInfo.EnvironmentVariables["TMPDIR"] = tempDir;
+        startInfo.EnvironmentVariables["TEMP"] = tempDir;
+        startInfo.EnvironmentVariables["TMP"] = tempDir;
+        startInfo.EnvironmentVariables["PIP_CACHE_DIR"] = Path.Combine(_basePath, "pip_cache");
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();
