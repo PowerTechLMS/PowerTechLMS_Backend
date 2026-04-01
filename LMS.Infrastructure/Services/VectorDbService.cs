@@ -29,7 +29,7 @@ public class VectorDbService
                     return new LocalEmbedder();
                 } catch(Exception ex)
                 {
-                    _logger.LogError("[VectorDb] Không thể khởi tạo LocalEmbedder: {Message}", ex.Message);
+                    _logger.LogError("[VectorDb] Lỗi nghiêm trọng khi khởi tạo LocalEmbedder (ONNX Runtime): {Message}. Chi tiết: {StackTrace}", ex.Message, ex.StackTrace);
                     return null;
                 }
             });

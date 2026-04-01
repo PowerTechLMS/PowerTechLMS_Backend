@@ -54,6 +54,9 @@ public class AiProcessingService : IAiProcessingService
         var wwwroot = string.IsNullOrEmpty(storageRoot) 
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
+        
+        _logger.LogInformation("[AI] Đường dẫn lưu trữ (wwwroot) đang dùng: {Path}", wwwroot);
+        
         var videoPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey?.TrimStart('/') ?? string.Empty);
         var audioDir = Path.Combine(wwwroot, "uploads", "audio");
         if(!Directory.Exists(audioDir))
@@ -140,17 +143,19 @@ public class AiProcessingService : IAiProcessingService
 
             var localVttPath = Path.Combine(hlsDir, "subtitles.vtt");
             var localSrtPath = Path.Combine(hlsDir, "subtitles.srt");
-            
+
             var sourceVttPath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.vtt");
             var sourceSrtPath = Path.Combine(wwwroot, "uploads", "subtitles", $"{lessonId}.srt");
 
             if(File.Exists(sourceVttPath))
             {
                 File.Copy(sourceVttPath, localVttPath, true);
+                _logger.LogInformation("[AI] Đã copy subtitles.vtt vào folder HLS.");
             }
             if(File.Exists(sourceSrtPath))
             {
                 File.Copy(sourceSrtPath, localSrtPath, true);
+                _logger.LogInformation("[AI] Đã copy subtitles.srt vào folder HLS.");
             }
 
             var utf8WithoutBom = new UTF8Encoding(false);
