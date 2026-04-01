@@ -95,4 +95,30 @@ Trong file `appsettings.Development.json` hoặc `appsettings.json`, tìm đến
 
 - Cập nhật phiên bản card đồ hoạ lên phiên bản mới nhất.
 - Vào đường link [này](https://developer.download.nvidia.com/compute/cuda/13.2.0/local_installers/cuda_13.2.0_windows.exe) và cài đặt CUDA
-- Ngoài ra, phải đảm bảo card đồ hoạ đầu tiên trong máy là card đồ hoạ NVIDIA
+- Ngoài ra, phải đảm bảo card đồ hoạ đầu tiên trong máy là card đồ hoạ NVIDIA. Để cài đặt Torch phù hợp với card NVIDIA, hãy chạy:
+
+```
+.\LMS.API\External\python_env\Scripts\pip.exe install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+```
+
+## Hướng dẫn cho Hosting Debian (CPU-only)
+
+Để chạy dịch vụ gỡ băng trên Debian mà không có GPU, hãy thực hiện các bước sau:
+
+1.  **Cài đặt các gói hệ thống cần thiết**:
+
+    ```bash
+    sudo apt update
+    sudo apt install python3 python3-venv python3-pip libgomp1 ffmpeg -y
+    ```
+
+    _Lưu ý: `libgomp1` là bắt buộc để OpenMP hoạt động (thư viện song song cho CPU)._
+
+2.  **Môi trường ảo (Venv)**:
+    Hệ thống sẽ tự động tạo `venv` tại `External/python_env` khi có yêu cầu gỡ băng đầu tiên.
+
+3.  **Tối ưu hóa dung lượng (Tùy chọn)**:
+    Nếu muốn tiết kiệm dung lượng ổ cứng trên Hosting (vì bản torch mặc định rất nặng), bạn có thể cài bản torch-cpu thủ công vào venv:
+    ```bash
+    ./External/python_env/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu --force-reinstall
+    ```

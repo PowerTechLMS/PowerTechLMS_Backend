@@ -171,9 +171,8 @@ builder.Services
             var url = config["Qdrant:Url"] ?? "http://localhost:6334";
             return new VectorDbService(url);
         });
-builder.Services
-    .AddSingleton<ITranscriptionService>(
-        sp => new WhisperService(Path.Combine(builder.Environment.ContentRootPath, "models", "ggml-small-vi.bin")));
+builder.Services.AddSingleton<IPythonEnvService, PythonEnvService>();
+builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 
 builder.Services
