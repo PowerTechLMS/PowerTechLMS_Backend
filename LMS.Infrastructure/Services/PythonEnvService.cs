@@ -38,14 +38,26 @@ public class PythonEnvService : IPythonEnvService
 
     public async Task EnsureEnvReadyAsync()
     {
-        if(File.Exists(_pythonExecutable))
-            return;
+        bool venvExists = File.Exists(_pythonExecutable);
+        if(!venvExists)
+        {
+            _logger.LogInformation("[PythonEnv] Đang khởi tạo môi trường Python mới...");
+            if(!Directory.Exists(_basePath))
+                Directory.CreateDirectory(_basePath);
 
-        if(!Directory.Exists(_basePath))
-            Directory.CreateDirectory(_basePath);
+            await CreateVenvAsync();
+        }
 
-        await CreateVenvAsync();
-        await InstallDependenciesAsync();
+        // Marker file để đảm bảo đã cài đủ các thư viện mới nhất
+        // v2: faster-whisper, sentence-transformers, qdrant-client
+        string markerFile = Path.Combine(_venvPath, "requirements_v2.marker");
+        if (!File.Exists(markerFile))
+        {
+            _logger.LogInformation("[PythonEnv] Đang cài đặt/cập nhật các thư viện phụ thuộc (Whisper, SentenceTransformers, Qdrant)...");
+            await InstallDependenciesAsync();
+            await File.WriteAllTextAsync(markerFile, DateTime.Now.ToString());
+            _logger.LogInformation("[PythonEnv] Hoàn tất cài đặt thư viện.");
+        }
     }
 
     private async Task CreateVenvAsync()
@@ -82,8 +94,8 @@ public class PythonEnvService : IPythonEnvService
             ? Path.Combine(_venvPath, "Scripts", "pip.exe") 
             : Path.Combine(_venvPath, "bin", "pip");
 
-        // Cài đặt faster-whisper trước
-        await RunCommandAsync(pipExecutable, "install faster-whisper");
+        // Cài đặt faster-whisper, sentence-transformers và qdrant-client
+        await RunCommandAsync(pipExecutable, "install faster-whisper sentence-transformers qdrant-client");
 
         // Cài đặt torch
         // Trên Windows mặc định dùng cu124 (GPU)

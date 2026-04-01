@@ -1,7 +1,7 @@
+using LMS.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
-using SmartComponents.LocalEmbeddings;
 using System;
 using System.Linq;
 using System.Text.Json;
@@ -11,38 +11,42 @@ namespace LMS.Infrastructure.Services;
 public class VectorDbService
 {
     private readonly QdrantClient _client;
-    private readonly Lazy<LocalEmbedder?> _embedder;
+    private readonly IPythonEmbeddingService _embeddingService;
     private readonly Microsoft.Extensions.Logging.ILogger<VectorDbService> _logger;
     private const string CollectionName = "powertech_knowledge";
     private readonly SemaphoreSlim _initializationLock = new(1, 1);
 
-    public VectorDbService(string qdrantUrl, Microsoft.Extensions.Logging.ILogger<VectorDbService> logger)
+    public VectorDbService(string qdrantUrl, Microsoft.Extensions.Logging.ILogger<VectorDbService> logger, IPythonEmbeddingService embeddingService)
     {
         _client = new QdrantClient(new Uri(qdrantUrl));
         _logger = logger;
-        _embedder = new Lazy<LocalEmbedder?>(
-            () =>
-            {
-                try
-                {
-                    _logger.LogInformation("[VectorDb] Đang khởi tạo LocalEmbedder...");
-                    return new LocalEmbedder();
-                } catch(Exception ex)
-                {
-                    _logger.LogError("[VectorDb] Lỗi nghiêm trọng khi khởi tạo LocalEmbedder (ONNX Runtime): {Message}. Chi tiết: {StackTrace}", ex.Message, ex.StackTrace);
-                    return null;
-                }
-            });
+        _embeddingService = embeddingService;
         
         _ = EnsureCollectionReadyAsync();
     }
-
-    public bool IsEmbeddingAvailable => _embedder.Value is not null;
 
     private bool _collectionVerified = false;
     private bool _serviceUnreachable = false;
     private DateTime _lastRetryTime = DateTime.MinValue;
     private static readonly TimeSpan RetryInterval = TimeSpan.FromMinutes(2);
+
+    public async Task UpsertBatchAsync(List<VectorPoint> points)
+    {
+        if(!await EnsureCollectionReadyAsync())
+            return;
+            
+        try
+        {
+            await _embeddingService.UpsertBatchAsync(CollectionName, points);
+        } catch(Exception ex)
+        {
+            _logger.LogError("[VectorDb] Lỗi trong UpsertBatchAsync: {Message}", ex.Message);
+            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
+            {
+                _collectionVerified = false;
+            }
+        }
+    }
 
     public async Task UpsertVectorAsync(Guid pointId, string content, IDictionary<string, object> metadata)
     {
@@ -50,17 +54,17 @@ public class VectorDbService
             return;
         try
         {
-            if(!IsEmbeddingAvailable)
+            var embedding = await _embeddingService.GetEmbeddingAsync(content);
+            if (embedding.Length == 0)
             {
-                _logger.LogWarning("[VectorDb] Bỏ qua Upsert vì Embedding không khả dụng.");
+                _logger.LogWarning("[VectorDb] Bỏ qua Upsert vì không tạo được Embedding.");
                 return;
             }
 
-            var embedding = _embedder.Value!.Embed(content);
             var point = new PointStruct
             {
                 Id = pointId,
-                Vectors = embedding.Values.ToArray(),
+                Vectors = embedding,
                 Payload = { ["content"] = content }
             };
 
@@ -104,10 +108,9 @@ public class VectorDbService
 
         try
         {
-            if(!IsEmbeddingAvailable)
+            var embedding = await _embeddingService.GetEmbeddingAsync(query);
+            if (embedding.Length == 0)
                 return new List<(Guid Id, string Content, string Metadata)>();
-
-            var embedding = _embedder.Value!.Embed(query);
 
             var filter = new Filter();
             filter.Must
@@ -119,7 +122,7 @@ public class VectorDbService
 
             var results = await _client.SearchAsync(
                 CollectionName,
-                embedding.Values.ToArray(),
+                embedding,
                 filter: filter,
                 limit: (ulong)limit);
 
@@ -136,7 +139,7 @@ public class VectorDbService
                     {
                         var dict = r.Payload
                             .Where(kvp => kvp.Key != "content")
-                            .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
+                            .ToDictionary(kvp => kvp.Key, kvp => ConvertValueToObject(kvp.Value));
                         metadata = JsonSerializer.Serialize(dict);
                     }
                     return (id, content, metadata);
@@ -144,7 +147,11 @@ public class VectorDbService
                 .ToList();
         } catch(Exception ex)
         {
-            Console.WriteLine($"[VectorDbService] Error in SearchAsync: {ex.Message}");
+            _logger.LogError("[VectorDbService] Error in SearchAsync: {Message}", ex.Message);
+            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
+            {
+                _collectionVerified = false;
+            }
             return new List<(Guid Id, string Content, string Metadata)>();
         }
     }
@@ -159,10 +166,9 @@ public class VectorDbService
 
         try
         {
-            if(!IsEmbeddingAvailable)
+            var embedding = await _embeddingService.GetEmbeddingAsync(query);
+            if (embedding.Length == 0)
                 return new List<(Guid Id, string Content)>();
-
-            var embedding = _embedder.Value!.Embed(query);
 
             var filter = new Filter();
             filter.Must
@@ -174,19 +180,28 @@ public class VectorDbService
 
             var results = await _client.SearchAsync(
                 CollectionName,
-                embedding.Values.ToArray(),
+                embedding,
                 filter: filter,
                 limit: (ulong)limit);
 
             return results.Select(
-                r => (
-                Guid.Parse(r.Id.Uuid),
-                r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty
-            ))
+                r =>
+                {
+                    Guid id = Guid.Parse(r.Id.Uuid);
+                    string content = r.Payload.ContainsKey("content") ? r.Payload["content"].StringValue : string.Empty;
+                    var dict = r.Payload
+                        .Where(kvp => kvp.Key != "content")
+                        .ToDictionary(kvp => kvp.Key, kvp => ConvertValueToObject(kvp.Value));
+                    return (id, content);
+                })
                 .ToList();
         } catch(Exception ex)
         {
-            Console.WriteLine($"[VectorDbService] Error in SearchByDocumentAsync: {ex.Message}");
+            _logger.LogError("[VectorDbService] Error in SearchByDocumentAsync: {Message}", ex.Message);
+            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
+            {
+                _collectionVerified = false;
+            }
             return new List<(Guid Id, string Content)>();
         }
     }
@@ -225,7 +240,11 @@ public class VectorDbService
             await _client.DeleteAsync(CollectionName, filter: filter);
         } catch(Exception ex)
         {
-            Console.WriteLine($"[VectorDbService] Error in DeleteVectorsByFilterAsync: {ex.Message}");
+            _logger.LogError("[VectorDbService] Error in DeleteVectorsByFilterAsync: {Message}", ex.Message);
+            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
+            {
+                _collectionVerified = false;
+            }
         }
     }
 
@@ -260,82 +279,102 @@ public class VectorDbService
                             metadata = p.Payload["metadata"].StringValue;
                         } else
                         {
-                            var dict = p.Payload
-                                .Where(kvp => kvp.Key != "content")
-                                .ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value.StringValue);
-                            metadata = JsonSerializer.Serialize(dict);
-                        }
-                        return (content, metadata);
-                    })
-                .ToList();
-        } catch(Exception ex)
-        {
-            Console.WriteLine($"[VectorDbService] Error in GetAllSegmentsAsync: {ex.Message}");
-            return new List<(string Content, string Metadata)>();
-        }
+                        var dict = p.Payload
+                        .Where(kvp => kvp.Key != "content")
+                        .ToDictionary(kvp => kvp.Key, kvp => ConvertValueToObject(kvp.Value));
+                    metadata = JsonSerializer.Serialize(dict);
+                }
+                return (content, metadata);
+            })
+        .ToList();
+    } catch(Exception ex)
+    {
+        _logger.LogError("[VectorDbService] Error in GetAllSegmentsAsync: {Message}", ex.Message);
+        return new List<(string Content, string Metadata)>();
     }
+}
 
-    private async Task<bool> EnsureCollectionReadyAsync()
+private async Task<bool> EnsureCollectionReadyAsync()
+{
+    if(_collectionVerified)
+        return true;
+
+    await _initializationLock.WaitAsync();
+    try
     {
         if(_collectionVerified)
             return true;
 
-        await _initializationLock.WaitAsync();
+        if(_serviceUnreachable && DateTime.UtcNow - _lastRetryTime < RetryInterval)
+        {
+            return false;
+        }
+
         try
         {
-            if(_collectionVerified)
-                return true;
-
-            if(_serviceUnreachable && DateTime.UtcNow - _lastRetryTime < RetryInterval)
+            await EnsureCollectionExistsAsync();
+            _collectionVerified = true;
+            _serviceUnreachable = false;
+            return true;
+        } catch(Exception ex)
+        {
+            if(ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
             {
-                return false;
-            }
-
-            try
-            {
-                await EnsureCollectionExistsAsync();
                 _collectionVerified = true;
                 _serviceUnreachable = false;
                 return true;
-            } catch(Exception ex)
-            {
-                // Nếu lỗi là do collection đã tồn tại thì coi như đã sẵn sàng
-                if(ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-                {
-                    _collectionVerified = true;
-                    _serviceUnreachable = false;
-                    return true;
-                }
-
-                if(!_serviceUnreachable)
-                {
-                    Console.WriteLine($"[VectorDbService] Note: Qdrant (VectorDB) is not available or connection failed: {ex.Message}. AI-driven search features will be disabled. (Message suppressed for future retries)");
-                }
-
-                _serviceUnreachable = true;
-                _lastRetryTime = DateTime.UtcNow;
-                return false;
             }
-        } finally
-        {
-            _initializationLock.Release();
-        }
-    }
 
-    private async Task EnsureCollectionExistsAsync()
+            if(!_serviceUnreachable)
+            {
+                _logger.LogWarning("[VectorDbService] Note: Qdrant (VectorDB) is not available or connection failed: {Message}. AI-driven search features will be disabled. (Message suppressed for future retries)", ex.Message);
+            }
+
+            _serviceUnreachable = true;
+            _lastRetryTime = DateTime.UtcNow;
+            return false;
+        }
+    } finally
     {
-        var collections = await _client.ListCollectionsAsync();
-        if(!collections.Any(c => string.Equals(c, CollectionName, StringComparison.OrdinalIgnoreCase)))
+        _initializationLock.Release();
+    }
+}
+
+private async Task EnsureCollectionExistsAsync()
+{
+    _logger.LogInformation("[VectorDb] Đang kiểm tra collection '{CollectionName}'...", CollectionName);
+    var collections = await _client.ListCollectionsAsync();
+    _logger.LogInformation("[VectorDb] Các collection hiện có: {Collections}", string.Join(", ", collections));
+
+    if(!collections.Any(c => string.Equals(c, CollectionName, StringComparison.OrdinalIgnoreCase)))
+    {
+        _logger.LogInformation("[VectorDb] Không tìm thấy collection '{CollectionName}'. Đang tạo mới...", CollectionName);
+        try
         {
-            try
-            {
-                await _client.CreateCollectionAsync(
-                    CollectionName,
-                    new VectorParams { Size = 384, Distance = Distance.Cosine });
-            } catch(Exception ex) when (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
-            {
-                // Bỏ qua nếu collection đã được tạo bởi tiến trình khác
-            }
+            await _client.CreateCollectionAsync(
+                CollectionName,
+                new VectorParams { Size = 384, Distance = Distance.Cosine });
+            _logger.LogInformation("[VectorDb] Đã tạo thành công collection '{CollectionName}'.", CollectionName);
+        } catch(Exception ex) when (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation("[VectorDb] Collection '{CollectionName}' đã được khởi tạo bởi tiến trình khác.", CollectionName);
         }
     }
+    else
+    {
+        _logger.LogInformation("[VectorDb] Collection '{CollectionName}' đã sẵn sàng.", CollectionName);
+    }
+}
+
+private object ConvertValueToObject(Value value)
+{
+    return value.KindCase switch
+    {
+        Value.KindOneofCase.StringValue => value.StringValue,
+        Value.KindOneofCase.DoubleValue => value.DoubleValue,
+        Value.KindOneofCase.IntegerValue => value.IntegerValue,
+        Value.KindOneofCase.BoolValue => value.BoolValue,
+        _ => value.ToString()
+    };
+}
 }

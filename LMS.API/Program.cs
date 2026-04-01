@@ -171,10 +171,12 @@ builder.Services
         {
             var config = sp.GetRequiredService<IConfiguration>();
             var logger = sp.GetRequiredService<ILogger<VectorDbService>>();
+            var embeddingService = sp.GetRequiredService<IPythonEmbeddingService>();
             var url = config["Qdrant:Url"] ?? "http://localhost:6334";
-            return new VectorDbService(url, logger);
+            return new VectorDbService(url, logger, embeddingService);
         });
 builder.Services.AddSingleton<IPythonEnvService, PythonEnvService>();
+builder.Services.AddSingleton<IPythonEmbeddingService, PythonEmbeddingService>();
 builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 

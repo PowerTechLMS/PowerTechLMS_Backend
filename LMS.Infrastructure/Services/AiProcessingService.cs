@@ -81,33 +81,28 @@ public class AiProcessingService : IAiProcessingService
         _logger.LogInformation("[AI] Hoàn tất gỡ băng. Số segments: {Count}", segments.Count);
 
 
-        var rawTexts = segments.Select(s => s.Text).ToList();
-
-        var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
-        bool skipVectorDb = false;
-
-        _logger.LogInformation("[AI] Đang lưu vector search...");
-        for(int i = 0; i < segments.Count; i++)
+        _logger.LogInformation("[AI] Đang lưu vector search theo batch...");
+        var points = segments.Select(seg => new VectorPoint
         {
-            var seg = segments[i];
-            var refined = seg.Text;
-            processedSegments.Add((seg, refined));
-
-            if(!skipVectorDb)
+            Id = Guid.NewGuid(),
+            Text = seg.Text,
+            Payload = new Dictionary<string, object>
             {
-                try
-                {
-                    await _vectorDb.UpsertVectorAsync(
-                        Guid.NewGuid(),
-                        refined,
-                        new Dictionary<string, object>
-                        { { "LessonId", lessonId }, { "Type", "Video" }, { "Start", seg.StartTime } });
-                } catch
-                {
-                    skipVectorDb = true;
-                }
+                { "LessonId", lessonId },
+                { "Type", "Video" },
+                { "Start", seg.StartTime }
             }
+        }).ToList();
+
+        try
+        {
+            await _vectorDb.UpsertBatchAsync(points);
+        } catch (Exception ex)
+        {
+            _logger.LogError("[AI] Lỗi khi lưu vector search batch: {Message}", ex.Message);
         }
+
+        var processedSegments = segments.Select(s => (Segment: s, RefinedText: s.Text)).ToList();
 
         try
         {
@@ -232,13 +227,14 @@ public class AiProcessingService : IAiProcessingService
 
         await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
 
-        foreach(var chunk in chunks)
+        var points = chunks.Select(chunk => new VectorPoint
         {
-            await _vectorDb.UpsertVectorAsync(
-                Guid.NewGuid(),
-                chunk,
-                new Dictionary<string, object> { { "DocumentId", documentId }, { "Type", "Document" } });
-        }
+            Id = Guid.NewGuid(),
+            Text = chunk,
+            Payload = new Dictionary<string, object> { { "DocumentId", documentId }, { "Type", "Document" } }
+        }).ToList();
+
+        await _vectorDb.UpsertBatchAsync(points);
 
 
         doc.IsAiProcessed = true;
@@ -291,26 +287,20 @@ public class AiProcessingService : IAiProcessingService
 
                 await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
 
-                foreach(var chunk in chunks)
+                var points = chunks.Select(chunk => new VectorPoint
                 {
-                    try
+                    Id = Guid.NewGuid(),
+                    Text = chunk,
+                    Payload = new Dictionary<string, object>
                     {
-                        await _vectorDb.UpsertVectorAsync(
-                            Guid.NewGuid(),
-                            chunk,
-                            new Dictionary<string, object>
-                            {
-                            { "LessonId", attachment.LessonId },
-                            { "AttachmentId", attachmentId },
-                            { "Type", "Attachment" },
-                            { "FileName", attachment.FileName }
-                            });
-                    } catch(Exception ex)
-                    {
-                        _logger.LogError(
-                            $"[AI] Lỗi khi tạo vector cho một chunk của tài liệu {attachmentId}: {ex.Message}");
+                        { "LessonId", attachment.LessonId },
+                        { "AttachmentId", attachmentId },
+                        { "Type", "Attachment" },
+                        { "FileName", attachment.FileName }
                     }
-                }
+                }).ToList();
+
+                await _vectorDb.UpsertBatchAsync(points);
             }
         } catch(Exception ex)
         {
@@ -382,13 +372,14 @@ public class AiProcessingService : IAiProcessingService
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
         var chunks = SplitText(lesson.Content, 1000, 200);
 
-        foreach(var chunk in chunks)
+        var points = chunks.Select(chunk => new VectorPoint
         {
-            await _vectorDb.UpsertVectorAsync(
-                Guid.NewGuid(),
-                chunk,
-                new Dictionary<string, object> { { "LessonId", lessonId }, { "Type", "Text" } });
-        }
+            Id = Guid.NewGuid(),
+            Text = chunk,
+            Payload = new Dictionary<string, object> { { "LessonId", lessonId }, { "Type", "Text" } }
+        }).ToList();
+
+        await _vectorDb.UpsertBatchAsync(points);
 
         lesson.IsAiProcessed = true;
         await _db.SaveChangesAsync();
