@@ -303,7 +303,15 @@ provider.Mappings[".ts"] = "video/mp2t";
 provider.Mappings[".vtt"] = "text/vtt";
 provider.Mappings[".srt"] = "text/plain";
 
-app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = provider });
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
