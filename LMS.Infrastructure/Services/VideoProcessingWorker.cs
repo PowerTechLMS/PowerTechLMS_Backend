@@ -55,6 +55,7 @@ public class VideoProcessingWorker : BackgroundService
         if(lesson == null || string.IsNullOrEmpty(lesson.VideoStorageKey))
             return;
 
+        _logger.LogInformation("[VideoWorker] Bắt đầu xử lý cho LessonId: {LessonId}", lessonId);
         lesson.VideoStatus = "Processing";
         await db.SaveChangesAsync();
         await hubContext.Clients
@@ -63,6 +64,7 @@ public class VideoProcessingWorker : BackgroundService
 
         try
         {
+            _logger.LogInformation("[VideoWorker] Đang lấy đường dẫn FFmpeg/FFprobe...");
             var ffmpegPath = await _ffmpegDownloader.GetFFmpegPathAsync();
             var ffprobePath = await _ffmpegDownloader.GetFFprobePathAsync();
 
@@ -74,10 +76,12 @@ public class VideoProcessingWorker : BackgroundService
 
             var m3u8Path = Path.Combine(outputDir, "index.m3u8");
 
+            _logger.LogInformation("[VideoWorker] Đang lấy thời lượng video cho: {InputPath}", inputPath);
             var duration = await GetVideoDurationAsync(ffprobePath, inputPath);
             lesson.VideoDurationSeconds = (int)duration;
+            _logger.LogInformation("[VideoWorker] Thời lượng video: {Duration}s", duration);
 
-            var arguments = $"-y -hwaccel auto -i \"{inputPath}\" -c:v h264_nvenc -preset p1 -tune hq -vf \"scale='min(1920,iw)':-2\" -c:a aac -b:a 128k -ac 2 -f hls -hls_time 10 -hls_list_size 0 -hls_flags independent_segments -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
+            var arguments = $"-y -i \"{inputPath}\" -c:v libx264 -preset fast -vf \"scale='min(1920,iw)':-2\" -c:a aac -b:a 128k -ac 2 -f hls -hls_time 10 -hls_list_size 0 -hls_flags independent_segments -hls_segment_filename \"{outputDir}/seg%d.ts\" \"{m3u8Path}\"";
 
             var process = new Process
             {
@@ -102,10 +106,14 @@ public class VideoProcessingWorker : BackgroundService
 
             process.Start();
             process.BeginErrorReadLine();
+            _logger.LogInformation("[VideoWorker] Đang chờ FFmpeg hoàn tất...");
             await process.WaitForExitAsync(stoppingToken);
+
+            _logger.LogInformation("[VideoWorker] FFmpeg kết thúc với ExitCode: {ExitCode}", process.ExitCode);
 
             if(process.ExitCode == 0)
             {
+                _logger.LogInformation("[VideoWorker] Chuyển đổi HLS thành công cho LessonId: {LessonId}", lessonId);
                 lesson.VideoStatus = "Ready";
                 lesson.VideoStorageUrl = $"/uploads/hls/{lessonId}/index.m3u8";
 
@@ -113,8 +121,11 @@ public class VideoProcessingWorker : BackgroundService
                 if(!Directory.Exists(audioDir))
                     Directory.CreateDirectory(audioDir);
                 var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
+                
+                _logger.LogInformation("[VideoWorker] Đang trích xuất âm thanh cho AI: {AudioPath}", audioPath);
                 await ExtractAudioForAiAsync(ffmpegPath, inputPath, audioPath, stoppingToken);
 
+                _logger.LogInformation("[VideoWorker] Đang đẩy vào Hangfire để xử lý AI...");
                 BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonVideoAsync(lessonId));
 
                 if(File.Exists(inputPath))
@@ -123,10 +134,12 @@ public class VideoProcessingWorker : BackgroundService
                 }
             } else
             {
+                _logger.LogError("[VideoWorker] FFmpeg HLS thất bại. Chi tiết lỗi:\n{FFmpegLog}", ffmpegLog.ToString());
                 lesson.VideoStatus = "Failed";
             }
-        } catch
+        } catch(Exception ex)
         {
+            _logger.LogError(ex, "[VideoWorker] Lỗi nghiêm trọng khi xử lý video LessonId: {LessonId}", lessonId);
             lesson.VideoStatus = "Failed";
         }
 

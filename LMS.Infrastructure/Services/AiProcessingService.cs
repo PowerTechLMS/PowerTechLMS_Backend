@@ -42,6 +42,7 @@ public class AiProcessingService : IAiProcessingService
 
     public async Task ProcessLessonVideoAsync(int lessonId)
     {
+        _logger.LogInformation("[AI] Bắt đầu xử lý hậu kỳ cho Bài học: {LessonId}", lessonId);
         var lesson = await _db.Lessons.FindAsync(lessonId);
         if(lesson == null || string.IsNullOrEmpty(lesson.VideoStorageUrl))
             return;
@@ -54,17 +55,21 @@ public class AiProcessingService : IAiProcessingService
 
         var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
 
+        _logger.LogInformation("[AI] Đang kiểm tra file âm thanh/video để trích xuất...");
         if(File.Exists(videoPath))
         {
             await ExtractAudioAsync(videoPath, audioPath);
         } else if(!File.Exists(audioPath))
         {
+            _logger.LogWarning("[AI] Không tìm thấy audio file {AudioPath} và video file {VideoPath}", audioPath, videoPath);
             return;
         }
 
+        _logger.LogInformation("[AI] Đang gỡ băng (Whisper) cho bài học {LessonId}...", lessonId);
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
 
         var segments = await _whisper.TranscribeAsync(audioPath);
+        _logger.LogInformation("[AI] Hoàn tất gỡ băng. Số segments: {Count}", segments.Count);
 
 
         var rawTexts = segments.Select(s => s.Text).ToList();
@@ -72,6 +77,7 @@ public class AiProcessingService : IAiProcessingService
         var processedSegments = new List<(TextSegment Segment, string RefinedText)>();
         bool skipVectorDb = false;
 
+        _logger.LogInformation("[AI] Đang lưu vector search...");
         for(int i = 0; i < segments.Count; i++)
         {
             var seg = segments[i];
@@ -105,6 +111,7 @@ public class AiProcessingService : IAiProcessingService
             _logger.LogWarning($"[AI] Không thể xoá file âm thanh tạm: {ex.Message}");
         }
 
+        _logger.LogInformation("[AI] Đang tạo file phụ đề .srt và .vtt...");
         var srtContent = GenerateSrtContent(processedSegments);
 
         var vttContent = GenerateVttContent(processedSegments);
@@ -119,6 +126,7 @@ public class AiProcessingService : IAiProcessingService
         await File.WriteAllTextAsync(srtPath, srtContent, Encoding.UTF8);
         await File.WriteAllTextAsync(vttPath, vttContent, Encoding.UTF8);
 
+        _logger.LogInformation("[AI] Cập nhật HLS master playlist tích hợp phụ đề...");
         var hlsDir = Path.Combine(wwwroot, "uploads", "hls", lessonId.ToString());
         if(Directory.Exists(hlsDir))
         {
