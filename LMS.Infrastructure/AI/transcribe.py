@@ -4,6 +4,11 @@ import argparse
 import torch
 from faster_whisper import WhisperModel
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
+
 def generate_subtitles(video_path, model_size="small", device="auto", compute_type="default"):
     sys.stderr.write(f"Đang khởi tạo model '{model_size}' trên '{device}'...\n")
     if device == "auto":

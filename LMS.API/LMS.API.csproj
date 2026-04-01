@@ -28,5 +28,9 @@
   <ItemGroup>
     <Watch Remove="wwwroot\uploads\**" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="..\LMS.Infrastructure\AI\**" CopyToOutputDirectory="PreserveNewest" Link="AI\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
 
 </Project>
