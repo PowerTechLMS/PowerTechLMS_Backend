@@ -14,6 +14,8 @@ using Microsoft.OpenApi;
 using System.Text;
 using System.Text.Json;
 
+AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost
