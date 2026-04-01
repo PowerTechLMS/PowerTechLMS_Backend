@@ -125,11 +125,13 @@ public class LessonService : ILessonService
 {
     private readonly AppDbContext _db;
     private readonly VectorDbService _vectorDb;
+    private readonly INotificationService _notificationService;
 
-    public LessonService(AppDbContext db, VectorDbService vectorDb)
+    public LessonService(AppDbContext db, VectorDbService vectorDb, INotificationService notificationService)
     {
         _db = db;
         _vectorDb = vectorDb;
+        _notificationService = notificationService;
     }
 
 
@@ -191,6 +193,8 @@ public class LessonService : ILessonService
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
         }
+
+        await NotifyEnrolledUsersAsync(lesson.Id, "NewLesson");
 
         return new LessonResponse(
             lesson.Id,
@@ -270,6 +274,8 @@ public class LessonService : ILessonService
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
         }
+
+        await NotifyEnrolledUsersAsync(lesson.Id, "LessonUpdated");
 
         return new LessonResponse(
             lesson.Id,
@@ -420,5 +426,44 @@ public class LessonService : ILessonService
         attachment.IsDeleted = true;
         attachment.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+    }
+
+    private async Task NotifyEnrolledUsersAsync(int lessonId, string type)
+    {
+        var lesson = await _db.Lessons
+            .Include(l => l.Module)
+            .ThenInclude(m => m.Course)
+            .FirstOrDefaultAsync(l => l.Id == lessonId);
+
+        if(lesson is null || !lesson.Module.Course.IsPublished)
+        {
+            return;
+        }
+
+        var courseId = lesson.Module.CourseId;
+        var courseTitle = lesson.Module.Course.Title;
+        var lessonTitle = lesson.Title;
+
+        var enrolledUserIds = await _db.Enrollments
+            .Where(e => e.CourseId == courseId && (e.Status == "Approved" || e.Status == "Completed") && !e.IsDeleted)
+            .Select(e => e.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        if(!enrolledUserIds.Any())
+        {
+            return;
+        }
+
+        var title = type is "NewLesson" ? "Bài giảng mới" : "Bài giảng đã được cập nhật";
+        var message = type is "NewLesson"
+            ? $"Khóa học '{courseTitle}' vừa có bài giảng mới: {lessonTitle}"
+            : $"Bài giảng '{lessonTitle}' trong khóa học '{courseTitle}' vừa được cập nhật nội dung mới.";
+        var link = $"/courses/{courseId}/learn?lessonId={lessonId}";
+
+        foreach(var userId in enrolledUserIds)
+        {
+            await _notificationService.CreateNotificationAsync(userId, title, message, link, type);
+        }
     }
 }

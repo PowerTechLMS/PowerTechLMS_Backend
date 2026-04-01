@@ -195,7 +195,7 @@ public class CourseService : ICourseService
                                                     l.AiSummary))
                                 .ToList()))
                 .ToList(),
-            course.Enrollments?.Count ?? 0,
+            await _db.Enrollments.CountAsync(e => e.CourseId == courseId),
             course.EnrollStartDate,
             course.EnrollEndDate,
             course.CompletionDeadlineDays,
