@@ -12,11 +12,18 @@ public class CourseService : ICourseService
     private readonly INotificationService _notificationService;
     private readonly VectorDbService _vectorDb;
 
-    public CourseService(AppDbContext db, INotificationService notificationService, VectorDbService vectorDb)
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+
+    public CourseService(
+        AppDbContext db,
+        INotificationService notificationService,
+        VectorDbService vectorDb,
+        Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _db = db;
         _notificationService = notificationService;
         _vectorDb = vectorDb;
+        _config = config;
     }
 
     public async Task<PagedResponse<CourseResponse>> GetCoursesAsync(
@@ -443,7 +450,12 @@ public class CourseService : ICourseService
         if(!isAdmin && course.CreatedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền tải lên ảnh bìa cho khóa học này.");
 
-        var uploadsDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "covers");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var uploadsDir = Path.Combine(wwwroot, "uploads", "covers");
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
         var ext = Path.GetExtension(fileName);

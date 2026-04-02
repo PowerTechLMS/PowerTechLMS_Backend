@@ -19,19 +19,22 @@ public class LessonsController : ControllerBase
     private readonly IVideoProcessingQueue _videoQueue;
     private readonly ILogger<LessonsController> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IConfiguration _config;
 
     public LessonsController(
         ILessonService lessonService,
         IAiProcessingService aiService,
         IVideoProcessingQueue videoQueue,
         ILogger<LessonsController> logger,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IConfiguration config)
     {
         _lessonService = lessonService;
         _aiService = aiService;
         _videoQueue = videoQueue;
         _logger = logger;
         _scopeFactory = scopeFactory;
+        _config = config;
     }
 
     private int UserId
@@ -130,7 +133,12 @@ public class LessonsController : ControllerBase
         [FromForm] string fileName,
         IFormFile file)
     {
-        var tempDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "temp", id.ToString());
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var tempDir = Path.Combine(wwwroot, "uploads", "temp", id.ToString());
         if(!Directory.Exists(tempDir))
             Directory.CreateDirectory(tempDir);
 
@@ -152,7 +160,12 @@ public class LessonsController : ControllerBase
                 async () =>
                 {
                     var sw = Stopwatch.StartNew();
-                    var finalDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "videos");
+                    var storageRoot = _config["Storage:RootPath"];
+                    var wwwroot = string.IsNullOrEmpty(storageRoot) 
+                        ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                        : storageRoot;
+
+                    var finalDir = Path.Combine(wwwroot, "uploads", "videos");
                     if(!Directory.Exists(finalDir))
                         Directory.CreateDirectory(finalDir);
                     var finalPath = Path.Combine(finalDir, finalFileName);

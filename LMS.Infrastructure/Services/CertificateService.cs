@@ -21,8 +21,13 @@ namespace LMS.Infrastructure.Services;
 public class CertificateService : ICertificateService
 {
     private readonly AppDbContext _db;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
 
-    public CertificateService(AppDbContext db) { _db = db; }
+    public CertificateService(AppDbContext db, Microsoft.Extensions.Configuration.IConfiguration config)
+    {
+        _db = db;
+        _config = config;
+    }
 
     private PdfFont? boldFont;
     private PdfFont? italicFont;
@@ -36,7 +41,10 @@ public class CertificateService : ICertificateService
 
         if(existing != null)
         {
-            var wwwroot = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var storageRoot = _config["Storage:RootPath"];
+            var wwwroot = string.IsNullOrEmpty(storageRoot) 
+                ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                : storageRoot;
             var absolutePath = System.IO.Path.Combine(wwwroot, existing.PdfUrl.TrimStart('/'));
 
             if(File.Exists(absolutePath))
@@ -152,7 +160,11 @@ public class CertificateService : ICertificateService
 
     private async Task<string> GenerateCertificatePdf(Certificate cert, User user, Course course)
     {
-        var wwwroot = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
         var uploadDir = System.IO.Path.Combine(wwwroot, "uploads", "certificates");
         if(!Directory.Exists(uploadDir))
             Directory.CreateDirectory(uploadDir);
@@ -720,11 +732,13 @@ public class DocumentService : IDocumentService
 {
     private readonly AppDbContext _db;
     private readonly VectorDbService _vectorDb;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
 
-    public DocumentService(AppDbContext db, VectorDbService vectorDb)
+    public DocumentService(AppDbContext db, VectorDbService vectorDb, Microsoft.Extensions.Configuration.IConfiguration config)
     {
         _db = db;
         _vectorDb = vectorDb;
+        _config = config;
     }
 
     public async Task<PagedResponse<DocumentResponse>> GetDocumentsAsync(
@@ -808,7 +822,12 @@ public class DocumentService : IDocumentService
         string fileName,
         long fileSize)
     {
-        var uploadsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var uploadsDir = System.IO.Path.Combine(wwwroot, "uploads", "documents");
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
 
@@ -919,7 +938,12 @@ public class DocumentService : IDocumentService
         if(!isAdmin && doc.UploadedById != userId)
             throw new UnauthorizedAccessException("Bạn không có quyền thêm phiên bản cho tài liệu này.");
 
-        var uploadsDir = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "documents");
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var uploadsDir = System.IO.Path.Combine(wwwroot, "uploads", "documents");
         if(!Directory.Exists(uploadsDir))
             Directory.CreateDirectory(uploadsDir);
         var ext = System.IO.Path.GetExtension(fileName);
@@ -986,16 +1010,17 @@ public class DocumentService : IDocumentService
         var version = await _db.DocumentVersions.FindAsync(versionId) ??
             throw new KeyNotFoundException("Không tìm thấy phiên bản.");
         var storageKey = version.StorageKey ?? string.Empty;
-        var filePath = System.IO.Path
-            .Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "documents",
-                System.IO.Path.GetFileName(storageKey));
-        if(!File.Exists(filePath))
-            throw new FileNotFoundException("Tệp vật lý không tồn tại.");
-        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var filePath = System.IO.Path.Combine(wwwroot, "uploads", "documents", System.IO.Path.GetFileName(storageKey));
+        if(!System.IO.File.Exists(filePath))
+            throw new FileNotFoundException($"Tệp vật lý không tồn tại tại: {filePath}");
+
+        var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
         var contentType = version.FileType switch
         {
             "pdf" => "application/pdf",
@@ -1029,17 +1054,17 @@ public class DocumentService : IDocumentService
             throw new InvalidOperationException("Tài liệu không có nội dung.");
 
         var storageKey = doc.CurrentVersion.StorageKey ?? string.Empty;
-        var filePath = System.IO.Path
-            .Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "documents",
-                System.IO.Path.GetFileName(storageKey));
-        if(!File.Exists(filePath))
-            throw new FileNotFoundException("Tệp vật lý không tồn tại.");
 
-        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var filePath = System.IO.Path.Combine(wwwroot, "uploads", "documents", System.IO.Path.GetFileName(storageKey));
+        if(!System.IO.File.Exists(filePath))
+            throw new FileNotFoundException($"Tệp vật lý không tồn tại tại: {filePath}");
+
+        var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read);
         var contentType = doc.CurrentVersion.FileType switch
         {
             "pdf" => "application/pdf",
