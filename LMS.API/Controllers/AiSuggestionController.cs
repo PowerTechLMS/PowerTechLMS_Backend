@@ -22,7 +22,7 @@ public class AiSuggestionController : ControllerBase
     }
 
     [HttpPost("chat")]
-    public async Task<IActionResult> Chat([FromBody] ChatRequest request)
+    public async Task<IActionResult> Chat([FromBody] AiSuggestionRequest request)
     {
         if(request.Messages == null || !request.Messages.Any())
             return BadRequest(new { message = "Tin nhắn không được để trống." });
@@ -119,7 +119,7 @@ public class AiSuggestionController : ControllerBase
     }
 }
 
-public class ChatRequest
+public class AiSuggestionRequest
 {
     public List<LlmChatMessage> Messages { get; set; } = new();
 }

@@ -20,6 +20,7 @@ public class LessonsController : ControllerBase
     private readonly ILogger<LessonsController> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
+    private readonly IFFmpegDownloader _ffmpegDownloader;
 
     public LessonsController(
         ILessonService lessonService,
@@ -27,7 +28,8 @@ public class LessonsController : ControllerBase
         IVideoProcessingQueue videoQueue,
         ILogger<LessonsController> logger,
         IServiceScopeFactory scopeFactory,
-        IConfiguration config)
+        IConfiguration config,
+        IFFmpegDownloader ffmpegDownloader)
     {
         _lessonService = lessonService;
         _aiService = aiService;
@@ -35,6 +37,7 @@ public class LessonsController : ControllerBase
         _logger = logger;
         _scopeFactory = scopeFactory;
         _config = config;
+        _ffmpegDownloader = ffmpegDownloader;
     }
 
     private int UserId
@@ -260,5 +263,90 @@ public class LessonsController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+    }
+
+    [HttpPost("sync-all-durations")]
+    [Authorize(Roles = "Admin,Quản trị viên")]
+    public async Task<ActionResult> SyncAllDurations()
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<LMS.Infrastructure.Persistence.AppDbContext>();
+        
+        var lessons = db.Lessons
+            .Where(l => l.Type == "Video" && (l.VideoDurationSeconds <= 0 || l.VideoDurationSeconds > 10000) && !string.IsNullOrEmpty(l.VideoStorageUrl))
+            .ToList();
+
+        int updatedCount = 0;
+        var storageRoot = _config["Storage:RootPath"];
+        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+            : storageRoot;
+
+        var ffprobePath = await _ffmpegDownloader.GetFFprobePathAsync();
+
+        foreach (var lesson in lessons)
+        {
+            try 
+            {
+                var filePath = Path.Combine(wwwroot, lesson.VideoStorageUrl.TrimStart('/'));
+                if (!System.IO.File.Exists(filePath)) continue;
+
+                var duration = await GetVideoDurationAsync(ffprobePath, filePath);
+                if (duration > 0)
+                {
+                    lesson.VideoDurationSeconds = (int)duration;
+                    updatedCount++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Không thể lấy thời lượng cho bài học {Id}: {Msg}", lesson.Id, ex.Message);
+            }
+        }
+
+        if (updatedCount > 0)
+        {
+            await db.SaveChangesAsync();
+        }
+
+        return Ok(new { message = $"Đã cập nhật thời lượng cho {updatedCount} bài học.", totalProcessed = lessons.Count });
+    }
+
+    private async Task<double> GetVideoDurationAsync(string ffprobePath, string inputPath)
+    {
+        var arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{inputPath}\"";
+        var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = ffprobePath,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+        var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        var cleanOutput = output.Trim().Replace("\"", "");
+        if (double.TryParse(cleanOutput, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var duration))
+        {
+            if (duration > 1000000) 
+            {
+                if (duration > 1000000000) return duration / 1000000;
+                if (duration > 10000000 && !cleanOutput.Contains(".")) return duration / 1000000;
+                if (duration > 36000) return duration / 1000;
+                return duration;
+            }
+            if (duration > 10000) 
+            {
+                 return duration / 1000;
+            }
+            return duration;
+        }
+        return 0;
     }
 }

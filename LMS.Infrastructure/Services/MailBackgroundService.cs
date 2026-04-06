@@ -32,12 +32,15 @@ public class MailBackgroundService : BackgroundService
                 try
                 {
                     await _emailService.SendEmailAsync(job.To, job.Subject, job.Body);
-                } catch
+                } catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Background email job failed for {To}. Error: {Message}", job.To, ex.Message);
                     var nextRetryCount = job.RetryCount + 1;
                     if(nextRetryCount < MaxRetries)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, nextRetryCount)), stoppingToken);
+                        var delay = (int)Math.Pow(2, nextRetryCount);
+                        _logger.LogInformation("Retrying email to {To} in {Delay} seconds (Attempt {Count})", job.To, delay, nextRetryCount);
+                        await Task.Delay(TimeSpan.FromSeconds(delay), stoppingToken);
                         _mailQueue.Enqueue(job with { RetryCount = nextRetryCount });
                     }
                 }

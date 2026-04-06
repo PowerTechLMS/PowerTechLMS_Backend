@@ -1,5 +1,5 @@
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$MigrationName
 )
 
@@ -8,8 +8,7 @@ Write-Host "Dual Migration Creator (SQL Server & PostgreSql)" -ForegroundColor C
 Write-Host "==================================" -ForegroundColor Cyan
 Write-Host ""
 
-if ([string]::IsNullOrWhiteSpace($MigrationName))
-{
+if ([string]::IsNullOrWhiteSpace($MigrationName)) {
     Write-Host "ERROR: Migration name cannot be empty!" -ForegroundColor Red
     exit 1
 }
@@ -20,8 +19,7 @@ Write-Host ""
 Write-Host "[1/2] Creating SQL Server Migration..." -ForegroundColor Cyan
 dotnet ef migrations add $MigrationName --context AppDbContext --project LMS.Infrastructure --startup-project LMS.API
 
-if ($LASTEXITCODE -ne 0)
-{
+if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "ERROR: Failed to create SQL Server migration!" -ForegroundColor Red
     exit 1
@@ -33,8 +31,7 @@ Write-Host ""
 Write-Host "[2/2] Creating PostgreSql Migration..." -ForegroundColor Cyan
 dotnet ef migrations add $MigrationName --context PostgreSqlDbContext --output-dir Migrations/PostgreSql --project LMS.Infrastructure --startup-project LMS.API
 
-if ($LASTEXITCODE -ne 0)
-{
+if ($LASTEXITCODE -ne 0) {
     Write-Host ""
     Write-Host "ERROR: Failed to create PostgreSql migration!" -ForegroundColor Red
     Write-Host ""

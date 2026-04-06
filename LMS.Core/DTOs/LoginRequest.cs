@@ -4,6 +4,9 @@ namespace LMS.Core.DTOs;
 public record LoginRequest(string Email, string Password);
 
 public record RegisterRequest(string FullName, string Email, string Password, string? Role);
+public record ForgotPasswordRequest(string Email);
+public record VerifyOtpRequest(string Email, string Otp);
+public record ResetPasswordRequest(string Email, string Otp, string NewPassword);
 
 public record MailJob(string To, string Subject, string Body, int RetryCount = 0);
 
@@ -318,7 +321,8 @@ public record EnrollmentResponse(
     int? GroupEnrollId = null,
     string? DepartmentName = null,
     string? CoverImageUrl = null,
-    string? RejectionReason = null
+    string? RejectionReason = null,
+    string? UserPosition = null
 );
 
 

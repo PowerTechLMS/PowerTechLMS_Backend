@@ -1,4 +1,4 @@
-﻿using LMS.Core.DTOs;
+using LMS.Core.DTOs;
 using LMS.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -77,12 +77,24 @@ public class ProfileController : ControllerBase
         }
     }
 
+    public class AvatarUploadRequest
+    {
+        public IFormFile File { get; set; }
+    }
+
     [HttpPost("avatar")]
-    public async Task<ActionResult> UploadAvatar(IFormFile file)
+    public async Task<ActionResult> UploadAvatar([FromForm] AvatarUploadRequest request)
     {
         try
         {
-            var uploadsPath = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
+            var file = request.File;
+            if(file == null || file.Length == 0)
+            {
+                return BadRequest(new { message = "Backend không nhận được tệp (File is null or empty)." });
+            }
+
+            var storageRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var uploadsPath = Path.Combine(storageRoot, "uploads", "avatars");
             if(!Directory.Exists(uploadsPath))
             {
                 Directory.CreateDirectory(uploadsPath);
@@ -106,12 +118,9 @@ public class ProfileController : ControllerBase
             await _userService.UpdateAvatarAsync(UserId, avatarUrl);
 
             return Ok(new { avatar = avatarUrl });
-        } catch(ArgumentException ex)
+        } catch(Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
-        } catch(KeyNotFoundException ex)
-        {
-            return NotFound(new { message = ex.Message });
+            return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message });
         }
     }
 }

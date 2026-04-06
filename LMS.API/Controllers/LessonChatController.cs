@@ -45,7 +45,7 @@ public class LessonChatController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> SendMessage([FromBody] ChatRequest request)
+    public async Task<IActionResult> SendMessage([FromBody] LessonChatRequest request)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var lesson = await _db.Lessons.FindAsync(request.LessonId);
@@ -170,7 +170,7 @@ public class LessonChatController : ControllerBase
         return 0;
     }
 
-    public class ChatRequest
+    public class LessonChatRequest
     {
         public int LessonId { get; set; }
 

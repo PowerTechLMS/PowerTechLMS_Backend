@@ -394,7 +394,8 @@ public class EnrollmentService : IEnrollmentService
             e.GroupEnrollId,
             deptName,
             e.Course?.CoverImageUrl,
-            e.RejectionReason);
+            e.RejectionReason,
+            e.User?.Position);
         return res;
     }
 
