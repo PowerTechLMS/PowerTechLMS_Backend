@@ -8,7 +8,10 @@ public interface IAuthService
 {
     Task<AuthResponse> LoginAsync(LoginRequest request);
 
-    Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    public Task<AuthResponse> RegisterAsync(RegisterRequest request);
+    Task ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<bool> VerifyOtpAsync(VerifyOtpRequest request);
+    Task ResetPasswordAsync(ResetPasswordRequest request);
 }
 
 public interface IUserService

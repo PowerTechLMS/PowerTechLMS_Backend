@@ -25,29 +25,43 @@ public class EmailService : IEmailService
         try
         {
             var smtpHost = _config["EmailSettings:SmtpHost"] ?? "smtp.gmail.com";
-            var smtpPort = int.Parse(_config["EmailSettings:SmtpPort"] ?? "587");
+            var smtpPortStr = _config["EmailSettings:SmtpPort"] ?? "587";
             var smtpUser = _config["EmailSettings:SmtpUser"];
             var smtpPass = _config["EmailSettings:SmtpPass"];
             var fromEmail = _config["EmailSettings:FromEmail"] ?? smtpUser;
 
+            if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass) || smtpUser.Contains("your-email"))
+            {
+                _logger.LogWarning("Email sending skipped: SMTP credentials are not configured in appsettings.json");
+                return;
+            }
+
+            if (!int.TryParse(smtpPortStr, out int smtpPort)) smtpPort = 587;
+
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
                 Credentials = new NetworkCredential(smtpUser, smtpPass),
-                EnableSsl = true
+                EnableSsl = true,
+                UseDefaultCredentials = false,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                Timeout = 10000
             };
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(fromEmail!),
+                From = new MailAddress(fromEmail!, "PowerTech LMS"),
                 Subject = subject,
                 Body = GetEmailTemplate(body),
                 IsBodyHtml = true
             };
             mailMessage.To.Add(to);
 
+            _logger.LogInformation("Attempting to send email to {To} via {Host}", to, smtpHost);
             await client.SendMailAsync(mailMessage);
-        } catch
+            _logger.LogInformation("Email sent successfully to {To}", to);
+        } catch (Exception ex)
         {
+            _logger.LogError(ex, "Error occurred while sending email to {To}", to);
             throw;
         }
     }

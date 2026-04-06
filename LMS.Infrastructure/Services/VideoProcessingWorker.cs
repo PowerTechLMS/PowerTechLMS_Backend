@@ -159,27 +159,39 @@ public class VideoProcessingWorker : BackgroundService
     private async Task<double> GetVideoDurationAsync(string ffprobePath, string inputPath)
     {
         var arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{inputPath}\"";
+        
         var process = new Process
         {
-            StartInfo =
-                new ProcessStartInfo
-                {
-                    FileName = ffprobePath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = ffprobePath,
+                Arguments = arguments,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
         };
 
         process.Start();
         var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await process.WaitForExitAsync(cts.Token);
+        var cleanOutput = output.Trim().Replace("\"", "");
 
-        if(double.TryParse(output.Trim(), out var duration))
+        if (double.TryParse(cleanOutput, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var duration))
         {
+            if (duration > 1000000) 
+            {
+                if (duration > 1000000000) return duration / 1000000;
+                if (duration > 10000000 && !cleanOutput.Contains(".")) return duration / 1000000;
+                if (duration > 36000) return duration / 1000;
+                return duration;
+            }
+            if (duration > 10000) 
+            {
+                 return duration / 1000;
+            }
+
             return duration;
         }
 

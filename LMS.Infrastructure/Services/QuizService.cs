@@ -91,7 +91,7 @@ public class QuizService : IQuizService
             OptionC = request.OptionC ?? string.Empty,
             OptionD = request.OptionD ?? string.Empty,
             CorrectAnswer = string.IsNullOrWhiteSpace(request.CorrectAnswer) ? "A" : request.CorrectAnswer,
-            Points = 1.0m,
+            Points = request.Points,
             Explanation = request.Explanation,
             CreatedAt = DateTime.UtcNow
         };

@@ -77,6 +77,48 @@ public class AuthService : IAuthService
         var token = GenerateToken(user, roles, permissions);
         return new AuthResponse(user.Id, user.FullName, user.Email, user.Role, token, roles, permissions, user.Avatar);
     }
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (user == null) return; 
+
+        var otp = new Random().Next(100000, 999999).ToString();
+        user.ResetPasswordOtp = otp;
+        user.OtpExpiry = DateTime.UtcNow.AddMinutes(10);
+        await _db.SaveChangesAsync();
+
+        _emailService.QueueEmail(
+            user.Email,
+            "Mã OTP đặt lại mật khẩu",
+            $@"
+            <p>Chào {user.FullName},</p>
+            <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản LMS.</p>
+            <p>Mã OTP của bạn là: <strong style='font-size: 24px; color: #1e3a8a;'>{otp}</strong></p>
+            <p>Mã này có hiệu lực trong vòng 10 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
+            <br/>
+            <p>Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này.</p>");
+    }
+
+    public async Task<bool> VerifyOtpAsync(VerifyOtpRequest request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (user == null || user.ResetPasswordOtp != request.Otp || user.OtpExpiry < DateTime.UtcNow)
+            return false;
+
+        return true;
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (user == null || user.ResetPasswordOtp != request.Otp || user.OtpExpiry < DateTime.UtcNow)
+            throw new InvalidOperationException("Mã OTP không hợp lệ hoặc đã hết hạn.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.ResetPasswordOtp = null;
+        user.OtpExpiry = null;
+        await _db.SaveChangesAsync();
+    }
 
     /// <summary>
     /// Truy vấn bảng RBAC để lấy danh sách roles và permissions của user. UserRoles → Role → RolePermissions →
