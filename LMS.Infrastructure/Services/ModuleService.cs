@@ -266,6 +266,7 @@ public class LessonService : ILessonService
                 .FirstOrDefaultAsync(l => l.Id == lessonId && l.ModuleId == moduleId) ??
             throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
 
+        bool typeChanged = lesson.Type != request.Type;
         lesson.Title = request.Title;
         lesson.Type = request.Type;
         lesson.Content = request.Content;
@@ -275,6 +276,23 @@ public class LessonService : ILessonService
         lesson.VideoDurationSeconds = request.VideoDurationSeconds;
         lesson.ReadingDurationSeconds = request.ReadingDurationSeconds;
         lesson.VideoStatus = request.VideoStatus;
+
+        if(typeChanged)
+        {
+            var progresses = await _db.LessonProgresses.Where(lp => lp.LessonId == lessonId).ToListAsync();
+            foreach(var p in progresses)
+            {
+                p.IsCompleted = false;
+                p.PositionSeconds = 0;
+                p.WatchedPercent = 0;
+                p.CompletedAt = null;
+            }
+
+            lesson.AiSummary = null;
+            lesson.IsAiProcessed = false;
+            lesson.Transcript = null;
+        }
+
         await _db.SaveChangesAsync();
 
         if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))

@@ -87,7 +87,8 @@ public interface ICourseService
         int? userId = null,
         int? level = null,
         bool isInstructorManagement = false,
-        bool isAdmin = false);
+        bool isAdmin = false,
+        int? userGroupId = null);
 
     Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId, bool isAdmin = false);
 

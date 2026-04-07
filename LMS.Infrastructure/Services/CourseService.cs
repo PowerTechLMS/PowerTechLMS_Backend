@@ -35,7 +35,8 @@ public class CourseService : ICourseService
         int? userId = null,
         int? level = null,
         bool isInstructorManagement = false,
-        bool isAdmin = false)
+        bool isAdmin = false,
+        int? userGroupId = null)
     {
         var query = _db.Courses
             .Include(c => c.CreatedBy)
@@ -61,6 +62,11 @@ public class CourseService : ICourseService
         if(level.HasValue)
         {
             query = query.Where(c => c.Level == level.Value);
+        }
+
+        if(userGroupId.HasValue && userGroupId.Value > 0)
+        {
+            query = query.Where(c => c.UserGroupId == userGroupId.Value);
         }
 
         var total = await query.CountAsync();
@@ -520,7 +526,15 @@ public class CourseService : ICourseService
 
     private async Task NotifyNewCourseAsync(Course course)
     {
-        var users = await _db.Users.Where(u => u.IsActive && !u.IsDeleted).ToListAsync();
+        var usersQuery = _db.Users.Where(u => u.IsActive && !u.IsDeleted);
+
+        if(course.UserGroupId.HasValue)
+        {
+            usersQuery = usersQuery.Where(u => _db.UserGroupMembers.Any(m => m.UserId == u.Id && m.GroupId == course.UserGroupId.Value));
+        }
+
+        var users = await usersQuery.ToListAsync();
+
         foreach(var user in users)
         {
             await _notificationService.CreateNotificationAsync(
