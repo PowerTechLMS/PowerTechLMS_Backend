@@ -53,6 +53,7 @@ public class CoursesController : ControllerBase
         [FromQuery] bool? isPublished = null,
         [FromQuery] int? categoryId = null,
         [FromQuery] int? level = null,
+        [FromQuery] int? userGroupId = null,
         [FromQuery] bool manage = false)
     {
         bool isInstructorManagement = manage && (IsAdmin || IsInstructor);
@@ -66,7 +67,8 @@ public class CoursesController : ControllerBase
                 CurrentUserId,
                 level,
                 isInstructorManagement,
-                IsAdmin));
+                IsAdmin,
+                userGroupId));
     }
 
 
