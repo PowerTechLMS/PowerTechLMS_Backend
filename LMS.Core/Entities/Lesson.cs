@@ -55,5 +55,7 @@ public class Lesson : BaseEntity
 
     public ICollection<QAThread> QAThreads { get; set; } = new List<QAThread>();
 
+    public virtual RolePlayConfig? RolePlayConfig { get; set; }
+
     public ICollection<Note> Notes { get; set; } = new List<Note>();
 }

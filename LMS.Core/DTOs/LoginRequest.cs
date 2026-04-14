@@ -262,7 +262,8 @@ public record CreateLessonRequest(
     bool IsFreePreview,
     int VideoDurationSeconds = 0,
     int ReadingDurationSeconds = 0,
-    string VideoStatus = "Ready");
+    string VideoStatus = "Ready",
+    RolePlayConfigDto? RolePlayConfig = null);
 
 public record UpdateLessonRequest(
     string Title,
@@ -273,7 +274,8 @@ public record UpdateLessonRequest(
     bool IsFreePreview,
     int VideoDurationSeconds,
     int ReadingDurationSeconds = 0,
-    string VideoStatus = "Ready");
+    string VideoStatus = "Ready",
+    RolePlayConfigDto? RolePlayConfig = null);
 
 public record LessonResponse(
     int Id,
@@ -289,8 +291,8 @@ public record LessonResponse(
     List<AttachmentResponse> Attachments,
     int? QuizId = null,
     int QuizQuestionCount = 0,
-    string? AiSummary = null
-);
+    string? AiSummary = null,
+    RolePlayConfigDto? RolePlayConfig = null);
 
 public record AttachmentResponse(int Id, string FileName, long FileSize);
 
@@ -700,3 +702,35 @@ public class LearningProfileDto
 public record SummaryStatDto(string Label, string Val, string Color);
 
 public record HrMessageDto(int Id, string From, string Msg, string Time, bool Unread);
+public record RolePlaySendMessageRequest(string Content);
+
+public record RolePlaySessionResponse(
+    int Id,
+    int UserId,
+    string? UserFullName, // NEW
+    int LessonId,
+    string? LessonTitle, // NEW
+    string Status,
+    int? Score,
+    int? PassScore, // NEW
+    string? Feedback,
+    DateTime CreatedAt,
+    List<RolePlayMessageResponse> Messages);
+
+public record RolePlayMessageResponse(
+    int Id,
+    string Role,
+    string Content,
+    DateTime CreatedAt);
+
+public record RolePlayConfigDto(
+    List<int> SupportLessonIds,
+    string ScoringCriteria,
+    string? AdditionalRequirements,
+    string? Scenario,
+    int PassScore = 50);
+
+public record AdminUpdateRolePlayStatusRequest(
+    string Status,
+    int? Score,
+    string? Feedback);

@@ -4,6 +4,9 @@ using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 
 namespace LMS.Infrastructure.Services;
@@ -80,7 +83,12 @@ public class ModuleService : IModuleService
                             l.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
                             l.QuizId,
                             l.Quiz?.Questions.Count ?? 0,
-                            l.AiSummary))
+                            l.AiSummary,
+                            l.RolePlayConfig != null ? new RolePlayConfigDto(
+                                 JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                 l.RolePlayConfig.ScoringCriteria,
+                                 l.RolePlayConfig.AdditionalRequirements,
+                                 l.RolePlayConfig.Scenario) : null))
                 .ToList());
     }
 
@@ -196,6 +204,21 @@ public class LessonService : ILessonService
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
 
+        if (request.Type == "RolePlay" && request.RolePlayConfig != null)
+        {
+            var rpConfig = new RolePlayConfig
+            {
+                LessonId = lesson.Id,
+                SupportLessonIds = JsonSerializer.Serialize(request.RolePlayConfig.SupportLessonIds),
+                ScoringCriteria = request.RolePlayConfig.ScoringCriteria,
+                AdditionalRequirements = request.RolePlayConfig.AdditionalRequirements,
+                Scenario = request.RolePlayConfig.Scenario,
+                PassScore = request.RolePlayConfig.PassScore
+            };
+            _db.RolePlayConfigs.Add(rpConfig);
+            await _db.SaveChangesAsync();
+        }
+
         if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
@@ -217,7 +240,8 @@ public class LessonService : ILessonService
             new List<AttachmentResponse>(),
             lesson.QuizId,
             0,
-            lesson.AiSummary);
+            lesson.AiSummary,
+            request.RolePlayConfig);
     }
 
     public async Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request)
@@ -293,6 +317,20 @@ public class LessonService : ILessonService
             lesson.Transcript = null;
         }
 
+        if (lesson.Type == "RolePlay" && request.RolePlayConfig != null)
+        {
+            var rpConfig = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == lessonId);
+            if (rpConfig == null)
+            {
+                rpConfig = new RolePlayConfig { LessonId = lessonId };
+                _db.RolePlayConfigs.Add(rpConfig);
+            }
+            rpConfig.SupportLessonIds = JsonSerializer.Serialize(request.RolePlayConfig.SupportLessonIds);
+            rpConfig.AdditionalRequirements = request.RolePlayConfig.AdditionalRequirements;
+            rpConfig.Scenario = request.RolePlayConfig.Scenario;
+            rpConfig.PassScore = request.RolePlayConfig.PassScore;
+        }
+
         await _db.SaveChangesAsync();
 
         if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
@@ -316,7 +354,8 @@ public class LessonService : ILessonService
             lesson.Attachments.Select(a => new AttachmentResponse(a.Id, a.FileName, a.FileSize)).ToList(),
             lesson.QuizId,
             lesson.Quiz?.Questions.Count ?? 0,
-            lesson.AiSummary);
+            lesson.AiSummary,
+            request.RolePlayConfig);
     }
 
     public async Task DeleteLessonAsync(int moduleId, int lessonId, int userId, bool isAdmin = false)

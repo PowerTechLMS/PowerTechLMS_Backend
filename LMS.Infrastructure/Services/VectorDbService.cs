@@ -103,6 +103,14 @@ public class VectorDbService
         int lessonId,
         int limit = 5)
     {
+        return await SearchAsync(query, new List<int> { lessonId }, limit);
+    }
+
+    public async Task<List<(Guid Id, string Content, string Metadata)>> SearchAsync(
+        string query,
+        List<int> lessonIds,
+        int limit = 5)
+    {
         if(!await EnsureCollectionReadyAsync())
             return new List<(Guid Id, string Content, string Metadata)>();
 
@@ -113,12 +121,13 @@ public class VectorDbService
                 return new List<(Guid Id, string Content, string Metadata)>();
 
             var filter = new Filter();
-            filter.Must
-                .Add(
-                    new Condition
-                    {
-                        Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = lessonId } }
-                    });
+            foreach (var id in lessonIds)
+            {
+                filter.Should.Add(new Condition 
+                { 
+                    Field = new FieldCondition { Key = "LessonId", Match = new Match { Integer = (long)id } } 
+                });
+            }
 
             var results = await _client.SearchAsync(
                 CollectionName,
@@ -147,11 +156,7 @@ public class VectorDbService
                 .ToList();
         } catch(Exception ex)
         {
-            _logger.LogError("[VectorDbService] Error in SearchAsync: {Message}", ex.Message);
-            if(ex.Message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("NotFound", StringComparison.OrdinalIgnoreCase))
-            {
-                _collectionVerified = false;
-            }
+            _logger.LogError("[VectorDbService] Error in SearchAsync (Multi): {Message}", ex.Message);
             return new List<(Guid Id, string Content, string Metadata)>();
         }
     }

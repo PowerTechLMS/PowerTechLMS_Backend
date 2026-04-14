@@ -3,6 +3,7 @@ using System;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
     [DbContext(typeof(PostgreSqlDbContext))]
-    partial class PostgreSqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414005657_AddPassScoreToRolePlayConfig")]
+    partial class AddPassScoreToRolePlayConfig
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2083,6 +2086,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("InitialAiMessage")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -2091,9 +2097,6 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
 
                     b.Property<int>("PassScore")
                         .HasColumnType("integer");
-
-                    b.Property<string>("Scenario")
-                        .HasColumnType("text");
 
                     b.Property<string>("ScoringCriteria")
                         .IsRequired()

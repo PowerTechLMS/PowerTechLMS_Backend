@@ -1373,6 +1373,16 @@ namespace LMS.Infrastructure.Migrations
                             IsDeleted = false,
                             Name = "Quản lý chứng chỉ",
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Category = "RolePlay",
+                            Code = "roleplay.manage",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Quản lý Role Play",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 
@@ -1930,6 +1940,15 @@ namespace LMS.Infrastructure.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            PermissionId = 20,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            GrantedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
                             RoleId = 2,
                             PermissionId = 1,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -2045,6 +2064,136 @@ namespace LMS.Infrastructure.Migrations
                             IsDeleted = false,
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlayConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdditionalRequirements")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PassScore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Scenario")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ScoringCriteria")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SupportLessonIds")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId")
+                        .IsUnique();
+
+                    b.ToTable("RolePlayConfigs");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlayMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
+
+                    b.ToTable("RolePlayMessages");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlaySession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Feedback")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Score")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RolePlaySessions");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.User", b =>
@@ -2754,6 +2903,47 @@ namespace LMS.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.RolePlayConfig", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
+                        .WithOne("RolePlayConfig")
+                        .HasForeignKey("LMS.Core.Entities.RolePlayConfig", "LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlayMessage", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.RolePlaySession", "Session")
+                        .WithMany("Messages")
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlaySession", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LMS.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.UserBadge", b =>
                 {
                     b.HasOne("LMS.Core.Entities.Badge", "Badge")
@@ -2872,6 +3062,8 @@ namespace LMS.Infrastructure.Migrations
                     b.Navigation("Progresses");
 
                     b.Navigation("QAThreads");
+
+                    b.Navigation("RolePlayConfig");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.Module", b =>
@@ -2911,6 +3103,11 @@ namespace LMS.Infrastructure.Migrations
                     b.Navigation("RolePermissions");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.RolePlaySession", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.User", b =>

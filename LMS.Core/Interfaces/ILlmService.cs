@@ -1,9 +1,11 @@
 
+using System.Collections.Generic;
 namespace LMS.Core.Interfaces;
 
 public interface ILlmService
 {
     Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt);
+    IAsyncEnumerable<string> GenerateResponseStreamingAsync(string systemPrompt, string userPrompt);
 
     Task<LlmChatResponse> ChatWithToolsAsync(List<LlmChatMessage> messages, List<LlmTool>? tools = null);
 }

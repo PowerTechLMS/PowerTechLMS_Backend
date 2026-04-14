@@ -141,6 +141,7 @@ builder.Services
                             context.User.HasClaim("permission", "certificate.view") ||
                             context.User.HasClaim("permission", "certificate.manage")));
             options.AddPolicy("CertificateManage", p => p.RequireClaim("permission", "certificate.manage"));
+            options.AddPolicy("RolePlayManage", p => p.RequireClaim("permission", "roleplay.manage"));
         });
 
 
@@ -162,6 +163,8 @@ builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
+builder.Services.AddScoped<IRolePlayService, RolePlayService>();
+builder.Services.AddScoped<RolePlayScoringJob>();
 builder.Services.AddHttpClient<ILlmService, LlmService>();
 
 builder.Services.AddSingleton<TextExtractionService>();

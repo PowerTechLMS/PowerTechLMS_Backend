@@ -3,6 +3,7 @@ using System;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
     [DbContext(typeof(PostgreSqlDbContext))]
-    partial class PostgreSqlDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260413012446_AddRolePlayEntities")]
+    partial class AddRolePlayEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2077,11 +2080,17 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Property<string>("AdditionalRequirements")
                         .HasColumnType("text");
 
+                    b.Property<string>("ContextLessonIds")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InitialAiMessage")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -2089,17 +2098,8 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Property<int>("LessonId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("PassScore")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Scenario")
-                        .HasColumnType("text");
-
                     b.Property<string>("ScoringCriteria")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SupportLessonIds")
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -2107,8 +2107,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LessonId")
-                        .IsUnique();
+                    b.HasIndex("LessonId");
 
                     b.ToTable("RolePlayConfigs");
                 });
@@ -2906,8 +2905,8 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
             modelBuilder.Entity("LMS.Core.Entities.RolePlayConfig", b =>
                 {
                     b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
-                        .WithOne("RolePlayConfig")
-                        .HasForeignKey("LMS.Core.Entities.RolePlayConfig", "LessonId")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -3062,8 +3061,6 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Navigation("Progresses");
 
                     b.Navigation("QAThreads");
-
-                    b.Navigation("RolePlayConfig");
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.Module", b =>

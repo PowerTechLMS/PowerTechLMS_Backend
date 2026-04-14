@@ -1,4 +1,5 @@
 using LMS.Core.Interfaces;
+using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,7 @@ public class LlmService : ILlmService
 
     public async Task<string> GenerateResponseAsync(string systemPrompt, string userPrompt)
     {
-        if(string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
+        if (string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
         {
             return "Hệ thống AI chưa được kích hoạt: Bạn cần cấu hình Gemini API Key hợp lệ trong file appsettings.json của Backend.";
         }
@@ -41,23 +42,20 @@ public class LlmService : ILlmService
             };
 
             var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com")
-                ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions?key={_apiKey}"
+                ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions"
                 : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
 
             var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
-            if(!endpoint.Contains("key="))
-            {
-                request.Headers.Add("Authorization", $"Bearer {_apiKey}");
-            }
+            request.Headers.Add("Authorization", $"Bearer {_apiKey}");
 
             request.Content = new StringContent(
                 JsonSerializer.Serialize(requestBody),
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await _httpClient.SendAsync(request);
+            using var response = await _httpClient.SendAsync(request);
 
-            if(!response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
                 return $"Lỗi kết nối AI (Status {response.StatusCode}): {errorMsg}";
@@ -71,9 +69,80 @@ public class LlmService : ILlmService
                 .GetString();
 
             return content ?? "AI không trả về kết quả.";
-        } catch(Exception ex)
+        }
+        catch (Exception ex)
         {
             return $"Lỗi xử lý AI: {ex.Message}";
+        }
+    }
+
+    public async IAsyncEnumerable<string> GenerateResponseStreamingAsync(string systemPrompt, string userPrompt)
+    {
+        if (string.IsNullOrEmpty(_apiKey) || _apiKey == "YOUR_GEMINI_API_KEY_HERE")
+        {
+            yield return "Hệ thống AI chưa được kích hoạt: Bạn cần cấu hình Gemini API Key hợp lệ trong file appsettings.json của Backend.";
+            yield break;
+        }
+
+        var requestBody = new
+        {
+            model = "gemini-3-flash",
+            messages = new[]
+            {
+                new { role = "system", content = systemPrompt },
+                new { role = "user", content = userPrompt }
+            },
+            temperature = 0.7,
+            stream = true
+        };
+
+        var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com")
+            ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/chat/completions"
+            : $"{_apiBaseUrl.TrimEnd('/')}/v1/chat/completions";
+
+        var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
+        request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+
+        request.Content = new StringContent(
+            JsonSerializer.Serialize(requestBody),
+            Encoding.UTF8,
+            "application/json");
+
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMsg = await response.Content.ReadAsStringAsync();
+            yield return $"Lỗi kết nối AI (Status {response.StatusCode}): {errorMsg}";
+            yield break;
+        }
+
+        using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new System.IO.StreamReader(stream);
+
+        while (!reader.EndOfStream)
+        {
+            var line = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (line.StartsWith("data: "))
+            {
+                var data = line.Substring(6).Trim();
+                if (data == "[DONE]") break;
+
+                using var doc = JsonDocument.Parse(data);
+                if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                {
+                    var delta = choices[0].GetProperty("delta");
+                    if (delta.TryGetProperty("content", out var contentProp))
+                    {
+                        var content = contentProp.GetString();
+                        if (!string.IsNullOrEmpty(content))
+                        {
+                            yield return content;
+                        }
+                    }
+                }
+            }
         }
     }
 

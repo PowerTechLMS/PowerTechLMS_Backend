@@ -3,6 +3,7 @@ using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace LMS.Infrastructure.Services;
 
@@ -113,13 +114,15 @@ public class CourseService : ICourseService
     public async Task<CourseDetailResponse?> GetCourseDetailAsync(int courseId, int userId, bool isAdmin = false)
     {
         var course = await _db.Courses
-
             .Include(c => c.CreatedBy)
             .Include(c => c.Category)
             .Include(c => c.UserGroup)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
             .ThenInclude(m => m.Lessons.OrderBy(l => l.SortOrder))
             .ThenInclude(l => l.Attachments)
+            .Include(c => c.Modules)
+            .ThenInclude(m => m.Lessons)
+            .ThenInclude(l => l.RolePlayConfig)
             .Include(c => c.Modules)
             .ThenInclude(m => m.Lessons)
             .ThenInclude(l => l.Quiz)
@@ -205,7 +208,12 @@ public class CourseService : ICourseService
                                                         : new List<AttachmentResponse>(),
                                                     l.QuizId,
                                                     l.QuizId.HasValue ? quizCounts.GetValueOrDefault(l.QuizId.Value) : 0,
-                                                    l.AiSummary))
+                                                    l.AiSummary,
+                                                    l.RolePlayConfig != null ? new RolePlayConfigDto(
+                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                                        l.RolePlayConfig.ScoringCriteria,
+                                                        l.RolePlayConfig.AdditionalRequirements,
+                                                        l.RolePlayConfig.Scenario) : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),
@@ -234,6 +242,7 @@ public class CourseService : ICourseService
             .Include(c => c.UserGroup)
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
             .ThenInclude(m => m.Lessons.OrderBy(l => l.SortOrder))
+            .ThenInclude(l => l.RolePlayConfig)
             .Where(c => c.Id == courseId && c.IsPublished && !c.IsDeleted)
             .FirstOrDefaultAsync();
 
@@ -272,7 +281,12 @@ public class CourseService : ICourseService
                                                     new List<AttachmentResponse>(),
                                                     l.QuizId,
                                                     l.Quiz?.Questions.Count ?? 0,
-                                                    l.AiSummary))
+                                                    l.AiSummary,
+                                                    l.RolePlayConfig != null ? new RolePlayConfigDto(
+                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                                        l.RolePlayConfig.ScoringCriteria,
+                                                        l.RolePlayConfig.AdditionalRequirements,
+                                                        l.RolePlayConfig.Scenario) : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),

@@ -81,6 +81,9 @@ public class AppDbContext : DbContext
     public DbSet<LessonChat> LessonChats => Set<LessonChat>();
 
     public DbSet<DocumentChat> DocumentChats => Set<DocumentChat>();
+    public DbSet<RolePlayConfig> RolePlayConfigs => Set<RolePlayConfig>();
+    public DbSet<RolePlaySession> RolePlaySessions => Set<RolePlaySession>();
+    public DbSet<RolePlayMessage> RolePlayMessages => Set<RolePlayMessage>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -119,6 +122,9 @@ public class AppDbContext : DbContext
         m.Entity<Notification>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<LessonChat>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<DocumentChat>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<RolePlayConfig>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<RolePlaySession>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<RolePlayMessage>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -783,6 +789,15 @@ public class AppDbContext : DbContext
                 Code = "certificate.manage",
                 Name = "Quản lý chứng chỉ",
                 Category = "Certificate",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 20,
+                Code = "roleplay.manage",
+                Name = "Quản lý Role Play",
+                Category = "RolePlay",
                 CreatedAt = staticDate,
                 UpdatedAt = staticDate
             }
