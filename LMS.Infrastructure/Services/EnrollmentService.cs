@@ -346,7 +346,7 @@ public class EnrollmentService : IEnrollmentService
         var isOverdue = e.Deadline.HasValue && e.Deadline.Value < DateTime.UtcNow && progress < 100;
 
         bool isLocked = false;
-        if(e.Course.Level == 2 && (e.AssignedById == null || e.GroupEnrollId != null))
+        if(e.Course?.Level == 2 && (e.AssignedById == null || e.GroupEnrollId != null))
         {
             var level1CourseIds = await _db.Courses
                 .Where(c => c.Level == 1 && !c.IsDeleted && c.IsPublished)

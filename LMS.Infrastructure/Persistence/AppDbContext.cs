@@ -84,6 +84,10 @@ public class AppDbContext : DbContext
     public DbSet<RolePlayConfig> RolePlayConfigs => Set<RolePlayConfig>();
     public DbSet<RolePlaySession> RolePlaySessions => Set<RolePlaySession>();
     public DbSet<RolePlayMessage> RolePlayMessages => Set<RolePlayMessage>();
+    public DbSet<EssayConfig> EssayConfigs => Set<EssayConfig>();
+    public DbSet<EssayQuestion> EssayQuestions => Set<EssayQuestion>();
+    public DbSet<EssayAttempt> EssayAttempts => Set<EssayAttempt>();
+    public DbSet<EssayAnswer> EssayAnswers => Set<EssayAnswer>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -125,6 +129,10 @@ public class AppDbContext : DbContext
         m.Entity<RolePlayConfig>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<RolePlaySession>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<RolePlayMessage>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<EssayConfig>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<EssayQuestion>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<EssayAttempt>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<EssayAnswer>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -353,6 +361,52 @@ public class AppDbContext : DbContext
                     .HasForeignKey(dc => dc.DocumentId)
                     .OnDelete(DeleteBehavior.Cascade);
                 e.HasOne(dc => dc.User).WithMany().HasForeignKey(dc => dc.UserId).OnDelete(DeleteBehavior.NoAction);
+            });
+
+        m.Entity<EssayConfig>(
+            e =>
+            {
+                e.HasOne(ec => ec.Lesson)
+                    .WithOne(l => l.EssayConfig)
+                    .HasForeignKey<EssayConfig>(ec => ec.LessonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+        m.Entity<EssayQuestion>(
+            e =>
+            {
+                e.HasOne(eq => eq.EssayConfig)
+                    .WithMany(ec => ec.Questions)
+                    .HasForeignKey(eq => eq.EssayConfigId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+        m.Entity<EssayAttempt>(
+            e =>
+            {
+                e.HasOne(ea => ea.User)
+                    .WithMany()
+                    .HasForeignKey(ea => ea.UserId)
+                    .OnDelete(DeleteBehavior.NoAction);
+
+                e.HasOne(ea => ea.Lesson)
+                    .WithMany()
+                    .HasForeignKey(ea => ea.LessonId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+        m.Entity<EssayAnswer>(
+            e =>
+            {
+                e.HasOne(ans => ans.Attempt)
+                    .WithMany(at => at.Answers)
+                    .HasForeignKey(ans => ans.AttemptId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(ans => ans.Question)
+                    .WithMany()
+                    .HasForeignKey(ans => ans.QuestionId)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
         m.Entity<Badge>(e => e.Property(b => b.Name).HasMaxLength(100));
@@ -798,6 +852,15 @@ public class AppDbContext : DbContext
                 Code = "roleplay.manage",
                 Name = "Quản lý Role Play",
                 Category = "RolePlay",
+                CreatedAt = staticDate,
+                UpdatedAt = staticDate
+            },
+            new Permission
+            {
+                Id = 21,
+                Code = "essay.manage",
+                Name = "Quản lý Tự luận AI",
+                Category = "Essay",
                 CreatedAt = staticDate,
                 UpdatedAt = staticDate
             }

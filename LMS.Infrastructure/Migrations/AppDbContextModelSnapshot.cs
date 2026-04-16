@@ -790,6 +790,199 @@ namespace LMS.Infrastructure.Migrations
                     b.ToTable("Enrollments");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.EssayAnswer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiFeedback")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("AiScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("EssayQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("EssayQuestionId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("EssayAnswers");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AiFeedback")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPassed")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("TotalScore")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EssayAttempts");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AttemptWindowHours")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxAttemptsPerWindow")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PassScore")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SupportLessonIds")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TimeLimitMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId")
+                        .IsUnique();
+
+                    b.ToTable("EssayConfigs");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EssayConfigId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ScoringCriteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EssayConfigId");
+
+                    b.ToTable("EssayQuestions");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.Lesson", b =>
                 {
                     b.Property<int>("Id")
@@ -1383,6 +1576,16 @@ namespace LMS.Infrastructure.Migrations
                             IsDeleted = false,
                             Name = "Quản lý Role Play",
                             UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Category = "Essay",
+                            Code = "essay.manage",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            Name = "Quản lý Tự luận AI",
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 
@@ -1942,6 +2145,15 @@ namespace LMS.Infrastructure.Migrations
                         {
                             RoleId = 1,
                             PermissionId = 20,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            GrantedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsDeleted = false,
+                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 21,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             GrantedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsDeleted = false,
@@ -2691,6 +2903,70 @@ namespace LMS.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.EssayAnswer", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.EssayAttempt", "Attempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LMS.Core.Entities.EssayQuestion", null)
+                        .WithMany("Answers")
+                        .HasForeignKey("EssayQuestionId");
+
+                    b.HasOne("LMS.Core.Entities.EssayQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayAttempt", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LMS.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayConfig", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
+                        .WithOne("EssayConfig")
+                        .HasForeignKey("LMS.Core.Entities.EssayConfig", "LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayQuestion", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.EssayConfig", "EssayConfig")
+                        .WithMany("Questions")
+                        .HasForeignKey("EssayConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EssayConfig");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.Lesson", b =>
                 {
                     b.HasOne("LMS.Core.Entities.Module", "Module")
@@ -3053,9 +3329,26 @@ namespace LMS.Infrastructure.Migrations
                     b.Navigation("Versions");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.EssayAttempt", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayConfig", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("LMS.Core.Entities.EssayQuestion", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.Lesson", b =>
                 {
                     b.Navigation("Attachments");
+
+                    b.Navigation("EssayConfig");
 
                     b.Navigation("Notes");
 

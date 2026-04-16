@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 
 namespace LMS.Core.DTOs;
 
@@ -263,7 +264,8 @@ public record CreateLessonRequest(
     int VideoDurationSeconds = 0,
     int ReadingDurationSeconds = 0,
     string VideoStatus = "Ready",
-    RolePlayConfigDto? RolePlayConfig = null);
+    RolePlayConfigDto? RolePlayConfig = null,
+    EssayConfigDto? EssayConfig = null);
 
 public record UpdateLessonRequest(
     string Title,
@@ -275,7 +277,8 @@ public record UpdateLessonRequest(
     int VideoDurationSeconds,
     int ReadingDurationSeconds = 0,
     string VideoStatus = "Ready",
-    RolePlayConfigDto? RolePlayConfig = null);
+    RolePlayConfigDto? RolePlayConfig = null,
+    EssayConfigDto? EssayConfig = null);
 
 public record LessonResponse(
     int Id,
@@ -292,7 +295,8 @@ public record LessonResponse(
     int? QuizId = null,
     int QuizQuestionCount = 0,
     string? AiSummary = null,
-    RolePlayConfigDto? RolePlayConfig = null);
+    RolePlayConfigDto? RolePlayConfig = null,
+    EssayConfigDto? EssayConfig = null);
 
 public record AttachmentResponse(int Id, string FileName, long FileSize);
 
@@ -722,6 +726,80 @@ public record RolePlayMessageResponse(
     string Role,
     string Content,
     DateTime CreatedAt);
+
+public record EssayQuestionDto(int? Id, string Content, int SortOrder, int Weight, string? ScoringCriteria = null);
+
+public record EssayConfigDto(
+    List<int> SupportLessonIds,
+    int? TimeLimitMinutes,
+    int? MaxAttemptsPerWindow,
+    int? AttemptWindowHours,
+    int PassScore,
+    List<EssayQuestionDto> Questions);
+
+public record StartEssayAttemptResponse(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("attemptNumber")] int AttemptNumber,
+    [property: JsonPropertyName("startedAt")] DateTime StartedAt,
+    [property: JsonPropertyName("timeLimitMinutes")] int? TimeLimitMinutes,
+    [property: JsonPropertyName("questions")] List<EssayQuestionItemResponse> Questions,
+    [property: JsonPropertyName("remainingAttemptsInWindow")] int RemainingAttemptsInWindow,
+    [property: JsonPropertyName("answers")] List<EssayAnswerSubmit>? Answers = null);
+
+public record EssayQuestionItemResponse(
+    [property: JsonPropertyName("id")] int Id, 
+    [property: JsonPropertyName("content")] string Content, 
+    [property: JsonPropertyName("sortOrder")] int SortOrder, 
+    [property: JsonPropertyName("weight")] int Weight, 
+    [property: JsonPropertyName("scoringCriteria")] string? ScoringCriteria = null);
+
+public record SubmitEssayRequest(List<EssayAnswerSubmit> Answers);
+
+public record EssayAnswerSubmit(int QuestionId, string Content);
+
+public record EssayResultResponse(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("attemptNumber")] int AttemptNumber,
+    [property: JsonPropertyName("totalScore")] int TotalScore,
+    [property: JsonPropertyName("isPassed")] bool IsPassed,
+    [property: JsonPropertyName("passScore")] int PassScore,
+    [property: JsonPropertyName("aiFeedback")] string? AiFeedback,
+    [property: JsonPropertyName("answers")] List<EssayAnswerResultItem> Answers);
+
+public record EssayAnswerResultItem(
+    int QuestionId,
+    string QuestionContent,
+    string UserAnswer,
+    int? AiScore,
+    int Weight,
+    string? AiFeedback,
+    string? ScoringCriteria = null);
+
+public record EssayAttemptSummary(
+    [property: JsonPropertyName("id")] int Id, 
+    [property: JsonPropertyName("attemptNumber")] int AttemptNumber, 
+    [property: JsonPropertyName("totalScore")] int? TotalScore, 
+    [property: JsonPropertyName("isPassed")] bool IsPassed, 
+    [property: JsonPropertyName("status")] string Status, 
+    [property: JsonPropertyName("startedAt")] DateTime StartedAt, 
+    [property: JsonPropertyName("submittedAt")] DateTime? SubmittedAt);
+
+public record AdminEssayAttemptResponse(
+    int Id,
+    int UserId,
+    string? UserFullName,
+    int LessonId,
+    string? LessonTitle,
+    string Status,
+    int? TotalScore,
+    int PassScore,
+    bool IsPassed,
+    string? AiFeedback,
+    DateTime CreatedAt,
+    List<EssayAnswerResultItem> Answers);
+
+public record AdminUpdateEssayAttemptRequest(string? AiFeedback, List<EssayAnswerUpdateDto> Answers);
+public record EssayAnswerUpdateDto(int QuestionId, int Score, string? Feedback);
 
 public record RolePlayConfigDto(
     List<int> SupportLessonIds,

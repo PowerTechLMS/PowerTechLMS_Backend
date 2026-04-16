@@ -211,7 +211,8 @@ NHIỆM VỤ CỦA BẠN:
             foreach (var lesson in lessons)
             {
                 contentBuilder.AppendLine($"### Bài học: {lesson.Title}");
-                contentBuilder.AppendLine(lesson.Content.Length > 2000 ? lesson.Content.Substring(0, 2000) + "..." : lesson.Content);
+                var content = lesson.Content ?? string.Empty;
+                contentBuilder.AppendLine(content.Length > 2000 ? content.Substring(0, 2000) + "..." : content);
             }
         }
 

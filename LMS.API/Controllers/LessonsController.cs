@@ -288,7 +288,7 @@ public class LessonsController : ControllerBase
         {
             try 
             {
-                var filePath = Path.Combine(wwwroot, lesson.VideoStorageUrl.TrimStart('/'));
+                var filePath = Path.Combine(wwwroot, lesson.VideoStorageUrl?.TrimStart('/') ?? string.Empty);
                 if (!System.IO.File.Exists(filePath)) continue;
 
                 var duration = await GetVideoDurationAsync(ffprobePath, filePath);

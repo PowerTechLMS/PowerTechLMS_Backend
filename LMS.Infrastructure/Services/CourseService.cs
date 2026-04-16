@@ -125,6 +125,10 @@ public class CourseService : ICourseService
             .ThenInclude(l => l.RolePlayConfig)
             .Include(c => c.Modules)
             .ThenInclude(m => m.Lessons)
+            .ThenInclude(l => l.EssayConfig)
+            .ThenInclude(c => c!.Questions)
+            .Include(c => c.Modules)
+            .ThenInclude(m => m.Lessons)
             .ThenInclude(l => l.Quiz)
             .ThenInclude(q => q.Questions)
             .FirstOrDefaultAsync(c => c.Id == courseId);
@@ -210,10 +214,19 @@ public class CourseService : ICourseService
                                                     l.QuizId.HasValue ? quizCounts.GetValueOrDefault(l.QuizId.Value) : 0,
                                                     l.AiSummary,
                                                     l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
                                                         l.RolePlayConfig.ScoringCriteria,
                                                         l.RolePlayConfig.AdditionalRequirements,
-                                                        l.RolePlayConfig.Scenario) : null))
+                                                        l.RolePlayConfig.Scenario,
+                                                        l.RolePlayConfig.PassScore) : null,
+                                                    l.EssayConfig != null ? new EssayConfigDto(
+                                                        JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
+                                                        l.EssayConfig.TimeLimitMinutes,
+                                                        l.EssayConfig.MaxAttemptsPerWindow,
+                                                        l.EssayConfig.AttemptWindowHours,
+                                                        l.EssayConfig.PassScore,
+                                                        l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
+                                                    ) : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),
@@ -243,6 +256,10 @@ public class CourseService : ICourseService
             .Include(c => c.Modules.OrderBy(m => m.SortOrder))
             .ThenInclude(m => m.Lessons.OrderBy(l => l.SortOrder))
             .ThenInclude(l => l.RolePlayConfig)
+            .Include(c => c.Modules)
+            .ThenInclude(m => m.Lessons)
+            .ThenInclude(l => l.EssayConfig)
+            .ThenInclude(c => c!.Questions)
             .Where(c => c.Id == courseId && c.IsPublished && !c.IsDeleted)
             .FirstOrDefaultAsync();
 
@@ -283,10 +300,19 @@ public class CourseService : ICourseService
                                                     l.Quiz?.Questions.Count ?? 0,
                                                     l.AiSummary,
                                                     l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
                                                         l.RolePlayConfig.ScoringCriteria,
                                                         l.RolePlayConfig.AdditionalRequirements,
-                                                        l.RolePlayConfig.Scenario) : null))
+                                                        l.RolePlayConfig.Scenario,
+                                                        l.RolePlayConfig.PassScore) : null,
+                                                    l.EssayConfig != null ? new EssayConfigDto(
+                                                        JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
+                                                        l.EssayConfig.TimeLimitMinutes,
+                                                        l.EssayConfig.MaxAttemptsPerWindow,
+                                                        l.EssayConfig.AttemptWindowHours,
+                                                        l.EssayConfig.PassScore,
+                                                        l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
+                                                    ) : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),

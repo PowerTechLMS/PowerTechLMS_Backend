@@ -120,9 +120,9 @@ public class LlmService : ILlmService
         using var stream = await response.Content.ReadAsStreamAsync();
         using var reader = new System.IO.StreamReader(stream);
 
-        while (!reader.EndOfStream)
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
         {
-            var line = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(line)) continue;
             if (line.StartsWith("data: "))
             {

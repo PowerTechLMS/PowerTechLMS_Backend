@@ -141,7 +141,19 @@ builder.Services
                             context.User.HasClaim("permission", "certificate.view") ||
                             context.User.HasClaim("permission", "certificate.manage")));
             options.AddPolicy("CertificateManage", p => p.RequireClaim("permission", "certificate.manage"));
-            options.AddPolicy("RolePlayManage", p => p.RequireClaim("permission", "roleplay.manage"));
+            options.AddPolicy(
+                "RolePlayManage",
+                p => p.RequireAssertion(
+                        context => context.User.IsInRole("Admin") ||
+                            context.User.IsInRole("Quản trị viên") ||
+                            context.User.HasClaim("permission", "roleplay.manage")));
+
+            options.AddPolicy(
+                "EssayManage",
+                p => p.RequireAssertion(
+                        context => context.User.IsInRole("Admin") ||
+                            context.User.IsInRole("Quản trị viên") ||
+                            context.User.HasClaim("permission", "essay.manage")));
         });
 
 
@@ -164,6 +176,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddScoped<IRolePlayService, RolePlayService>();
+builder.Services.AddScoped<IEssayService, EssayService>();
 builder.Services.AddScoped<RolePlayScoringJob>();
 builder.Services.AddHttpClient<ILlmService, LlmService>();
 

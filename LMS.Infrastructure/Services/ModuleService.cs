@@ -6,7 +6,6 @@ using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 
 namespace LMS.Infrastructure.Services;
@@ -56,6 +55,11 @@ public class ModuleService : IModuleService
                 .Include(m => m.Lessons)
                 .ThenInclude(l => l.Quiz)
                 .ThenInclude(q => q.Questions)
+                .Include(m => m.Lessons)
+                .ThenInclude(l => l.RolePlayConfig)
+                .Include(m => m.Lessons)
+                .ThenInclude(l => l.EssayConfig)
+                .ThenInclude(c => c!.Questions)
                 .FirstOrDefaultAsync(m => m.Id == moduleId && m.CourseId == courseId) ??
             throw new KeyNotFoundException("Không tìm thấy chương trong khóa học này.");
 
@@ -85,10 +89,18 @@ public class ModuleService : IModuleService
                             l.Quiz?.Questions.Count ?? 0,
                             l.AiSummary,
                             l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                 JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds) ?? new List<int>(),
+                                 JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
                                  l.RolePlayConfig.ScoringCriteria,
                                  l.RolePlayConfig.AdditionalRequirements,
-                                 l.RolePlayConfig.Scenario) : null))
+                                 l.RolePlayConfig.Scenario) : null,
+                            l.EssayConfig != null ? new EssayConfigDto(
+                                 JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
+                                 l.EssayConfig.TimeLimitMinutes,
+                                 l.EssayConfig.MaxAttemptsPerWindow,
+                                 l.EssayConfig.AttemptWindowHours,
+                                 l.EssayConfig.PassScore,
+                                 l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
+                            ) : null))
                 .ToList());
     }
 
@@ -219,6 +231,34 @@ public class LessonService : ILessonService
             await _db.SaveChangesAsync();
         }
 
+        if (request.Type == "Essay" && request.EssayConfig != null)
+        {
+            var essayConfig = new EssayConfig
+            {
+                LessonId = lesson.Id,
+                SupportLessonIds = JsonSerializer.Serialize(request.EssayConfig.SupportLessonIds),
+                TimeLimitMinutes = request.EssayConfig.TimeLimitMinutes,
+                MaxAttemptsPerWindow = request.EssayConfig.MaxAttemptsPerWindow,
+                AttemptWindowHours = request.EssayConfig.AttemptWindowHours,
+                PassScore = request.EssayConfig.PassScore
+            };
+            _db.EssayConfigs.Add(essayConfig);
+            await _db.SaveChangesAsync(); // Need Id for questions
+
+            foreach (var q in request.EssayConfig.Questions)
+            {
+                var question = new EssayQuestion
+                {
+                    EssayConfigId = essayConfig.Id,
+                    Content = q.Content,
+                    SortOrder = q.SortOrder,
+                    Weight = q.Weight
+                };
+                _db.EssayQuestions.Add(question);
+            }
+            await _db.SaveChangesAsync();
+        }
+
         if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
         {
             BackgroundJob.Enqueue<IAiProcessingService>(x => x.ProcessLessonTextAsync(lesson.Id));
@@ -241,7 +281,8 @@ public class LessonService : ILessonService
             lesson.QuizId,
             0,
             lesson.AiSummary,
-            request.RolePlayConfig);
+            request.RolePlayConfig,
+            request.EssayConfig);
     }
 
     public async Task<int> CreateLessonQuizAsync(int lessonId, CreateQuizRequest request)
@@ -331,6 +372,77 @@ public class LessonService : ILessonService
             rpConfig.PassScore = request.RolePlayConfig.PassScore;
         }
 
+        if (lesson.Type == "Essay" && request.EssayConfig != null)
+        {
+            var essayConfig = await _db.EssayConfigs.Include(c => c.Questions).FirstOrDefaultAsync(c => c.LessonId == lessonId);
+            if (essayConfig == null)
+            {
+                essayConfig = new EssayConfig { LessonId = lessonId };
+                _db.EssayConfigs.Add(essayConfig);
+            }
+            essayConfig.SupportLessonIds = JsonSerializer.Serialize(request.EssayConfig.SupportLessonIds);
+            essayConfig.TimeLimitMinutes = request.EssayConfig.TimeLimitMinutes;
+            essayConfig.MaxAttemptsPerWindow = request.EssayConfig.MaxAttemptsPerWindow;
+            essayConfig.AttemptWindowHours = request.EssayConfig.AttemptWindowHours;
+            essayConfig.PassScore = request.EssayConfig.PassScore;
+
+            // Sync questions
+            var existingQuestions = essayConfig.Questions.ToList();
+            var incomingQuestionIds = request.EssayConfig.Questions
+                .Where(q => q.Id.HasValue && q.Id.Value > 0)
+                .Select(q => q.Id!.Value)
+                .ToList();
+
+            // 1. Remove questions that are not in the request and have no answers
+            var questionsToRemove = existingQuestions.Where(q => !incomingQuestionIds.Contains(q.Id)).ToList();
+            foreach (var qToRemove in questionsToRemove)
+            {
+                var hasAnswers = await _db.EssayAnswers.AnyAsync(a => a.QuestionId == qToRemove.Id);
+                if (!hasAnswers)
+                {
+                    _db.EssayQuestions.Remove(qToRemove);
+                }
+            }
+
+            // 2. Update or Add questions
+            foreach (var q in request.EssayConfig.Questions)
+            {
+                if (q.Id.HasValue && q.Id.Value > 0)
+                {
+                    var existing = existingQuestions.FirstOrDefault(ex => ex.Id == q.Id.Value);
+                    if (existing != null)
+                    {
+                        existing.Content = q.Content;
+                        existing.SortOrder = q.SortOrder;
+                        existing.Weight = q.Weight;
+                        existing.ScoringCriteria = q.ScoringCriteria;
+                    }
+                    else
+                    {
+                         _db.EssayQuestions.Add(new EssayQuestion
+                        {
+                            EssayConfigId = essayConfig.Id,
+                            Content = q.Content,
+                            SortOrder = q.SortOrder,
+                            Weight = q.Weight,
+                            ScoringCriteria = q.ScoringCriteria
+                        });
+                    }
+                }
+                else
+                {
+                    _db.EssayQuestions.Add(new EssayQuestion
+                    {
+                        EssayConfigId = essayConfig.Id,
+                        Content = q.Content,
+                        SortOrder = q.SortOrder,
+                        Weight = q.Weight,
+                        ScoringCriteria = q.ScoringCriteria
+                    });
+                }
+            }
+        }
+
         await _db.SaveChangesAsync();
 
         if(lesson.Type == "Text" && !string.IsNullOrWhiteSpace(lesson.Content))
@@ -355,7 +467,8 @@ public class LessonService : ILessonService
             lesson.QuizId,
             lesson.Quiz?.Questions.Count ?? 0,
             lesson.AiSummary,
-            request.RolePlayConfig);
+            request.RolePlayConfig,
+            request.EssayConfig);
     }
 
     public async Task DeleteLessonAsync(int moduleId, int lessonId, int userId, bool isAdmin = false)

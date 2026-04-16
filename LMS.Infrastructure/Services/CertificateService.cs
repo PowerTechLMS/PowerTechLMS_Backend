@@ -45,7 +45,7 @@ public class CertificateService : ICertificateService
             var wwwroot = string.IsNullOrEmpty(storageRoot) 
                 ? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
                 : storageRoot;
-            var absolutePath = System.IO.Path.Combine(wwwroot, existing.PdfUrl.TrimStart('/'));
+            var absolutePath = System.IO.Path.Combine(wwwroot, existing.PdfUrl?.TrimStart('/') ?? string.Empty);
 
             if(File.Exists(absolutePath))
             {
