@@ -48,7 +48,7 @@ public class PythonEnvService : IPythonEnvService
             await CreateVenvAsync();
         }
 
-        string markerFile = Path.Combine(_venvPath, "requirements_v5.marker");
+        string markerFile = Path.Combine(_venvPath, "requirements_v6.marker");
         if(!File.Exists(markerFile))
         {
             _logger.LogInformation(
@@ -98,7 +98,7 @@ public class PythonEnvService : IPythonEnvService
 
         await RunCommandAsync(
             pipExecutable,
-            "install langchain langchain-google-genai langchain-openai langgraph mcp beautifulsoup4 lxml aiosqlite pydantic");
+            "install langchain langchain-google-genai langchain-openai langgraph langgraph-checkpoint-sqlite mcp beautifulsoup4 lxml aiosqlite pydantic");
 
         var torchArgs = _isWindows
             ? "install torch --index-url https://download.pytorch.org/whl/cu124"
