@@ -60,10 +60,6 @@ jobs:
         run: dotnet publish LMS.API/LMS.API.csproj --configuration Release --runtime linux-x64 --no-self-contained --output ./publish -p:CopyOutputSymbolsToPublishDirectory=false -p:DebugType=None
       - name: Move AppSettings to Publish Folder
         run: cp appsettings.Production.json ./publish/
-      - name: Check Publish Size
-        run: |
-          du -sh ./publish
-          du -sh ./publish/*
       - name: Clean Remote Directory
         uses: appleboy/ssh-action@master
         with:
