@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
@@ -195,6 +196,7 @@ builder.Services.AddSingleton<IPythonEnvService, PythonEnvService>();
 builder.Services.AddSingleton<IPythonEmbeddingService, PythonEmbeddingService>();
 builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
+builder.Services.AddScoped<IAiCourseGenerationService, AiCourseGenerationService>();
 
 builder.Services
     .AddHangfire(
@@ -327,18 +329,21 @@ provider.Mappings[".ts"] = "video/mp2t";
 provider.Mappings[".vtt"] = "text/vtt";
 provider.Mappings[".srt"] = "text/plain";
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads",
-    ContentTypeProvider = provider,
-    OnPrepareResponse = ctx =>
+app.UseStaticFiles(
+    new StaticFileOptions
     {
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
-        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
-    }
-});
+        FileProvider = new PhysicalFileProvider(uploadsPath),
+        RequestPath = "/uploads",
+        ContentTypeProvider = provider,
+        OnPrepareResponse =
+            ctx =>
+            {
+                ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+                ctx.Context.Response.Headers
+                    .Append("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
+                ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+            }
+    });
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -350,5 +355,6 @@ app.UseHangfireDashboard(
 app.MapControllers();
 app.MapHub<VideoHub>("/hubs/video");
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<AiHub>("/hubs/ai");
 
 app.Run();

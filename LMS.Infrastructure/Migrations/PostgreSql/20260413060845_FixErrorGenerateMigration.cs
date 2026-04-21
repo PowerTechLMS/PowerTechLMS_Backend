@@ -4,15 +4,13 @@
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class FixErrorGenerateMigration : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_RolePlayConfigs_LessonId",
-                table: "RolePlayConfigs");
+            migrationBuilder.DropIndex(name: "IX_RolePlayConfigs_LessonId", table: "RolePlayConfigs");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePlayConfigs_LessonId",
@@ -21,12 +19,10 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 unique: true);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_RolePlayConfigs_LessonId",
-                table: "RolePlayConfigs");
+            migrationBuilder.DropIndex(name: "IX_RolePlayConfigs_LessonId", table: "RolePlayConfigs");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePlayConfigs_LessonId",

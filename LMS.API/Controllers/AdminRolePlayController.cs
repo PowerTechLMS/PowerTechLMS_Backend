@@ -12,10 +12,7 @@ public class AdminRolePlayController : ControllerBase
 {
     private readonly IRolePlayService _rolePlayService;
 
-    public AdminRolePlayController(IRolePlayService rolePlayService)
-    {
-        _rolePlayService = rolePlayService;
-    }
+    public AdminRolePlayController(IRolePlayService rolePlayService) { _rolePlayService = rolePlayService; }
 
     [HttpGet("sessions")]
     public async Task<ActionResult<List<RolePlaySessionResponse>>> GetAllSessions()
@@ -29,7 +26,8 @@ public class AdminRolePlayController : ControllerBase
     {
         var sessions = await _rolePlayService.GetAllSessionsAsync();
         var session = sessions.FirstOrDefault(s => s.Id == sessionId);
-        if (session == null) return NotFound();
+        if(session == null)
+            return NotFound();
 
         return Ok(session);
     }

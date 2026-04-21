@@ -4,19 +4,15 @@
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddEssayFeatureV2 : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_EssayAnswers_EssayQuestions_QuestionId",
-                table: "EssayAnswers");
+            migrationBuilder.DropForeignKey(name: "FK_EssayAnswers_EssayQuestions_QuestionId", table: "EssayAnswers");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_EssayAttempts_Users_UserId",
-                table: "EssayAttempts");
+            migrationBuilder.DropForeignKey(name: "FK_EssayAttempts_Users_UserId", table: "EssayAttempts");
 
             migrationBuilder.AddColumn<int>(
                 name: "EssayQuestionId",
@@ -51,28 +47,20 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
                 name: "FK_EssayAnswers_EssayQuestions_EssayQuestionId",
                 table: "EssayAnswers");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_EssayAnswers_EssayQuestions_QuestionId",
-                table: "EssayAnswers");
+            migrationBuilder.DropForeignKey(name: "FK_EssayAnswers_EssayQuestions_QuestionId", table: "EssayAnswers");
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_EssayAttempts_Users_UserId",
-                table: "EssayAttempts");
+            migrationBuilder.DropForeignKey(name: "FK_EssayAttempts_Users_UserId", table: "EssayAttempts");
 
-            migrationBuilder.DropIndex(
-                name: "IX_EssayAnswers_EssayQuestionId",
-                table: "EssayAnswers");
+            migrationBuilder.DropIndex(name: "IX_EssayAnswers_EssayQuestionId", table: "EssayAnswers");
 
-            migrationBuilder.DropColumn(
-                name: "EssayQuestionId",
-                table: "EssayAnswers");
+            migrationBuilder.DropColumn(name: "EssayQuestionId", table: "EssayAnswers");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_EssayAnswers_EssayQuestions_QuestionId",

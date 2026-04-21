@@ -12,10 +12,7 @@ public class AdminEssayController : ControllerBase
 {
     private readonly IEssayService _essayService;
 
-    public AdminEssayController(IEssayService essayService)
-    {
-        _essayService = essayService;
-    }
+    public AdminEssayController(IEssayService essayService) { _essayService = essayService; }
 
     [HttpGet("attempts")]
     public async Task<ActionResult<List<AdminEssayAttemptResponse>>> GetAllAttempts()

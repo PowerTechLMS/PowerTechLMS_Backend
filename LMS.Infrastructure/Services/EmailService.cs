@@ -30,13 +30,14 @@ public class EmailService : IEmailService
             var smtpPass = _config["EmailSettings:SmtpPass"];
             var fromEmail = _config["EmailSettings:FromEmail"] ?? smtpUser;
 
-            if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass) || smtpUser.Contains("your-email"))
+            if(string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass) || smtpUser.Contains("your-email"))
             {
                 _logger.LogWarning("Email sending skipped: SMTP credentials are not configured in appsettings.json");
                 return;
             }
 
-            if (!int.TryParse(smtpPortStr, out int smtpPort)) smtpPort = 587;
+            if(!int.TryParse(smtpPortStr, out int smtpPort))
+                smtpPort = 587;
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
@@ -59,7 +60,7 @@ public class EmailService : IEmailService
             _logger.LogInformation("Attempting to send email to {To} via {Host}", to, smtpHost);
             await client.SendMailAsync(mailMessage);
             _logger.LogInformation("Email sent successfully to {To}", to);
-        } catch (Exception ex)
+        } catch(Exception ex)
         {
             _logger.LogError(ex, "Error occurred while sending email to {To}", to);
             throw;

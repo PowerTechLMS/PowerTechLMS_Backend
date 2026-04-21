@@ -4,10 +4,10 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class RenameContextToSupportLessonIds : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(
@@ -16,7 +16,7 @@ namespace LMS.Infrastructure.Migrations
                 newName: "SupportLessonIds");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.RenameColumn(

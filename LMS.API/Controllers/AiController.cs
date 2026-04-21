@@ -2,6 +2,8 @@ using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Text;
 
 namespace LMS.API.Controllers;
@@ -13,11 +15,13 @@ public class AiController : ControllerBase
 {
     private readonly ILlmService _llm;
     private readonly AppDbContext _db;
+    private readonly IAiCourseGenerationService _courseGen;
 
-    public AiController(ILlmService llm, AppDbContext db)
+    public AiController(ILlmService llm, AppDbContext db, IAiCourseGenerationService courseGen)
     {
         _llm = llm;
         _db = db;
+        _courseGen = courseGen;
     }
 
     [HttpPost("suggest-content")]
@@ -183,6 +187,92 @@ public class AiController : ControllerBase
         }
     }
 
+    [HttpPost("course/generate")]
+    public async Task<IActionResult> GenerateCourse([FromBody] StartCourseGenerationRequest request)
+    {
+        if(string.IsNullOrWhiteSpace(request?.Topic))
+            return BadRequest(new { message = "Chủ đề không được để trống." });
+
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var jobId = await _courseGen.StartCourseGenerationAsync(
+            userId,
+            request.Topic,
+            request.TargetAudience ?? "Người mới",
+            request.AdditionalInfo ?? string.Empty);
+        return Ok(new { jobId });
+    }
+
+    [HttpGet("active-tasks")]
+    public async Task<IActionResult> GetActiveTasks()
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var tasks = await _db.AiTasks
+            .Where(t => t.CreatedById == userId && (!t.IsCompleted && !t.IsFailed))
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
+        return Ok(tasks);
+    }
+
+    [HttpGet("course/progress/{jobId}")]
+    public async Task<IActionResult> GetCourseProgress(string jobId)
+    {
+        var progress = await _courseGen.GetProgressAsync(jobId);
+        return Ok(progress);
+    }
+
+    [HttpPost("lesson/suggest-video-frame")]
+    public async Task<IActionResult> SuggestVideoFrame([FromBody] SuggestVideoFrameRequest request)
+    {
+        string? title = request.Title;
+        string? content = request.Content;
+
+        if(request.LessonId > 0)
+        {
+            var lesson = await _db.Lessons.FindAsync(request.LessonId);
+            if(lesson is not null)
+            {
+                title = lesson.Title;
+                content = lesson.Content;
+            }
+        }
+
+        if(string.IsNullOrWhiteSpace(title))
+            return BadRequest(new { message = "Tiêu đề bài học không được để trống." });
+
+        var systemPrompt = "Bạn là một chuyên gia biên kịch và quay dựng bài giảng video. " +
+            "Nhiệm vụ của bạn là tạo ra một bản tóm tắt các phân cảnh (video frame/script) " +
+            "giúp giảng viên có thể quay video bài giảng này một cách chuyên nghiệp. " +
+            "QUY TẮC QUAN TRỌNG: Chỉ trả về nội dung kịch bản dưới dạng Markdown, " +
+            "KHÔNG ĐƯỢC có câu chào hỏi (ví dụ: 'Chào bạn', 'Dưới đây là...'), " +
+            "KHÔNG ĐƯỢC có phần kết luận hội thoại (ví dụ: 'Bạn có muốn tôi...'). " +
+            "Chỉ cung cấp trực tiếp nội dung chuyên môn.";
+
+        var userPrompt = $"Tên bài học: {title}\n" +
+            $"Mô tả nội dung (nếu có): {content}\n" +
+            "Hãy gợi ý khung sườn video gồm: Phân đoạn, hình ảnh minh họa, và lời thoại sơ lược.";
+
+        try
+        {
+            var suggestedFrame = await _llm.GenerateResponseAsync(systemPrompt, userPrompt);
+
+            if(request.LessonId > 0)
+            {
+                var lesson = await _db.Lessons.FindAsync(request.LessonId);
+                if(lesson is not null)
+                {
+                    lesson.VideoDraftScript = suggestedFrame;
+                    await _db.SaveChangesAsync();
+                }
+            }
+
+            return Ok(new { suggestedFrame });
+        } catch(Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi khi gọi AI gợi ý khung video: " + ex.Message });
+        }
+    }
+
     private string CleanJsonResponse(string response)
     {
         var json = response.Trim();
@@ -196,6 +286,24 @@ public class AiController : ControllerBase
 
         return json.Trim();
     }
+}
+
+public class StartCourseGenerationRequest
+{
+    public string Topic { get; set; } = string.Empty;
+
+    public string? TargetAudience { get; set; }
+
+    public string? AdditionalInfo { get; set; }
+}
+
+public class SuggestVideoFrameRequest
+{
+    public int? LessonId { get; set; }
+
+    public string? Title { get; set; }
+
+    public string? Content { get; set; }
 }
 
 public class GenerateLessonQuizRequest

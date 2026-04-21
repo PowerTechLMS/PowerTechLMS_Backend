@@ -81,13 +81,22 @@ public class AppDbContext : DbContext
     public DbSet<LessonChat> LessonChats => Set<LessonChat>();
 
     public DbSet<DocumentChat> DocumentChats => Set<DocumentChat>();
+
     public DbSet<RolePlayConfig> RolePlayConfigs => Set<RolePlayConfig>();
+
     public DbSet<RolePlaySession> RolePlaySessions => Set<RolePlaySession>();
+
     public DbSet<RolePlayMessage> RolePlayMessages => Set<RolePlayMessage>();
+
     public DbSet<EssayConfig> EssayConfigs => Set<EssayConfig>();
+
     public DbSet<EssayQuestion> EssayQuestions => Set<EssayQuestion>();
+
     public DbSet<EssayAttempt> EssayAttempts => Set<EssayAttempt>();
+
     public DbSet<EssayAnswer> EssayAnswers => Set<EssayAnswer>();
+
+    public DbSet<AiTask> AiTasks => Set<AiTask>();
 
     protected override void OnModelCreating(ModelBuilder m)
     {
@@ -133,6 +142,7 @@ public class AppDbContext : DbContext
         m.Entity<EssayQuestion>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<EssayAttempt>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<EssayAnswer>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<AiTask>().HasQueryFilter(e => !e.CreatedBy.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -384,15 +394,9 @@ public class AppDbContext : DbContext
         m.Entity<EssayAttempt>(
             e =>
             {
-                e.HasOne(ea => ea.User)
-                    .WithMany()
-                    .HasForeignKey(ea => ea.UserId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                e.HasOne(ea => ea.User).WithMany().HasForeignKey(ea => ea.UserId).OnDelete(DeleteBehavior.NoAction);
 
-                e.HasOne(ea => ea.Lesson)
-                    .WithMany()
-                    .HasForeignKey(ea => ea.LessonId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                e.HasOne(ea => ea.Lesson).WithMany().HasForeignKey(ea => ea.LessonId).OnDelete(DeleteBehavior.Cascade);
             });
 
         m.Entity<EssayAnswer>(
@@ -540,6 +544,15 @@ public class AppDbContext : DbContext
                     .HasForeignKey(cgc => cgc.CourseId)
                     .OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(cgc => new { cgc.GroupId, cgc.CourseId }).IsUnique();
+            });
+
+        m.Entity<AiTask>(
+            e =>
+            {
+                e.HasOne(t => t.CreatedBy)
+                    .WithMany()
+                    .HasForeignKey(t => t.CreatedById)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
         m.Entity<Category>()

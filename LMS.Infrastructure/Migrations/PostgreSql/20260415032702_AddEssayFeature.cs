@@ -1,15 +1,15 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddEssayFeature : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -17,7 +17,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
@@ -53,7 +55,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     SupportLessonIds = table.Column<string>(type: "text", nullable: true),
                     TimeLimitMinutes = table.Column<int>(type: "integer", nullable: true),
@@ -81,7 +85,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     EssayConfigId = table.Column<int>(type: "integer", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
@@ -107,7 +113,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AttemptId = table.Column<int>(type: "integer", nullable: false),
                     QuestionId = table.Column<int>(type: "integer", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
@@ -135,25 +143,16 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAnswers_AttemptId",
-                table: "EssayAnswers",
-                column: "AttemptId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAnswers_AttemptId", table: "EssayAnswers", column: "AttemptId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EssayAnswers_QuestionId",
                 table: "EssayAnswers",
                 column: "QuestionId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAttempts_LessonId",
-                table: "EssayAttempts",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAttempts_LessonId", table: "EssayAttempts", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAttempts_UserId",
-                table: "EssayAttempts",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAttempts_UserId", table: "EssayAttempts", column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EssayConfigs_LessonId",
@@ -167,20 +166,16 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 column: "EssayConfigId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "EssayAnswers");
+            migrationBuilder.DropTable(name: "EssayAnswers");
 
-            migrationBuilder.DropTable(
-                name: "EssayAttempts");
+            migrationBuilder.DropTable(name: "EssayAttempts");
 
-            migrationBuilder.DropTable(
-                name: "EssayQuestions");
+            migrationBuilder.DropTable(name: "EssayQuestions");
 
-            migrationBuilder.DropTable(
-                name: "EssayConfigs");
+            migrationBuilder.DropTable(name: "EssayConfigs");
         }
     }
 }

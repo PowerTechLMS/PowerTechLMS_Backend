@@ -1,15 +1,15 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddRolePlayEntities : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -17,7 +17,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     ContextLessonIds = table.Column<string>(type: "text", nullable: true),
                     ScoringCriteria = table.Column<string>(type: "text", nullable: false),
@@ -44,7 +46,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     LessonId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "text", nullable: false),
@@ -77,7 +81,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SessionId = table.Column<int>(type: "integer", nullable: false),
                     Role = table.Column<string>(type: "text", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
@@ -99,13 +105,55 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[] { "Id", "Category", "Code", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "Name", "UpdatedAt" },
-                values: new object[] { 20, "RolePlay", "roleplay.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý Role Play", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "Id",
+                    "Category",
+                    "Code",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "Description",
+                    "IsDeleted",
+                    "Name",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    20,
+                    "RolePlay",
+                    "roleplay.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý Role Play",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
-                values: new object[] { 20, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "PermissionId",
+                    "RoleId",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "GrantedAt",
+                    "GrantedById",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    20,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePlayConfigs_LessonId",
@@ -128,27 +176,21 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 column: "UserId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "RolePlayConfigs");
+            migrationBuilder.DropTable(name: "RolePlayConfigs");
 
-            migrationBuilder.DropTable(
-                name: "RolePlayMessages");
+            migrationBuilder.DropTable(name: "RolePlayMessages");
 
-            migrationBuilder.DropTable(
-                name: "RolePlaySessions");
+            migrationBuilder.DropTable(name: "RolePlaySessions");
 
             migrationBuilder.DeleteData(
                 table: "RolePermissions",
                 keyColumns: new[] { "PermissionId", "RoleId" },
                 keyValues: new object[] { 20, 1 });
 
-            migrationBuilder.DeleteData(
-                table: "Permissions",
-                keyColumn: "Id",
-                keyValue: 20);
+            migrationBuilder.DeleteData(table: "Permissions", keyColumn: "Id", keyValue: 20);
         }
     }
 }

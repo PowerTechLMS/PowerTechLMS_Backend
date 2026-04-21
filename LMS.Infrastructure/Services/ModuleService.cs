@@ -4,8 +4,8 @@ using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 
 
 namespace LMS.Infrastructure.Services;
@@ -88,19 +88,33 @@ public class ModuleService : IModuleService
                             l.QuizId,
                             l.Quiz?.Questions.Count ?? 0,
                             l.AiSummary,
-                            l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                 JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                 l.RolePlayConfig.ScoringCriteria,
-                                 l.RolePlayConfig.AdditionalRequirements,
-                                 l.RolePlayConfig.Scenario) : null,
-                            l.EssayConfig != null ? new EssayConfigDto(
-                                 JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                 l.EssayConfig.TimeLimitMinutes,
-                                 l.EssayConfig.MaxAttemptsPerWindow,
-                                 l.EssayConfig.AttemptWindowHours,
-                                 l.EssayConfig.PassScore,
-                                 l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
-                            ) : null))
+                            l.VideoDraftScript,
+                            l.RolePlayConfig != null
+                                ? new RolePlayConfigDto(
+                                    JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ??
+                                        new List<int>(),
+                                    l.RolePlayConfig.ScoringCriteria,
+                                    l.RolePlayConfig.AdditionalRequirements,
+                                    l.RolePlayConfig.Scenario)
+                                : null,
+                            l.EssayConfig != null
+                                ? new EssayConfigDto(
+                                    JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ??
+                                        new List<int>(),
+                                    l.EssayConfig.TimeLimitMinutes,
+                                    l.EssayConfig.MaxAttemptsPerWindow,
+                                    l.EssayConfig.AttemptWindowHours,
+                                    l.EssayConfig.PassScore,
+                                    l.EssayConfig.Questions
+                                        .Select(
+                                            q => new EssayQuestionDto(
+                                                                    q.Id,
+                                                                    q.Content,
+                                                                    q.SortOrder,
+                                                                    q.Weight,
+                                                                    q.ScoringCriteria))
+                                        .ToList())
+                                : null))
                 .ToList());
     }
 
@@ -146,9 +160,13 @@ public class LessonService : ILessonService
     private readonly AppDbContext _db;
     private readonly VectorDbService _vectorDb;
     private readonly INotificationService _notificationService;
-    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+    private readonly IConfiguration _config;
 
-    public LessonService(AppDbContext db, VectorDbService vectorDb, INotificationService notificationService, Microsoft.Extensions.Configuration.IConfiguration config)
+    public LessonService(
+        AppDbContext db,
+        VectorDbService vectorDb,
+        INotificationService notificationService,
+        IConfiguration config)
     {
         _db = db;
         _vectorDb = vectorDb;
@@ -164,7 +182,7 @@ public class LessonService : ILessonService
 
         var storageKey = attachment.StorageKey ?? string.Empty;
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
 
@@ -211,12 +229,13 @@ public class LessonService : ILessonService
             IsFreePreview = request.IsFreePreview,
             VideoStatus = request.VideoStatus,
             VideoDurationSeconds = request.VideoDurationSeconds,
-            ReadingDurationSeconds = request.ReadingDurationSeconds
+            ReadingDurationSeconds = request.ReadingDurationSeconds,
+            VideoDraftScript = request.VideoDraftScript
         };
         _db.Lessons.Add(lesson);
         await _db.SaveChangesAsync();
 
-        if (request.Type == "RolePlay" && request.RolePlayConfig != null)
+        if(request.Type == "RolePlay" && request.RolePlayConfig != null)
         {
             var rpConfig = new RolePlayConfig
             {
@@ -231,7 +250,7 @@ public class LessonService : ILessonService
             await _db.SaveChangesAsync();
         }
 
-        if (request.Type == "Essay" && request.EssayConfig != null)
+        if(request.Type == "Essay" && request.EssayConfig != null)
         {
             var essayConfig = new EssayConfig
             {
@@ -243,9 +262,9 @@ public class LessonService : ILessonService
                 PassScore = request.EssayConfig.PassScore
             };
             _db.EssayConfigs.Add(essayConfig);
-            await _db.SaveChangesAsync(); // Need Id for questions
+            await _db.SaveChangesAsync();
 
-            foreach (var q in request.EssayConfig.Questions)
+            foreach(var q in request.EssayConfig.Questions)
             {
                 var question = new EssayQuestion
                 {
@@ -281,6 +300,7 @@ public class LessonService : ILessonService
             lesson.QuizId,
             0,
             lesson.AiSummary,
+            lesson.VideoDraftScript,
             request.RolePlayConfig,
             request.EssayConfig);
     }
@@ -341,6 +361,7 @@ public class LessonService : ILessonService
         lesson.VideoDurationSeconds = request.VideoDurationSeconds;
         lesson.ReadingDurationSeconds = request.ReadingDurationSeconds;
         lesson.VideoStatus = request.VideoStatus;
+        lesson.VideoDraftScript = request.VideoDraftScript;
 
         if(typeChanged)
         {
@@ -358,10 +379,10 @@ public class LessonService : ILessonService
             lesson.Transcript = null;
         }
 
-        if (lesson.Type == "RolePlay" && request.RolePlayConfig != null)
+        if(lesson.Type == "RolePlay" && request.RolePlayConfig != null)
         {
             var rpConfig = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == lessonId);
-            if (rpConfig == null)
+            if(rpConfig == null)
             {
                 rpConfig = new RolePlayConfig { LessonId = lessonId };
                 _db.RolePlayConfigs.Add(rpConfig);
@@ -372,10 +393,12 @@ public class LessonService : ILessonService
             rpConfig.PassScore = request.RolePlayConfig.PassScore;
         }
 
-        if (lesson.Type == "Essay" && request.EssayConfig != null)
+        if(lesson.Type == "Essay" && request.EssayConfig != null)
         {
-            var essayConfig = await _db.EssayConfigs.Include(c => c.Questions).FirstOrDefaultAsync(c => c.LessonId == lessonId);
-            if (essayConfig == null)
+            var essayConfig = await _db.EssayConfigs
+                .Include(c => c.Questions)
+                .FirstOrDefaultAsync(c => c.LessonId == lessonId);
+            if(essayConfig == null)
             {
                 essayConfig = new EssayConfig { LessonId = lessonId };
                 _db.EssayConfigs.Add(essayConfig);
@@ -386,59 +409,58 @@ public class LessonService : ILessonService
             essayConfig.AttemptWindowHours = request.EssayConfig.AttemptWindowHours;
             essayConfig.PassScore = request.EssayConfig.PassScore;
 
-            // Sync questions
             var existingQuestions = essayConfig.Questions.ToList();
             var incomingQuestionIds = request.EssayConfig.Questions
                 .Where(q => q.Id.HasValue && q.Id.Value > 0)
                 .Select(q => q.Id!.Value)
                 .ToList();
 
-            // 1. Remove questions that are not in the request and have no answers
             var questionsToRemove = existingQuestions.Where(q => !incomingQuestionIds.Contains(q.Id)).ToList();
-            foreach (var qToRemove in questionsToRemove)
+            foreach(var qToRemove in questionsToRemove)
             {
                 var hasAnswers = await _db.EssayAnswers.AnyAsync(a => a.QuestionId == qToRemove.Id);
-                if (!hasAnswers)
+                if(!hasAnswers)
                 {
                     _db.EssayQuestions.Remove(qToRemove);
                 }
             }
 
-            // 2. Update or Add questions
-            foreach (var q in request.EssayConfig.Questions)
+            foreach(var q in request.EssayConfig.Questions)
             {
-                if (q.Id.HasValue && q.Id.Value > 0)
+                if(q.Id.HasValue && q.Id.Value > 0)
                 {
                     var existing = existingQuestions.FirstOrDefault(ex => ex.Id == q.Id.Value);
-                    if (existing != null)
+                    if(existing != null)
                     {
                         existing.Content = q.Content;
                         existing.SortOrder = q.SortOrder;
                         existing.Weight = q.Weight;
                         existing.ScoringCriteria = q.ScoringCriteria;
-                    }
-                    else
+                    } else
                     {
-                         _db.EssayQuestions.Add(new EssayQuestion
-                        {
-                            EssayConfigId = essayConfig.Id,
-                            Content = q.Content,
-                            SortOrder = q.SortOrder,
-                            Weight = q.Weight,
-                            ScoringCriteria = q.ScoringCriteria
-                        });
+                        _db.EssayQuestions
+                            .Add(
+                                new EssayQuestion
+                                {
+                                    EssayConfigId = essayConfig.Id,
+                                    Content = q.Content,
+                                    SortOrder = q.SortOrder,
+                                    Weight = q.Weight,
+                                    ScoringCriteria = q.ScoringCriteria
+                                });
                     }
-                }
-                else
+                } else
                 {
-                    _db.EssayQuestions.Add(new EssayQuestion
-                    {
-                        EssayConfigId = essayConfig.Id,
-                        Content = q.Content,
-                        SortOrder = q.SortOrder,
-                        Weight = q.Weight,
-                        ScoringCriteria = q.ScoringCriteria
-                    });
+                    _db.EssayQuestions
+                        .Add(
+                            new EssayQuestion
+                            {
+                                EssayConfigId = essayConfig.Id,
+                                Content = q.Content,
+                                SortOrder = q.SortOrder,
+                                Weight = q.Weight,
+                                ScoringCriteria = q.ScoringCriteria
+                            });
                 }
             }
         }
@@ -467,6 +489,7 @@ public class LessonService : ILessonService
             lesson.QuizId,
             lesson.Quiz?.Questions.Count ?? 0,
             lesson.AiSummary,
+            lesson.VideoDraftScript,
             request.RolePlayConfig,
             request.EssayConfig);
     }
@@ -524,7 +547,7 @@ public class LessonService : ILessonService
             throw new KeyNotFoundException("Không tìm thấy bài học trong chương này.");
 
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
 
@@ -559,7 +582,7 @@ public class LessonService : ILessonService
         var lesson = await _db.Lessons.FindAsync(lessonId) ?? throw new KeyNotFoundException("Không tìm thấy bài học.");
 
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
 

@@ -1,22 +1,21 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddRolePlayEntities : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "RolePlayConfigs",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     ContextLessonIds = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ScoringCriteria = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -42,8 +41,7 @@ namespace LMS.Infrastructure.Migrations
                 name: "RolePlaySessions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -75,8 +73,7 @@ namespace LMS.Infrastructure.Migrations
                 name: "RolePlayMessages",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     SessionId = table.Column<int>(type: "int", nullable: false),
                     Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -98,13 +95,55 @@ namespace LMS.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Permissions",
-                columns: new[] { "Id", "Category", "Code", "CreatedAt", "DeletedAt", "Description", "IsDeleted", "Name", "UpdatedAt" },
-                values: new object[] { 20, "RolePlay", "roleplay.manage", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, null, false, "Quản lý Role Play", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "Id",
+                    "Category",
+                    "Code",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "Description",
+                    "IsDeleted",
+                    "Name",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    20,
+                    "RolePlay",
+                    "roleplay.manage",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    null,
+                    false,
+                    "Quản lý Role Play",
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
-                values: new object[] { 20, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) });
+                columns: new[]
+                {
+                    "PermissionId",
+                    "RoleId",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "GrantedAt",
+                    "GrantedById",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
+                values: new object[]
+                {
+                    20,
+                    1,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                });
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePlayConfigs_LessonId",
@@ -127,27 +166,21 @@ namespace LMS.Infrastructure.Migrations
                 column: "UserId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "RolePlayConfigs");
+            migrationBuilder.DropTable(name: "RolePlayConfigs");
 
-            migrationBuilder.DropTable(
-                name: "RolePlayMessages");
+            migrationBuilder.DropTable(name: "RolePlayMessages");
 
-            migrationBuilder.DropTable(
-                name: "RolePlaySessions");
+            migrationBuilder.DropTable(name: "RolePlaySessions");
 
             migrationBuilder.DeleteData(
                 table: "RolePermissions",
                 keyColumns: new[] { "PermissionId", "RoleId" },
                 keyValues: new object[] { 20, 1 });
 
-            migrationBuilder.DeleteData(
-                table: "Permissions",
-                keyColumn: "Id",
-                keyValue: 20);
+            migrationBuilder.DeleteData(table: "Permissions", keyColumn: "Id", keyValue: 20);
         }
     }
 }

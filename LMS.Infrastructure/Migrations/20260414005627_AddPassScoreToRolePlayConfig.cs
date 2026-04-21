@@ -4,10 +4,10 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddPassScoreToRolePlayConfig : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
@@ -18,12 +18,8 @@ namespace LMS.Infrastructure.Migrations
                 defaultValue: 0);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "PassScore",
-                table: "RolePlayConfigs");
-        }
+        { migrationBuilder.DropColumn(name: "PassScore", table: "RolePlayConfigs"); }
     }
 }

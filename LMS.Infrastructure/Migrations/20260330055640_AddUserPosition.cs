@@ -4,32 +4,19 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddUserPosition : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Position",
-                table: "Users",
-                type: "nvarchar(max)",
-                nullable: true);
+            migrationBuilder.AddColumn<string>(name: "Position", table: "Users", type: "nvarchar(max)", nullable: true);
 
-            migrationBuilder.UpdateData(
-                table: "Users",
-                keyColumn: "Id",
-                keyValue: 1,
-                column: "Position",
-                value: null);
+            migrationBuilder.UpdateData(table: "Users", keyColumn: "Id", keyValue: 1, column: "Position", value: null);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "Position",
-                table: "Users");
-        }
+        { migrationBuilder.DropColumn(name: "Position", table: "Users"); }
     }
 }

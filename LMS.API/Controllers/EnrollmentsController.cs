@@ -74,7 +74,7 @@ public class EnrollmentsController : ControllerBase
         try
         {
             return Ok(await _enrollmentService.ApproveEnrollmentAsync(id, request.Approved, request.Reason));
-        } catch (InvalidOperationException ex)
+        } catch(InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
         } catch(KeyNotFoundException)

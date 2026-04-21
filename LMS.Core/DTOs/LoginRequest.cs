@@ -5,8 +5,11 @@ namespace LMS.Core.DTOs;
 public record LoginRequest(string Email, string Password);
 
 public record RegisterRequest(string FullName, string Email, string Password, string? Role);
+
 public record ForgotPasswordRequest(string Email);
+
 public record VerifyOtpRequest(string Email, string Otp);
+
 public record ResetPasswordRequest(string Email, string Otp, string NewPassword);
 
 public record MailJob(string To, string Subject, string Body, int RetryCount = 0);
@@ -264,6 +267,7 @@ public record CreateLessonRequest(
     int VideoDurationSeconds = 0,
     int ReadingDurationSeconds = 0,
     string VideoStatus = "Ready",
+    string? VideoDraftScript = null,
     RolePlayConfigDto? RolePlayConfig = null,
     EssayConfigDto? EssayConfig = null);
 
@@ -277,6 +281,7 @@ public record UpdateLessonRequest(
     int VideoDurationSeconds,
     int ReadingDurationSeconds = 0,
     string VideoStatus = "Ready",
+    string? VideoDraftScript = null,
     RolePlayConfigDto? RolePlayConfig = null,
     EssayConfigDto? EssayConfig = null);
 
@@ -295,6 +300,7 @@ public record LessonResponse(
     int? QuizId = null,
     int QuizQuestionCount = 0,
     string? AiSummary = null,
+    string? VideoDraftScript = null,
     RolePlayConfigDto? RolePlayConfig = null,
     EssayConfigDto? EssayConfig = null);
 
@@ -706,26 +712,23 @@ public class LearningProfileDto
 public record SummaryStatDto(string Label, string Val, string Color);
 
 public record HrMessageDto(int Id, string From, string Msg, string Time, bool Unread);
+
 public record RolePlaySendMessageRequest(string Content);
 
 public record RolePlaySessionResponse(
     int Id,
     int UserId,
-    string? UserFullName, // NEW
+    string? UserFullName,
     int LessonId,
-    string? LessonTitle, // NEW
+    string? LessonTitle,
     string Status,
     int? Score,
-    int? PassScore, // NEW
+    int? PassScore,
     string? Feedback,
     DateTime CreatedAt,
     List<RolePlayMessageResponse> Messages);
 
-public record RolePlayMessageResponse(
-    int Id,
-    string Role,
-    string Content,
-    DateTime CreatedAt);
+public record RolePlayMessageResponse(int Id, string Role, string Content, DateTime CreatedAt);
 
 public record EssayQuestionDto(int? Id, string Content, int SortOrder, int Weight, string? ScoringCriteria = null);
 
@@ -747,10 +750,10 @@ public record StartEssayAttemptResponse(
     [property: JsonPropertyName("answers")] List<EssayAnswerSubmit>? Answers = null);
 
 public record EssayQuestionItemResponse(
-    [property: JsonPropertyName("id")] int Id, 
-    [property: JsonPropertyName("content")] string Content, 
-    [property: JsonPropertyName("sortOrder")] int SortOrder, 
-    [property: JsonPropertyName("weight")] int Weight, 
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("content")] string Content,
+    [property: JsonPropertyName("sortOrder")] int SortOrder,
+    [property: JsonPropertyName("weight")] int Weight,
     [property: JsonPropertyName("scoringCriteria")] string? ScoringCriteria = null);
 
 public record SubmitEssayRequest(List<EssayAnswerSubmit> Answers);
@@ -776,12 +779,12 @@ public record EssayAnswerResultItem(
     string? ScoringCriteria = null);
 
 public record EssayAttemptSummary(
-    [property: JsonPropertyName("id")] int Id, 
-    [property: JsonPropertyName("attemptNumber")] int AttemptNumber, 
-    [property: JsonPropertyName("totalScore")] int? TotalScore, 
-    [property: JsonPropertyName("isPassed")] bool IsPassed, 
-    [property: JsonPropertyName("status")] string Status, 
-    [property: JsonPropertyName("startedAt")] DateTime StartedAt, 
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("attemptNumber")] int AttemptNumber,
+    [property: JsonPropertyName("totalScore")] int? TotalScore,
+    [property: JsonPropertyName("isPassed")] bool IsPassed,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("startedAt")] DateTime StartedAt,
     [property: JsonPropertyName("submittedAt")] DateTime? SubmittedAt);
 
 public record AdminEssayAttemptResponse(
@@ -799,6 +802,7 @@ public record AdminEssayAttemptResponse(
     List<EssayAnswerResultItem> Answers);
 
 public record AdminUpdateEssayAttemptRequest(string? AiFeedback, List<EssayAnswerUpdateDto> Answers);
+
 public record EssayAnswerUpdateDto(int QuestionId, int Score, string? Feedback);
 
 public record RolePlayConfigDto(
@@ -808,7 +812,4 @@ public record RolePlayConfigDto(
     string? Scenario,
     int PassScore = 50);
 
-public record AdminUpdateRolePlayStatusRequest(
-    string Status,
-    int? Score,
-    string? Feedback);
+public record AdminUpdateRolePlayStatusRequest(string Status, int? Score, string? Feedback);

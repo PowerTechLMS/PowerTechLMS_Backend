@@ -4,25 +4,15 @@
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class RenameInitialAiMessageToScenario : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.RenameColumn(
-                name: "InitialAiMessage",
-                table: "RolePlayConfigs",
-                newName: "Scenario");
-        }
+        { migrationBuilder.RenameColumn(name: "InitialAiMessage", table: "RolePlayConfigs", newName: "Scenario"); }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.RenameColumn(
-                name: "Scenario",
-                table: "RolePlayConfigs",
-                newName: "InitialAiMessage");
-        }
+        { migrationBuilder.RenameColumn(name: "Scenario", table: "RolePlayConfigs", newName: "InitialAiMessage"); }
     }
 }

@@ -59,5 +59,7 @@ public class Lesson : BaseEntity
 
     public virtual EssayConfig? EssayConfig { get; set; }
 
+    public string? VideoDraftScript { get; set; }
+
     public ICollection<Note> Notes { get; set; } = new List<Note>();
 }

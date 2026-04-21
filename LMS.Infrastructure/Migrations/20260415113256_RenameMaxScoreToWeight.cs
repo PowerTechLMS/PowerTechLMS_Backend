@@ -4,25 +4,15 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class RenameMaxScoreToWeight : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.RenameColumn(
-                name: "MaxScore",
-                table: "EssayQuestions",
-                newName: "Weight");
-        }
+        { migrationBuilder.RenameColumn(name: "MaxScore", table: "EssayQuestions", newName: "Weight"); }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.RenameColumn(
-                name: "Weight",
-                table: "EssayQuestions",
-                newName: "MaxScore");
-        }
+        { migrationBuilder.RenameColumn(name: "Weight", table: "EssayQuestions", newName: "MaxScore"); }
     }
 }

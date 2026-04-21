@@ -1,14 +1,14 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddOtpFieldsForVPS : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<DateTime>(
@@ -17,11 +17,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 type: "timestamp with time zone",
                 nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "ResetPasswordOtp",
-                table: "Users",
-                type: "text",
-                nullable: true);
+            migrationBuilder.AddColumn<string>(name: "ResetPasswordOtp", table: "Users", type: "text", nullable: true);
 
             migrationBuilder.UpdateData(
                 table: "Users",
@@ -31,16 +27,12 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 values: new object[] { null, null });
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "OtpExpiry",
-                table: "Users");
+            migrationBuilder.DropColumn(name: "OtpExpiry", table: "Users");
 
-            migrationBuilder.DropColumn(
-                name: "ResetPasswordOtp",
-                table: "Users");
+            migrationBuilder.DropColumn(name: "ResetPasswordOtp", table: "Users");
         }
     }
 }

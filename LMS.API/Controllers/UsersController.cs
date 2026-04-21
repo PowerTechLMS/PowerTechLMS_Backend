@@ -111,8 +111,8 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Đồng bộ lại bảng UserRoles dựa trên cột Role của tất cả user.
-    /// Gọi API này một lần để fix toàn bộ tài khoản hiện có.
+    /// Đồng bộ lại bảng UserRoles dựa trên cột Role của tất cả user. Gọi API này một lần để fix toàn bộ tài khoản hiện
+    /// có.
     /// </summary>
     [HttpPost("sync-rbac")]
     [Authorize(Policy = "UserManage")]

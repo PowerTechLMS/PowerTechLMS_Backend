@@ -3,6 +3,7 @@ using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 
 namespace LMS.Infrastructure.Services;
@@ -13,13 +14,13 @@ public class CourseService : ICourseService
     private readonly INotificationService _notificationService;
     private readonly VectorDbService _vectorDb;
 
-    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+    private readonly IConfiguration _config;
 
     public CourseService(
         AppDbContext db,
         INotificationService notificationService,
         VectorDbService vectorDb,
-        Microsoft.Extensions.Configuration.IConfiguration config)
+        IConfiguration config)
     {
         _db = db;
         _notificationService = notificationService;
@@ -213,20 +214,36 @@ public class CourseService : ICourseService
                                                     l.QuizId,
                                                     l.QuizId.HasValue ? quizCounts.GetValueOrDefault(l.QuizId.Value) : 0,
                                                     l.AiSummary,
-                                                    l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                                        l.RolePlayConfig.ScoringCriteria,
-                                                        l.RolePlayConfig.AdditionalRequirements,
-                                                        l.RolePlayConfig.Scenario,
-                                                        l.RolePlayConfig.PassScore) : null,
-                                                    l.EssayConfig != null ? new EssayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                                        l.EssayConfig.TimeLimitMinutes,
-                                                        l.EssayConfig.MaxAttemptsPerWindow,
-                                                        l.EssayConfig.AttemptWindowHours,
-                                                        l.EssayConfig.PassScore,
-                                                        l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
-                                                    ) : null))
+                                                    l.VideoDraftScript,
+                                                    l.RolePlayConfig != null
+                                                        ? new RolePlayConfigDto(
+                                                            JsonSerializer.Deserialize<List<int>>(
+                                                                    l.RolePlayConfig.SupportLessonIds ?? "[]") ??
+                                                                new List<int>(),
+                                                            l.RolePlayConfig.ScoringCriteria,
+                                                            l.RolePlayConfig.AdditionalRequirements,
+                                                            l.RolePlayConfig.Scenario,
+                                                            l.RolePlayConfig.PassScore)
+                                                        : null,
+                                                    l.EssayConfig != null
+                                                        ? new EssayConfigDto(
+                                                            JsonSerializer.Deserialize<List<int>>(
+                                                                    l.EssayConfig.SupportLessonIds ?? "[]") ??
+                                                                new List<int>(),
+                                                            l.EssayConfig.TimeLimitMinutes,
+                                                            l.EssayConfig.MaxAttemptsPerWindow,
+                                                            l.EssayConfig.AttemptWindowHours,
+                                                            l.EssayConfig.PassScore,
+                                                            l.EssayConfig.Questions
+                                                                .Select(
+                                                                    q => new EssayQuestionDto(
+                                                                                                    q.Id,
+                                                                                                    q.Content,
+                                                                                                    q.SortOrder,
+                                                                                                    q.Weight,
+                                                                                                    q.ScoringCriteria))
+                                                                .ToList())
+                                                        : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),
@@ -299,20 +316,36 @@ public class CourseService : ICourseService
                                                     l.QuizId,
                                                     l.Quiz?.Questions.Count ?? 0,
                                                     l.AiSummary,
-                                                    l.RolePlayConfig != null ? new RolePlayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.RolePlayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                                        l.RolePlayConfig.ScoringCriteria,
-                                                        l.RolePlayConfig.AdditionalRequirements,
-                                                        l.RolePlayConfig.Scenario,
-                                                        l.RolePlayConfig.PassScore) : null,
-                                                    l.EssayConfig != null ? new EssayConfigDto(
-                                                        JsonSerializer.Deserialize<List<int>>(l.EssayConfig.SupportLessonIds ?? "[]") ?? new List<int>(),
-                                                        l.EssayConfig.TimeLimitMinutes,
-                                                        l.EssayConfig.MaxAttemptsPerWindow,
-                                                        l.EssayConfig.AttemptWindowHours,
-                                                        l.EssayConfig.PassScore,
-                                                        l.EssayConfig.Questions.Select(q => new EssayQuestionDto(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)).ToList()
-                                                    ) : null))
+                                                    null,
+                                                    l.RolePlayConfig != null
+                                                        ? new RolePlayConfigDto(
+                                                            JsonSerializer.Deserialize<List<int>>(
+                                                                    l.RolePlayConfig.SupportLessonIds ?? "[]") ??
+                                                                new List<int>(),
+                                                            l.RolePlayConfig.ScoringCriteria,
+                                                            l.RolePlayConfig.AdditionalRequirements,
+                                                            l.RolePlayConfig.Scenario,
+                                                            l.RolePlayConfig.PassScore)
+                                                        : null,
+                                                    l.EssayConfig != null
+                                                        ? new EssayConfigDto(
+                                                            JsonSerializer.Deserialize<List<int>>(
+                                                                    l.EssayConfig.SupportLessonIds ?? "[]") ??
+                                                                new List<int>(),
+                                                            l.EssayConfig.TimeLimitMinutes,
+                                                            l.EssayConfig.MaxAttemptsPerWindow,
+                                                            l.EssayConfig.AttemptWindowHours,
+                                                            l.EssayConfig.PassScore,
+                                                            l.EssayConfig.Questions
+                                                                .Select(
+                                                                    q => new EssayQuestionDto(
+                                                                                                    q.Id,
+                                                                                                    q.Content,
+                                                                                                    q.SortOrder,
+                                                                                                    q.Weight,
+                                                                                                    q.ScoringCriteria))
+                                                                .ToList())
+                                                        : null))
                                 .ToList()))
                 .ToList(),
             await _db.Enrollments.CountAsync(e => e.CourseId == courseId),
@@ -497,7 +530,7 @@ public class CourseService : ICourseService
             throw new UnauthorizedAccessException("Bạn không có quyền tải lên ảnh bìa cho khóa học này.");
 
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
 
@@ -570,7 +603,8 @@ public class CourseService : ICourseService
 
         if(course.UserGroupId.HasValue)
         {
-            usersQuery = usersQuery.Where(u => _db.UserGroupMembers.Any(m => m.UserId == u.Id && m.GroupId == course.UserGroupId.Value));
+            usersQuery = usersQuery.Where(
+                u => _db.UserGroupMembers.Any(m => m.UserId == u.Id && m.GroupId == course.UserGroupId.Value));
         }
 
         var users = await usersQuery.ToListAsync();

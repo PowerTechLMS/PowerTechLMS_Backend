@@ -48,9 +48,7 @@ public class WhisperService : ITranscriptionService
         {
             using var factory = WhisperFactory.FromPath(_modelPath);
 
-            using var processor = factory.CreateBuilder()
-                .WithLanguage("vi")
-                .WithBeamSearchSamplingStrategy()
+            using var processor = factory.CreateBuilder().WithLanguage("vi").WithBeamSearchSamplingStrategy()
                 .ParentBuilder
                 .Build();
 
@@ -68,7 +66,6 @@ public class WhisperService : ITranscriptionService
             }
         } catch
         {
-            // Fallback: segments rỗng nếu lỗi native
         }
 
         return segments;

@@ -13,10 +13,7 @@ public class EssayController : ControllerBase
 {
     private readonly IEssayService _essayService;
 
-    public EssayController(IEssayService essayService)
-    {
-        _essayService = essayService;
-    }
+    public EssayController(IEssayService essayService) { _essayService = essayService; }
 
     private int UserId
     {
@@ -35,23 +32,32 @@ public class EssayController : ControllerBase
     public async Task<ActionResult<StartEssayAttemptResponse>> StartAttempt(int lessonId)
     {
         var attempt = await _essayService.StartAttemptAsync(UserId, lessonId);
-        // Map to response - we need to fetch detail to get questions
         var detail = await _essayService.GetAttemptDetailAsync(UserId, attempt.Id);
         var attemptNumber = await _essayService.GetAttemptNumberAsync(UserId, lessonId, attempt.StartedAt);
-        
-        return Ok(new StartEssayAttemptResponse(
-            attempt.Id,
-            attemptNumber,
-            attempt.StartedAt,
-            detail.Answers.FirstOrDefault()?.Weight, // Thử lấy time limit - thực ra nên lấy từ config
-            detail.Answers.Select(a => new EssayQuestionItemResponse(a.QuestionId, a.QuestionContent, 0, a.Weight, a.ScoringCriteria)).ToList(),
-            0,
-            null
-        ));
+
+        return Ok(
+            new StartEssayAttemptResponse(
+                attempt.Id,
+                attemptNumber,
+                attempt.StartedAt,
+                detail.Answers.FirstOrDefault()?.Weight,
+                detail.Answers
+                    .Select(
+                        a => new EssayQuestionItemResponse(
+                                    a.QuestionId,
+                                    a.QuestionContent,
+                                    0,
+                                    a.Weight,
+                                    a.ScoringCriteria))
+                    .ToList(),
+                0,
+                null));
     }
 
     [HttpPost("attempts/{attemptId}/submit")]
-    public async Task<ActionResult<EssayResultResponse>> SubmitAttempt(int attemptId, [FromBody] SubmitEssayRequest request)
+    public async Task<ActionResult<EssayResultResponse>> SubmitAttempt(
+        int attemptId,
+        [FromBody] SubmitEssayRequest request)
     {
         var result = await _essayService.SubmitAttemptAsync(UserId, attemptId, request);
         return Ok(result);
@@ -75,21 +81,24 @@ public class EssayController : ControllerBase
     public async Task<ActionResult<StartEssayAttemptResponse?>> GetActiveAttempt(int lessonId)
     {
         var attempt = await _essayService.GetActiveAttemptAsync(UserId, lessonId);
-        if (attempt is null) return Ok(null);
+        if(attempt is null)
+            return Ok(null);
 
         var attemptNumber = await _essayService.GetAttemptNumberAsync(UserId, lessonId, attempt.StartedAt);
 
-        return Ok(new StartEssayAttemptResponse(
-            attempt.Id,
-            attemptNumber,
-            attempt.StartedAt,
-            attempt.Lesson.EssayConfig?.TimeLimitMinutes,
-            attempt.Lesson.EssayConfig?.Questions.Select(q => 
-                new EssayQuestionItemResponse(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria)
-            ).OrderBy(q => q.SortOrder).ToList() ?? new List<EssayQuestionItemResponse>(),
-            0,
-            attempt.Answers.Select(a => new EssayAnswerSubmit(a.QuestionId, a.Content)).ToList()
-        ));
+        return Ok(
+            new StartEssayAttemptResponse(
+                attempt.Id,
+                attemptNumber,
+                attempt.StartedAt,
+                attempt.Lesson.EssayConfig?.TimeLimitMinutes,
+                attempt.Lesson.EssayConfig?.Questions.Select(
+                        q => new EssayQuestionItemResponse(q.Id, q.Content, q.SortOrder, q.Weight, q.ScoringCriteria))
+                        .OrderBy(q => q.SortOrder)
+                        .ToList() ??
+                    new List<EssayQuestionItemResponse>(),
+                0,
+                attempt.Answers.Select(a => new EssayAnswerSubmit(a.QuestionId, a.Content)).ToList()));
     }
 
     [HttpPost("attempts/{attemptId}/save-draft")]

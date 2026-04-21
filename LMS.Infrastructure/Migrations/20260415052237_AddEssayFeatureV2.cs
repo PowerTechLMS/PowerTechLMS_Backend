@@ -1,22 +1,21 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddEssayFeatureV2 : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "EssayAttempts",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -50,8 +49,7 @@ namespace LMS.Infrastructure.Migrations
                 name: "EssayConfigs",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     LessonId = table.Column<int>(type: "int", nullable: false),
                     SupportLessonIds = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TimeLimitMinutes = table.Column<int>(type: "int", nullable: true),
@@ -78,8 +76,7 @@ namespace LMS.Infrastructure.Migrations
                 name: "EssayQuestions",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     EssayConfigId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SortOrder = table.Column<int>(type: "int", nullable: false),
@@ -104,8 +101,7 @@ namespace LMS.Infrastructure.Migrations
                 name: "EssayAnswers",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<int>(type: "int", nullable: false).Annotation("SqlServer:Identity", "1, 1"),
                     AttemptId = table.Column<int>(type: "int", nullable: false),
                     QuestionId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -138,10 +134,7 @@ namespace LMS.Infrastructure.Migrations
                         principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAnswers_AttemptId",
-                table: "EssayAnswers",
-                column: "AttemptId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAnswers_AttemptId", table: "EssayAnswers", column: "AttemptId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EssayAnswers_EssayQuestionId",
@@ -153,15 +146,9 @@ namespace LMS.Infrastructure.Migrations
                 table: "EssayAnswers",
                 column: "QuestionId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAttempts_LessonId",
-                table: "EssayAttempts",
-                column: "LessonId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAttempts_LessonId", table: "EssayAttempts", column: "LessonId");
 
-            migrationBuilder.CreateIndex(
-                name: "IX_EssayAttempts_UserId",
-                table: "EssayAttempts",
-                column: "UserId");
+            migrationBuilder.CreateIndex(name: "IX_EssayAttempts_UserId", table: "EssayAttempts", column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EssayConfigs_LessonId",
@@ -175,20 +162,16 @@ namespace LMS.Infrastructure.Migrations
                 column: "EssayConfigId");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "EssayAnswers");
+            migrationBuilder.DropTable(name: "EssayAnswers");
 
-            migrationBuilder.DropTable(
-                name: "EssayAttempts");
+            migrationBuilder.DropTable(name: "EssayAttempts");
 
-            migrationBuilder.DropTable(
-                name: "EssayQuestions");
+            migrationBuilder.DropTable(name: "EssayQuestions");
 
-            migrationBuilder.DropTable(
-                name: "EssayConfigs");
+            migrationBuilder.DropTable(name: "EssayConfigs");
         }
     }
 }

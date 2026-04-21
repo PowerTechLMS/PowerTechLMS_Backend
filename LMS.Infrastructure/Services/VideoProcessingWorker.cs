@@ -3,10 +3,12 @@ using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace LMS.Infrastructure.Services;
@@ -17,14 +19,14 @@ public class VideoProcessingWorker : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<VideoProcessingWorker> _logger;
     private readonly IFFmpegDownloader _ffmpegDownloader;
-    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+    private readonly IConfiguration _config;
 
     public VideoProcessingWorker(
         IVideoProcessingQueue queue,
         IServiceProvider serviceProvider,
         ILogger<VideoProcessingWorker> logger,
         IFFmpegDownloader ffmpegDownloader,
-        Microsoft.Extensions.Configuration.IConfiguration config)
+        IConfiguration config)
     {
         _queue = queue;
         _serviceProvider = serviceProvider;
@@ -72,7 +74,7 @@ public class VideoProcessingWorker : BackgroundService
             var ffprobePath = await _ffmpegDownloader.GetFFprobePathAsync();
 
             var storageRoot = _config["Storage:RootPath"];
-            var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            var wwwroot = string.IsNullOrEmpty(storageRoot)
                 ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
                 : storageRoot;
             var inputPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey.TrimStart('/'));
@@ -127,7 +129,7 @@ public class VideoProcessingWorker : BackgroundService
                 if(!Directory.Exists(audioDir))
                     Directory.CreateDirectory(audioDir);
                 var audioPath = Path.Combine(audioDir, $"{lessonId}.wav");
-                
+
                 _logger.LogInformation("[VideoWorker] Đang trích xuất âm thanh cho AI: {AudioPath}", audioPath);
                 await ExtractAudioForAiAsync(ffmpegPath, inputPath, audioPath, stoppingToken);
 
@@ -159,37 +161,41 @@ public class VideoProcessingWorker : BackgroundService
     private async Task<double> GetVideoDurationAsync(string ffprobePath, string inputPath)
     {
         var arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{inputPath}\"";
-        
+
         var process = new Process
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = ffprobePath,
-                Arguments = arguments,
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
+            StartInfo =
+                new ProcessStartInfo
+                {
+                    FileName = ffprobePath,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
         };
 
         process.Start();
         var output = await process.StandardOutput.ReadToEndAsync();
         await process.WaitForExitAsync();
 
-        var cleanOutput = output.Trim().Replace("\"", "");
+        var cleanOutput = output.Trim().Replace("\"", string.Empty);
 
-        if (double.TryParse(cleanOutput, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var duration))
+        if(double.TryParse(cleanOutput, NumberStyles.Any, CultureInfo.InvariantCulture, out var duration))
         {
-            if (duration > 1000000) 
+            if(duration > 1000000)
             {
-                if (duration > 1000000000) return duration / 1000000;
-                if (duration > 10000000 && !cleanOutput.Contains(".")) return duration / 1000000;
-                if (duration > 36000) return duration / 1000;
+                if(duration > 1000000000)
+                    return duration / 1000000;
+                if(duration > 10000000 && !cleanOutput.Contains("."))
+                    return duration / 1000000;
+                if(duration > 36000)
+                    return duration / 1000;
                 return duration;
             }
-            if (duration > 10000) 
+            if(duration > 10000)
             {
-                 return duration / 1000;
+                return duration / 1000;
             }
 
             return duration;

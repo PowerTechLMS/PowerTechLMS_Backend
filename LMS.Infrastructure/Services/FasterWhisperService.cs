@@ -14,7 +14,10 @@ public class FasterWhisperService : ITranscriptionService
     private readonly string _scriptPath;
     private readonly string _modelName;
 
-    public FasterWhisperService(IPythonEnvService pythonEnv, IConfiguration configuration, ILogger<FasterWhisperService> logger)
+    public FasterWhisperService(
+        IPythonEnvService pythonEnv,
+        IConfiguration configuration,
+        ILogger<FasterWhisperService> logger)
     {
         _pythonEnv = pythonEnv;
         _logger = logger;
@@ -43,8 +46,12 @@ public class FasterWhisperService : ITranscriptionService
         }
 
         var pythonPath = await _pythonEnv.GetPythonPathAsync();
-        
-        _logger.LogInformation("Bắt đầu gọi Faster-Whisper. Script: {ScriptPath}, Audio: {AudioPath}, Model: {Model}", _scriptPath, audioPath, _modelName);
+
+        _logger.LogInformation(
+            "Bắt đầu gọi Faster-Whisper. Script: {ScriptPath}, Audio: {AudioPath}, Model: {Model}",
+            _scriptPath,
+            audioPath,
+            _modelName);
 
         var startInfo = new ProcessStartInfo
         {
@@ -60,13 +67,18 @@ public class FasterWhisperService : ITranscriptionService
         };
 
         using var process = new Process { StartInfo = startInfo };
-        
+
         var outputBuilder = new StringBuilder();
         var errorBuilder = new StringBuilder();
 
-        process.OutputDataReceived += (s, e) => { if (e.Data != null) outputBuilder.AppendLine(e.Data); };
-        process.ErrorDataReceived += (s, e) => { 
-            if (e.Data != null) 
+        process.OutputDataReceived += (s, e) =>
+        {
+            if(e.Data != null)
+                outputBuilder.AppendLine(e.Data);
+        };
+        process.ErrorDataReceived += (s, e) =>
+        {
+            if(e.Data != null)
             {
                 errorBuilder.AppendLine(e.Data);
                 _logger.LogInformation("[Python Log] {Log}", e.Data);
@@ -92,21 +104,16 @@ public class FasterWhisperService : ITranscriptionService
             return new List<TextSegment>();
         }
 
-        try 
+        try
         {
-            var results = JsonSerializer.Deserialize<List<WhisperResult>>(output, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var results = JsonSerializer.Deserialize<List<WhisperResult>>(
+                output,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-            return results?.Select(r => new TextSegment
-            {
-                StartTime = r.Start,
-                EndTime = r.End,
-                Text = r.Text
-            }).ToList() ?? new List<TextSegment>();
-        }
-        catch (JsonException ex)
+            return results?.Select(r => new TextSegment { StartTime = r.Start, EndTime = r.End, Text = r.Text })
+                    .ToList() ??
+                new List<TextSegment>();
+        } catch(JsonException ex)
         {
             throw new Exception($"Failed to parse Whisper JSON output. Output: {output}. Error: {ex.Message}");
         }
@@ -115,7 +122,9 @@ public class FasterWhisperService : ITranscriptionService
     private class WhisperResult
     {
         public double Start { get; set; }
+
         public double End { get; set; }
+
         public string Text { get; set; } = string.Empty;
     }
 }

@@ -1,7 +1,7 @@
 using Hangfire;
+using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
-using LMS.Core.DTOs;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -40,16 +40,12 @@ public class RolePlayService : IRolePlayService
             .Include(s => s.Messages)
             .FirstOrDefaultAsync(s => s.UserId == userId && s.LessonId == lessonId && s.Status == "InProgress");
 
-        if (session is not null) return session;
+        if(session is not null)
+            return session;
 
         var config = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == lessonId);
-        
-        session = new RolePlaySession
-        {
-            UserId = userId,
-            LessonId = lessonId,
-            Status = "InProgress"
-        };
+
+        session = new RolePlaySession { UserId = userId, LessonId = lessonId, Status = "InProgress" };
 
         _db.RolePlaySessions.Add(session);
         await _db.SaveChangesAsync();
@@ -70,37 +66,28 @@ public class RolePlayService : IRolePlayService
     public async Task<RolePlayMessage> SendMessageAsync(int userId, int sessionId, string content)
     {
         var session = await _db.RolePlaySessions
-            .Include(s => s.Messages)
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId)
-            ?? throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
+                .Include(s => s.Messages)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId) ??
+            throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
 
-        if (session.Status != "InProgress")
+        if(session.Status != "InProgress")
             throw new InvalidOperationException("Phiên Role Play này đã kết thúc.");
 
-        // 1. Save User Message
-        var userMsg = new RolePlayMessage
-        {
-            SessionId = sessionId,
-            Role = "User",
-            Content = content
-        };
+        var userMsg = new RolePlayMessage { SessionId = sessionId, Role = "User", Content = content };
         _db.RolePlayMessages.Add(userMsg);
         await _db.SaveChangesAsync();
 
         var history = session.Messages.OrderBy(m => m.CreatedAt).ToList();
         var historyText = string.Join("\n", history.Select(m => $"{m.Role}: {m.Content}"));
-        
+
         var config = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == session.LessonId);
         var systemPrompt = BuildSystemPrompt(config);
 
-        var aiResponseContent = await _llmService.GenerateResponseAsync(systemPrompt, $"Lịch sử cuộc trò chuyện:\n{historyText}\n\nNgười dùng vừa nói: {content}");
+        var aiResponseContent = await _llmService.GenerateResponseAsync(
+            systemPrompt,
+            $"Lịch sử cuộc trò chuyện:\n{historyText}\n\nNgười dùng vừa nói: {content}");
 
-        var aiMsg = new RolePlayMessage
-        {
-            SessionId = sessionId,
-            Role = "Ai",
-            Content = aiResponseContent
-        };
+        var aiMsg = new RolePlayMessage { SessionId = sessionId, Role = "Ai", Content = aiResponseContent };
         _db.RolePlayMessages.Add(aiMsg);
         await _db.SaveChangesAsync();
 
@@ -110,20 +97,14 @@ public class RolePlayService : IRolePlayService
     public async IAsyncEnumerable<string> SendMessageStreamingAsync(int userId, int sessionId, string content)
     {
         var session = await _db.RolePlaySessions
-            .Include(s => s.Messages)
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId)
-            ?? throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
+                .Include(s => s.Messages)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId) ??
+            throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
 
-        if (session.Status != "InProgress")
+        if(session.Status != "InProgress")
             throw new InvalidOperationException("Phiên Role Play này đã kết thúc.");
 
-        // 1. Save User Message
-        var userMsg = new RolePlayMessage
-        {
-            SessionId = sessionId,
-            Role = "User",
-            Content = content
-        };
+        var userMsg = new RolePlayMessage { SessionId = sessionId, Role = "User", Content = content };
         _db.RolePlayMessages.Add(userMsg);
         await _db.SaveChangesAsync();
 
@@ -132,36 +113,28 @@ public class RolePlayService : IRolePlayService
         var config = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == session.LessonId);
         var systemPrompt = BuildSystemPrompt(config);
 
-        // 3. Streaming Response
         var fullContent = new StringBuilder();
-        await foreach (var chunk in _llmService.GenerateResponseStreamingAsync(systemPrompt, $"Lịch sử cuộc trò chuyện:\n{historyText}\n\nNgười dùng vừa nói: {content}"))
+        await foreach(var chunk in _llmService.GenerateResponseStreamingAsync(
+            systemPrompt,
+            $"Lịch sử cuộc trò chuyện:\n{historyText}\n\nNgười dùng vừa nói: {content}"))
         {
             fullContent.Append(chunk);
             yield return chunk;
         }
 
-        // 4. Check for [FINISH] tag
         var responseContent = fullContent.ToString();
         bool isFinishing = responseContent.Contains("[FINISH]");
-        if (isFinishing)
+        if(isFinishing)
         {
-            responseContent = responseContent.Replace("[FINISH]", "").Trim();
-            // Gửi tín hiệu hoàn tất cho frontend
+            responseContent = responseContent.Replace("[FINISH]", string.Empty).Trim();
             yield return "[DONE]";
         }
 
-        // 5. Save AI Message
-        var aiMsg = new RolePlayMessage
-        {
-            SessionId = sessionId,
-            Role = "Ai",
-            Content = responseContent
-        };
+        var aiMsg = new RolePlayMessage { SessionId = sessionId, Role = "Ai", Content = responseContent };
         _db.RolePlayMessages.Add(aiMsg);
         await _db.SaveChangesAsync();
 
-        // 6. Automatically finish session if AI requested
-        if (isFinishing)
+        if(isFinishing)
         {
             await FinishSessionAsync(userId, sessionId);
         }
@@ -189,26 +162,23 @@ NHIỆM VỤ CỦA BẠN:
 
     public async Task<RolePlaySuggestionResponse> GenerateScenarioFromLessonsAsync(List<int> lessonIds)
     {
-        if (lessonIds is null || !lessonIds.Any()) 
+        if(lessonIds is null || !lessonIds.Any())
             return new RolePlaySuggestionResponse(string.Empty, string.Empty, string.Empty);
 
-        // Sử dụng RAG để lấy các đoạn kiến thức quan trọng nhất từ các bài học đã chọn
         var searchQuery = "Hãy tạo một tình huống Role Play thực tế và chuyên nghiệp dựa trên nội dung bài học.";
         var searchResults = await _vectorDb.SearchAsync(searchQuery, lessonIds, limit: 12);
-        
+
         var contentBuilder = new StringBuilder();
-        if (searchResults.Any())
+        if(searchResults.Any())
         {
-            foreach (var result in searchResults)
+            foreach(var result in searchResults)
             {
                 contentBuilder.AppendLine($"- {result.Content}");
             }
-        }
-        else
+        } else
         {
-            // Fallback: Lấy tạm nội dung text thô
             var lessons = await _db.Lessons.Where(l => lessonIds.Contains(l.Id)).ToListAsync();
-            foreach (var lesson in lessons)
+            foreach(var lesson in lessons)
             {
                 contentBuilder.AppendLine($"### Bài học: {lesson.Title}");
                 var content = lesson.Content ?? string.Empty;
@@ -234,39 +204,37 @@ LƯU Ý:
 2. Tất cả nội dung bằng tiếng Việt.";
 
         var aiResponse = await _llmService.GenerateResponseAsync(prompt, "Hãy tạo cấu hình Role Play dưới dạng JSON.");
-        
-        try 
+
+        try
         {
-            // Làm sạch string nếu LLM trả về markdown code blocks
             var jsonString = aiResponse.Trim();
-            if (jsonString.StartsWith("```json")) jsonString = jsonString.Substring(7);
-            if (jsonString.EndsWith("```")) jsonString = jsonString.Substring(0, jsonString.Length - 3);
+            if(jsonString.StartsWith("```json"))
+                jsonString = jsonString.Substring(7);
+            if(jsonString.EndsWith("```"))
+                jsonString = jsonString.Substring(0, jsonString.Length - 3);
             jsonString = jsonString.Trim();
 
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var result = JsonSerializer.Deserialize<RolePlaySuggestionResponse>(jsonString, options);
-            
+
             return result ?? new RolePlaySuggestionResponse(aiResponse, string.Empty, string.Empty);
-        }
-        catch 
+        } catch
         {
-            // Fallback nếu parse JSON lỗi
             return new RolePlaySuggestionResponse(aiResponse, string.Empty, string.Empty);
         }
     }
 
     public async Task FinishSessionAsync(int userId, int sessionId)
     {
-        var session = await _db.RolePlaySessions
-            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId)
-            ?? throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
+        var session = await _db.RolePlaySessions.FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId) ??
+            throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
 
-        if (session.Status != "InProgress") return;
+        if(session.Status != "InProgress")
+            return;
 
         session.Status = "Finished";
         await _db.SaveChangesAsync();
 
-        // Enqueue background job for scoring
         _backgroundJobClient.Enqueue<RolePlayScoringJob>(job => job.ScoreSessionAsync(session.Id));
     }
 
@@ -316,53 +284,50 @@ LƯU Ý:
             .Where(c => lessonIds.Contains(c.LessonId))
             .ToDictionaryAsync(c => c.LessonId, c => c.PassScore);
 
-        return sessions.Select(s => new RolePlaySessionResponse(
-            s.Id,
-            s.UserId,
-            s.User?.FullName,
-            s.LessonId,
-            s.Lesson?.Title,
-            s.Status,
-            s.Score,
-            configs.ContainsKey(s.LessonId) ? configs[s.LessonId] : 50,
-            s.Feedback,
-            s.CreatedAt,
-            s.Messages.Select(m => new RolePlayMessageResponse(m.Id, m.Role, m.Content, m.CreatedAt)).ToList()
-        )).ToList();
+        return sessions.Select(
+            s => new RolePlaySessionResponse(
+                s.Id,
+                s.UserId,
+                s.User?.FullName,
+                s.LessonId,
+                s.Lesson?.Title,
+                s.Status,
+                s.Score,
+                configs.ContainsKey(s.LessonId) ? configs[s.LessonId] : 50,
+                s.Feedback,
+                s.CreatedAt,
+                s.Messages.Select(m => new RolePlayMessageResponse(m.Id, m.Role, m.Content, m.CreatedAt)).ToList()))
+            .ToList();
     }
 
     public async Task UpdateSessionStatusAsync(int sessionId, string status, int? score, string? feedback)
     {
         var session = await _db.RolePlaySessions
-            .Include(s => s.User)
-            .Include(s => s.Lesson)
-            .FirstOrDefaultAsync(s => s.Id == sessionId)
-            ?? throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
+                .Include(s => s.User)
+                .Include(s => s.Lesson)
+                .FirstOrDefaultAsync(s => s.Id == sessionId) ??
+            throw new KeyNotFoundException("Không tìm thấy phiên Role Play.");
 
         var oldStatus = session.Status;
         session.Status = status;
         session.Score = score;
         session.Feedback = feedback;
-        
+
         await _db.SaveChangesAsync();
 
-        // 1. Send Notification
         await _notificationService.CreateNotificationAsync(
             session.UserId,
             "Cập nhật kết quả Role Play",
             $"Kết quả phiên Role Play bài '{session.Lesson.Title}' của bạn đã được cập nhật thành: {status}. Điểm: {score ?? 0}",
-            "RolePlay"
-        );
+            "RolePlay");
 
-        // 2. Handle Completion and Certificate
         var config = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == session.LessonId);
         int passScore = config?.PassScore ?? 50;
-        
-        if (status == "Completed" || (status == "Scored" && score >= passScore))
+
+        if(status == "Completed" || (status == "Scored" && score >= passScore))
         {
             await MarkLessonAsCompletedAsync(session.UserId, session.LessonId, true);
-        }
-        else if (oldStatus == "Completed" || oldStatus == "Scored")
+        } else if(oldStatus == "Completed" || oldStatus == "Scored")
         {
             await MarkLessonAsCompletedAsync(session.UserId, session.LessonId, false);
         }
@@ -370,16 +335,14 @@ LƯU Ý:
 
     private async Task MarkLessonAsCompletedAsync(int userId, int lessonId, bool isCompleted)
     {
-        var lesson = await _db.Lessons
-            .Include(l => l.Module)
-            .FirstOrDefaultAsync(l => l.Id == lessonId);
+        var lesson = await _db.Lessons.Include(l => l.Module).FirstOrDefaultAsync(l => l.Id == lessonId);
 
-        if (lesson == null) return;
+        if(lesson == null)
+            return;
 
-        var progress = await _db.LessonProgresses
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.LessonId == lessonId);
+        var progress = await _db.LessonProgresses.FirstOrDefaultAsync(p => p.UserId == userId && p.LessonId == lessonId);
 
-        if (progress == null && isCompleted)
+        if(progress == null && isCompleted)
         {
             progress = new LessonProgress
             {
@@ -390,8 +353,7 @@ LƯU Ý:
                 WatchedPercent = 100
             };
             _db.LessonProgresses.Add(progress);
-        }
-        else if (progress != null)
+        } else if(progress != null)
         {
             progress.IsCompleted = isCompleted;
             progress.CompletedAt = isCompleted ? DateTime.UtcNow : null;
@@ -400,8 +362,7 @@ LƯU Ý:
 
         await _db.SaveChangesAsync();
 
-        // Trigger certificate logic - Must pass CourseId
-        if (isCompleted)
+        if(isCompleted)
         {
             await _certificateService.IssueCertificateAsync(userId, lesson.Module.CourseId);
         }

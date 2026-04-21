@@ -1,3 +1,4 @@
+
 namespace LMS.Core.Interfaces;
 
 public interface IPythonEmbeddingService

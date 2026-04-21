@@ -1,21 +1,17 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddOtpFields : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "OtpExpiry",
-                table: "Users",
-                type: "datetime2",
-                nullable: true);
+            migrationBuilder.AddColumn<DateTime>(name: "OtpExpiry", table: "Users", type: "datetime2", nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "ResetPasswordOtp",
@@ -31,16 +27,12 @@ namespace LMS.Infrastructure.Migrations
                 values: new object[] { null, null });
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "OtpExpiry",
-                table: "Users");
+            migrationBuilder.DropColumn(name: "OtpExpiry", table: "Users");
 
-            migrationBuilder.DropColumn(
-                name: "ResetPasswordOtp",
-                table: "Users");
+            migrationBuilder.DropColumn(name: "ResetPasswordOtp", table: "Users");
         }
     }
 }

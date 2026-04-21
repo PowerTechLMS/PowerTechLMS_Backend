@@ -3,6 +3,7 @@ using LMS.Infrastructure.Persistence;
 using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text;
@@ -19,7 +20,7 @@ public class AiProcessingService : IAiProcessingService
     private readonly IHubContext<VideoHub> _hubContext;
     private readonly IFFmpegDownloader _ffmpegDownloader;
     private readonly ILlmService _llm;
-    private readonly Microsoft.Extensions.Configuration.IConfiguration _config;
+    private readonly IConfiguration _config;
 
     public AiProcessingService(
         AppDbContext db,
@@ -30,7 +31,7 @@ public class AiProcessingService : IAiProcessingService
         IHubContext<VideoHub> hubContext,
         IFFmpegDownloader ffmpegDownloader,
         ILlmService llm,
-        Microsoft.Extensions.Configuration.IConfiguration config)
+        IConfiguration config)
     {
         _db = db;
         _whisper = whisper;
@@ -51,12 +52,12 @@ public class AiProcessingService : IAiProcessingService
             return;
 
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
-        
+
         _logger.LogInformation("[AI] Đường dẫn lưu trữ (wwwroot) đang dùng: {Path}", wwwroot);
-        
+
         var videoPath = Path.Combine(wwwroot, "uploads", lesson.VideoStorageKey?.TrimStart('/') ?? string.Empty);
         var audioDir = Path.Combine(wwwroot, "uploads", "audio");
         if(!Directory.Exists(audioDir))
@@ -70,7 +71,10 @@ public class AiProcessingService : IAiProcessingService
             await ExtractAudioAsync(videoPath, audioPath);
         } else if(!File.Exists(audioPath))
         {
-            _logger.LogWarning("[AI] Không tìm thấy audio file {AudioPath} và video file {VideoPath}", audioPath, videoPath);
+            _logger.LogWarning(
+                "[AI] Không tìm thấy audio file {AudioPath} và video file {VideoPath}",
+                audioPath,
+                videoPath);
             return;
         }
 
@@ -82,22 +86,21 @@ public class AiProcessingService : IAiProcessingService
 
 
         _logger.LogInformation("[AI] Đang lưu vector search theo batch...");
-        var points = segments.Select(seg => new VectorPoint
-        {
-            Id = Guid.NewGuid(),
-            Text = seg.Text,
-            Payload = new Dictionary<string, object>
+        var points = segments.Select(
+            seg => new VectorPoint
             {
-                { "LessonId", lessonId },
-                { "Type", "Video" },
-                { "Start", seg.StartTime }
-            }
-        }).ToList();
+                Id = Guid.NewGuid(),
+                Text = seg.Text,
+                Payload =
+                    new Dictionary<string, object>
+                        { { "LessonId", lessonId }, { "Type", "Video" }, { "Start", seg.StartTime } }
+            })
+            .ToList();
 
         try
         {
             await _vectorDb.UpsertBatchAsync(points);
-        } catch (Exception ex)
+        } catch(Exception ex)
         {
             _logger.LogError("[AI] Lỗi khi lưu vector search batch: {Message}", ex.Message);
         }
@@ -213,26 +216,25 @@ public class AiProcessingService : IAiProcessingService
             return;
 
         var storageRoot = _config["Storage:RootPath"];
-        var wwwroot = string.IsNullOrEmpty(storageRoot) 
+        var wwwroot = string.IsNullOrEmpty(storageRoot)
             ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
             : storageRoot;
 
-        var filePath = Path.Combine(
-            wwwroot,
-            "uploads",
-            doc.CurrentVersion.StorageKey?.TrimStart('/') ?? string.Empty);
+        var filePath = Path.Combine(wwwroot, "uploads", doc.CurrentVersion.StorageKey?.TrimStart('/') ?? string.Empty);
         var fullText = _textExtractor.ExtractText(filePath);
 
         var chunks = SplitText(fullText, 1000, 200);
 
         await _vectorDb.DeleteVectorsByFilterAsync("DocumentId", documentId);
 
-        var points = chunks.Select(chunk => new VectorPoint
-        {
-            Id = Guid.NewGuid(),
-            Text = chunk,
-            Payload = new Dictionary<string, object> { { "DocumentId", documentId }, { "Type", "Document" } }
-        }).ToList();
+        var points = chunks.Select(
+            chunk => new VectorPoint
+            {
+                Id = Guid.NewGuid(),
+                Text = chunk,
+                Payload = new Dictionary<string, object> { { "DocumentId", documentId }, { "Type", "Document" } }
+            })
+            .ToList();
 
         await _vectorDb.UpsertBatchAsync(points);
 
@@ -269,14 +271,11 @@ public class AiProcessingService : IAiProcessingService
         try
         {
             var storageRoot = _config["Storage:RootPath"];
-            var wwwroot = string.IsNullOrEmpty(storageRoot) 
+            var wwwroot = string.IsNullOrEmpty(storageRoot)
                 ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
                 : storageRoot;
 
-            var filePath = Path.Combine(
-                wwwroot,
-                "uploads",
-                attachment.StorageKey.TrimStart('/'));
+            var filePath = Path.Combine(wwwroot, "uploads", attachment.StorageKey.TrimStart('/'));
             if(!File.Exists(filePath))
                 return;
 
@@ -287,18 +286,21 @@ public class AiProcessingService : IAiProcessingService
 
                 await _vectorDb.DeleteVectorsByFilterAsync("AttachmentId", attachmentId);
 
-                var points = chunks.Select(chunk => new VectorPoint
-                {
-                    Id = Guid.NewGuid(),
-                    Text = chunk,
-                    Payload = new Dictionary<string, object>
+                var points = chunks.Select(
+                    chunk => new VectorPoint
                     {
-                        { "LessonId", attachment.LessonId },
-                        { "AttachmentId", attachmentId },
-                        { "Type", "Attachment" },
-                        { "FileName", attachment.FileName }
-                    }
-                }).ToList();
+                        Id = Guid.NewGuid(),
+                        Text = chunk,
+                        Payload =
+                            new Dictionary<string, object>
+                                {
+                            { "LessonId", attachment.LessonId },
+                            { "AttachmentId", attachmentId },
+                            { "Type", "Attachment" },
+                            { "FileName", attachment.FileName }
+                                }
+                    })
+                    .ToList();
 
                 await _vectorDb.UpsertBatchAsync(points);
             }
@@ -372,12 +374,14 @@ public class AiProcessingService : IAiProcessingService
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
         var chunks = SplitText(lesson.Content, 1000, 200);
 
-        var points = chunks.Select(chunk => new VectorPoint
-        {
-            Id = Guid.NewGuid(),
-            Text = chunk,
-            Payload = new Dictionary<string, object> { { "LessonId", lessonId }, { "Type", "Text" } }
-        }).ToList();
+        var points = chunks.Select(
+            chunk => new VectorPoint
+            {
+                Id = Guid.NewGuid(),
+                Text = chunk,
+                Payload = new Dictionary<string, object> { { "LessonId", lessonId }, { "Type", "Text" } }
+            })
+            .ToList();
 
         await _vectorDb.UpsertBatchAsync(points);
 

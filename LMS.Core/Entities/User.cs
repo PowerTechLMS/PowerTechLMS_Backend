@@ -24,7 +24,9 @@ public class User : BaseEntity
     public string? Bio { get; set; }
 
     public bool IsActive { get; set; } = true;
+
     public string? ResetPasswordOtp { get; set; }
+
     public DateTime? OtpExpiry { get; set; }
 
     public DateTime? DeactivatedAt { get; set; }

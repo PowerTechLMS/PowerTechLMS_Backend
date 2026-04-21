@@ -1,5 +1,5 @@
-using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
@@ -7,35 +7,162 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class FixAndSeedRbac : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("DELETE FROM RolePermissions WHERE RoleId IN (2, 3)");
             migrationBuilder.InsertData(
                 table: "RolePermissions",
-                columns: new[] { "PermissionId", "RoleId", "CreatedAt", "DeletedAt", "GrantedAt", "GrantedById", "IsDeleted", "UpdatedAt" },
+                columns: new[]
+                {
+                    "PermissionId",
+                    "RoleId",
+                    "CreatedAt",
+                    "DeletedAt",
+                    "GrantedAt",
+                    "GrantedById",
+                    "IsDeleted",
+                    "UpdatedAt"
+                },
                 values: new object[,]
                 {
-                    { 1, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 2, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 3, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 6, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 10, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 12, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 13, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 14, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, 2, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 1, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 9, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { 18, 3, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, false, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                {
+                    1,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    2,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    3,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    6,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    10,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    12,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    13,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    14,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    2,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    1,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    9,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                },
+                {
+                    18,
+                    3,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                    null,
+                    false,
+                    new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                }
                 });
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DeleteData(

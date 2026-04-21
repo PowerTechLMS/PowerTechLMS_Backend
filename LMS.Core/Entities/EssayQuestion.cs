@@ -13,6 +13,7 @@ public class EssayQuestion : BaseEntity
     public int SortOrder { get; set; }
 
     public int Weight { get; set; } = 10;
+
     public string? ScoringCriteria { get; set; }
 
     [ForeignKey("EssayConfigId")]

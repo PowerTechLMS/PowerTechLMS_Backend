@@ -25,8 +25,8 @@ public class PythonEnvService : IPythonEnvService
         _basePath = Path.Combine(Directory.GetCurrentDirectory(), "External", "python_env");
         _isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         _venvPath = _basePath;
-        _pythonExecutable = _isWindows 
-            ? Path.Combine(_venvPath, "Scripts", "python.exe") 
+        _pythonExecutable = _isWindows
+            ? Path.Combine(_venvPath, "Scripts", "python.exe")
             : Path.Combine(_venvPath, "bin", "python");
     }
 
@@ -48,12 +48,11 @@ public class PythonEnvService : IPythonEnvService
             await CreateVenvAsync();
         }
 
-        // Marker file để đảm bảo đã cài đủ các thư viện mới nhất
-        // v2: faster-whisper, sentence-transformers, qdrant-client
-        string markerFile = Path.Combine(_venvPath, "requirements_v2.marker");
-        if (!File.Exists(markerFile))
+        string markerFile = Path.Combine(_venvPath, "requirements_v4.marker");
+        if(!File.Exists(markerFile))
         {
-            _logger.LogInformation("[PythonEnv] Đang cài đặt/cập nhật các thư viện phụ thuộc (Whisper, SentenceTransformers, Qdrant)...");
+            _logger.LogInformation(
+                "[PythonEnv] Đang cài đặt/cập nhật các thư viện phụ thuộc (LangChain, LangGraph, MCP)...");
             await InstallDependenciesAsync();
             await File.WriteAllTextAsync(markerFile, DateTime.Now.ToString());
             _logger.LogInformation("[PythonEnv] Hoàn tất cài đặt thư viện.");
@@ -84,24 +83,25 @@ public class PythonEnvService : IPythonEnvService
             }
         } catch(Exception ex)
         {
-            throw new Exception($"Python not found or failed to create venv. Ensure Python is installed. Error: {ex.Message}");
+            throw new Exception(
+                $"Python not found or failed to create venv. Ensure Python is installed. Error: {ex.Message}");
         }
     }
 
     private async Task InstallDependenciesAsync()
     {
-        var pipExecutable = _isWindows 
-            ? Path.Combine(_venvPath, "Scripts", "pip.exe") 
+        var pipExecutable = _isWindows
+            ? Path.Combine(_venvPath, "Scripts", "pip.exe")
             : Path.Combine(_venvPath, "bin", "pip");
 
-        // Cài đặt faster-whisper, sentence-transformers và qdrant-client
         await RunCommandAsync(pipExecutable, "install faster-whisper sentence-transformers qdrant-client");
 
-        // Cài đặt torch
-        // Trên Windows mặc định dùng cu124 (GPU)
-        // Trên Linux mặc định dùng cpu index để tiết kiệm dung lượng (phù hợp hosting Debian không GPU)
-        var torchArgs = _isWindows 
-            ? "install torch --index-url https://download.pytorch.org/whl/cu124" 
+        await RunCommandAsync(
+            pipExecutable,
+            "install langchain langchain-google-genai langchain-openai langgraph mcp beautifulsoup4 lxml");
+
+        var torchArgs = _isWindows
+            ? "install torch --index-url https://download.pytorch.org/whl/cu124"
             : "install torch --index-url https://download.pytorch.org/whl/cpu";
         await RunCommandAsync(pipExecutable, torchArgs);
     }
@@ -109,7 +109,7 @@ public class PythonEnvService : IPythonEnvService
     private async Task RunCommandAsync(string fileName, string arguments)
     {
         string tempDir = Path.Combine(_basePath, "temp");
-        if (!Directory.Exists(tempDir))
+        if(!Directory.Exists(tempDir))
         {
             Directory.CreateDirectory(tempDir);
         }
