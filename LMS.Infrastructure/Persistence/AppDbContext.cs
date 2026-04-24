@@ -98,6 +98,10 @@ public class AppDbContext : DbContext
 
     public DbSet<AiTask> AiTasks => Set<AiTask>();
 
+    public DbSet<AdminAiSession> AdminAiSessions => Set<AdminAiSession>();
+
+    public DbSet<AdminAiMessage> AdminAiMessages => Set<AdminAiMessage>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -143,6 +147,8 @@ public class AppDbContext : DbContext
         m.Entity<EssayAttempt>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<EssayAnswer>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<AiTask>().HasQueryFilter(e => !e.CreatedBy.IsDeleted);
+        m.Entity<AdminAiSession>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<AdminAiMessage>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>

@@ -48,8 +48,8 @@ public class PythonEnvService : IPythonEnvService
             await CreateVenvAsync();
         }
 
-        string markerFile = Path.Combine(_venvPath, "requirements_v6.marker");
-        if(!File.Exists(markerFile))
+        string markerFile = Path.Combine(_venvPath, "requirements_v8.marker");
+        if (!File.Exists(markerFile))
         {
             _logger.LogInformation(
                 "[PythonEnv] Đang cài đặt/cập nhật các thư viện phụ thuộc (LangChain, LangGraph, MCP)...");
@@ -98,7 +98,7 @@ public class PythonEnvService : IPythonEnvService
 
         await RunCommandAsync(
             pipExecutable,
-            "install langchain langchain-google-genai langchain-openai langgraph langgraph-checkpoint-sqlite mcp beautifulsoup4 lxml aiosqlite pydantic");
+            "install langchain langchain-google-genai langchain-openai langgraph langgraph-checkpoint-sqlite mcp beautifulsoup4 lxml aiosqlite pydantic fastapi uvicorn httpx python-dotenv");
 
         var torchArgs = _isWindows
             ? "install torch --index-url https://download.pytorch.org/whl/cu124"

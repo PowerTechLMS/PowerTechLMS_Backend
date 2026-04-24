@@ -40,4 +40,9 @@ public class AiTask
 
     [ForeignKey("CreatedById")]
     public User CreatedBy { get; set; } = null!;
+
+    public int? SessionId { get; set; }
+
+    [ForeignKey("SessionId")]
+    public virtual AdminAiSession? Session { get; set; }
 }

@@ -180,6 +180,11 @@ builder.Services.AddScoped<IRolePlayService, RolePlayService>();
 builder.Services.AddScoped<IEssayService, EssayService>();
 builder.Services.AddScoped<RolePlayScoringJob>();
 builder.Services.AddHttpClient<ILlmService, LlmService>();
+builder.Services.AddSingleton<AiSidecarManager>();
+builder.Services.AddSingleton<IAiSidecarManager>(sp => sp.GetRequiredService<AiSidecarManager>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<AiSidecarManager>());
+builder.Services.AddScoped<IAiToolService, AiToolService>();
+builder.Services.AddHttpClient<IAiAgentClient, AiAgentClient>();
 
 builder.Services.AddSingleton<TextExtractionService>();
 builder.Services
@@ -260,6 +265,7 @@ builder.Services
         options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
         });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services

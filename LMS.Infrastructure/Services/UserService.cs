@@ -177,21 +177,29 @@ public class UserService : IUserService
 
         user.FullName = request.FullName;
         user.Email = request.Email;
-        user.Role = request.Role;
         user.Position = request.Position;
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 
-        var existingRole = user.UserRoles.FirstOrDefault();
-        if(existingRole == null || existingRole.Role.Name != request.Role)
+        // Cập nhật Role (Xử lý an toàn để tránh lỗi DbContext Tracking Conflict)
+        if (user.Role != request.Role)
         {
-            if(existingRole != null)
-                _db.UserRoles.Remove(existingRole);
-
-            var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
-            if(newRole != null)
+            user.Role = request.Role;
+            var targetRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
+            if (targetRole is not null)
             {
-                _db.UserRoles.Add(new UserRole { UserId = userId, RoleId = newRole.Id });
+                // 1. Xóa các role hiện tại không khớp với role đích
+                var rolesToRemove = user.UserRoles.Where(ur => ur.RoleId != targetRole.Id).ToList();
+                foreach (var ur in rolesToRemove)
+                {
+                    _db.UserRoles.Remove(ur);
+                }
+
+                // 2. Chỉ thêm vào tập hợp nếu thực sự chưa tồn tại (tránh trùng lặp instance)
+                if (user.UserRoles.All(ur => ur.RoleId != targetRole.Id))
+                {
+                    user.UserRoles.Add(new UserRole { UserId = userId, RoleId = targetRole.Id });
+                }
             }
         }
 

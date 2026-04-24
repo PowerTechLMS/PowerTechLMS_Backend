@@ -207,7 +207,7 @@ public class AiController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var tasks = await _db.AiTasks
-            .Where(t => t.CreatedById == userId && (!t.IsCompleted && !t.IsFailed))
+            .Where(t => t.CreatedById == userId && !t.IsCompleted && !t.IsFailed && t.SessionId == null)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync();
 

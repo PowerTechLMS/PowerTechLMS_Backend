@@ -52,7 +52,7 @@ public class EmailService : IEmailService
             {
                 From = new MailAddress(fromEmail!, "PowerTech LMS"),
                 Subject = subject,
-                Body = GetEmailTemplate(body),
+                Body = (body.Contains("<html>", StringComparison.OrdinalIgnoreCase)) ? body : GetEmailTemplate(body),
                 IsBodyHtml = true
             };
             mailMessage.To.Add(to);
