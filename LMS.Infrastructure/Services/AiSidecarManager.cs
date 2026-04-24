@@ -39,31 +39,38 @@ public class AiSidecarManager : IHostedService, IAiSidecarManager
 
         var port = GetFreePort();
         _sidecarUrl = $"http://localhost:{port}";
-
-        var pythonExe = await _pythonEnv.GetPythonPathAsync();
-        var currentDir = Directory.GetCurrentDirectory();
         
-        // Tìm thư mục ai_sidecar: Ưu tiên ở cùng cấp (backend/ai_sidecar) hoặc đi ngược lên
+        var pythonExe = await _pythonEnv.GetPythonPathAsync();
+        
+        // Tự động tìm thư mục ai_sidecar: Ưu tiên ở BaseDirectory hoặc CurrentDirectory và đi ngược lên
+        var searchPaths = new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() };
         string? sidecarDir = null;
-        var checkDir = currentDir;
-        while (!string.IsNullOrEmpty(checkDir))
-        {
-            var potential = Path.Combine(checkDir, "ai_sidecar");
-            if (Directory.Exists(potential))
-            {
-                sidecarDir = potential;
-                break;
-            }
-            var parent = Directory.GetParent(checkDir);
-            if (parent == null || parent.FullName == checkDir) break;
-            checkDir = parent.FullName;
-        }
 
+        foreach (var startPath in searchPaths)
+        {
+            var checkDir = startPath;
+            while (!string.IsNullOrEmpty(checkDir))
+            {
+                var potential = Path.Combine(checkDir, "ai_sidecar");
+                if (Directory.Exists(potential))
+                {
+                    sidecarDir = potential;
+                    break;
+                }
+                var parent = Directory.GetParent(checkDir);
+                if (parent == null || parent.FullName == checkDir) break;
+                checkDir = parent.FullName;
+            }
+            if (sidecarDir != null) break;
+        }
+        
         if (sidecarDir == null)
         {
-            _logger.LogError("[AiSidecar] Không tìm thấy thư mục ai_sidecar trong chuỗi thư mục cha của {Path}", currentDir);
+            _logger.LogError("[AiSidecar] Không tìm thấy thư mục ai_sidecar tại {BaseDir} hoặc các thư mục cha.", AppContext.BaseDirectory);
             return;
         }
+
+        _logger.LogInformation("[AiSidecar] AI Sidecar đã được tìm thấy tự động tại: {Path}", Path.GetFullPath(sidecarDir));
 
         var mainPy = Path.Combine(sidecarDir, "main.py");
 
