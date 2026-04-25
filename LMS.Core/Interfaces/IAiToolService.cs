@@ -9,11 +9,11 @@ public interface IAiToolService
 {
     Task<AiToolResponse> ExecuteToolAsync(string toolName, string argumentsJson, int adminId);
 
-    Task<object> AnalyzePerformanceAsync(string topic);
+    Task<object> AnalyzePerformanceAsync(string topic, int limit = 50);
 
     Task<object> GetUserAILearningHistoryAsync(int userId);
 
-    Task<object> SearchEntitiesAsync(string type, string query);
+    Task<object> SearchEntitiesAsync(string type, string query, int limit = 50);
 
     Task<object> SearchVectorContentAsync(string query, int topK = 5);
 

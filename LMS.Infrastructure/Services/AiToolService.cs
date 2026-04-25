@@ -112,7 +112,8 @@ public class AiToolService : IAiToolService
                     await AnalyzePerformanceAsync(
                         (doc.TryGetProperty("query", out var q) ? q.GetString() : null) ??
                             (doc.TryGetProperty("topic", out var t) ? t.GetString() : string.Empty) ??
-                            string.Empty)),
+                            string.Empty,
+                        GetIntSafe(doc, "limit") ?? 50)),
                 "get_user_ai_learning_history" => await GetUserHistoryInternalAsync(argumentsJson),
                 "search_courses" => await SearchEntitiesInternalAsync(argumentsJson, "course"),
                 "search_users_departments" => await SearchUsersInternalAsync(argumentsJson),
@@ -173,7 +174,8 @@ public class AiToolService : IAiToolService
         var doc = JsonSerializer.Deserialize<JsonElement>(json);
         var keyword = doc.GetProperty("keyword").GetString()!;
         var type = typeHint ?? doc.GetProperty("entity_type").GetString()!;
-        var data = await SearchEntitiesAsync(type, keyword);
+        var limit = GetIntSafe(doc, "limit") ?? 50;
+        var data = await SearchEntitiesAsync(type, keyword, limit);
         return new AiToolResponse(true, "Thành công", data);
     }
 
@@ -182,7 +184,8 @@ public class AiToolService : IAiToolService
         var doc = JsonSerializer.Deserialize<JsonElement>(json);
         var keyword = doc.GetProperty("keyword").GetString()!;
         var type = doc.TryGetProperty("entity_type", out var t) ? t.GetString()! : "user";
-        var data = await SearchEntitiesAsync(type, keyword);
+        var limit = GetIntSafe(doc, "limit") ?? 50;
+        var data = await SearchEntitiesAsync(type, keyword, limit);
         return new AiToolResponse(true, "Thành công", data);
     }
 
@@ -220,7 +223,7 @@ public class AiToolService : IAiToolService
         return await GenerateLessonContentAsync(moduleId, topic, type);
     }
 
-    public async Task<object> AnalyzePerformanceAsync(string topic)
+    public async Task<object> AnalyzePerformanceAsync(string topic, int limit = 50)
     {
         var courses = await _db.Courses
             .Where(c => c.Title.Contains(topic) && !c.IsDeleted)
@@ -236,30 +239,30 @@ public class AiToolService : IAiToolService
             .GroupBy(e => new { e.UserId, e.User.FullName, e.User.Email })
             .Select(g => new { g.Key.UserId, g.Key.FullName, g.Key.Email, CourseCount = g.Count(), Score = 100 })
             .OrderByDescending(x => x.CourseCount)
-            .Take(10)
+            .Take(limit)
             .ToListAsync();
 
         return topPerformers;
     }
 
-    public async Task<object> SearchEntitiesAsync(string type, string query)
+    public async Task<object> SearchEntitiesAsync(string type, string query, int limit = 50)
     {
         return type.ToLower() switch
         {
             "course" => await _db.Courses
                 .Where(c => c.Title.Contains(query))
                 .Select(c => new { c.Id, c.Title, c.Level })
-                .Take(10)
+                .Take(limit)
                 .ToListAsync(),
             "user" => await _db.Users
                 .Where(u => u.FullName.Contains(query) || u.Email.Contains(query))
                 .Select(u => new { u.Id, u.FullName, u.Email, u.Position })
-                .Take(10)
+                .Take(limit)
                 .ToListAsync(),
             "group" => await _db.UserGroups
                 .Where(g => g.Name.Contains(query))
                 .Select(g => new { g.Id, g.Name })
-                .Take(10)
+                .Take(limit)
                 .ToListAsync(),
             _ => new List<object>()
         };

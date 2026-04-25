@@ -31,27 +31,30 @@ async def call_backend_tool(tool_name: str, args: dict, admin_id: int):
             return {"success": False, "error": str(e)}
 
 @tool
-async def analyze_performance(query: str, admin_id: int):
+async def analyze_performance(query: str, admin_id: int, limit: int = 20):
     """
     Phân tích hiệu suất học tập của người dùng. 
     Ví dụ: 'Tìm top 5 nhân viên học tốt nhất về ASP.NET Core'.
+    limit: Số lượng kết quả tối đa muốn lấy (mặc định 20, tối đa 50).
     """
-    return await call_backend_tool("analyze_performance", {"query": query}, admin_id)
+    return await call_backend_tool("analyze_performance", {"query": query, "limit": limit}, admin_id)
 
 @tool
-async def search_courses(keyword: str, admin_id: int):
+async def search_courses(keyword: str, admin_id: int, limit: int = 20):
     """
     Tìm kiếm các Khóa học trong hệ thống theo từ khóa.
+    limit: Số lượng kết quả tối đa muốn lấy (mặc định 20, tối đa 50).
     """
-    return await call_backend_tool("search_courses", {"keyword": keyword}, admin_id)
+    return await call_backend_tool("search_courses", {"keyword": keyword, "limit": limit}, admin_id)
 
 @tool
-async def search_users_departments(keyword: str, admin_id: int, entity_type: str = "user"):
+async def search_users_departments(keyword: str, admin_id: int, entity_type: str = "user", limit: int = 20):
     """
     Tìm kiếm Thành viên (User) hoặc Phòng ban/Nhóm (Department/Group).
     entity_type có thể là: 'User', 'Department'.
+    limit: Số lượng kết quả tối đa muốn lấy (mặc định 20, tối đa 50).
     """
-    return await call_backend_tool("search_users_departments", {"keyword": keyword, "entity_type": entity_type}, admin_id)
+    return await call_backend_tool("search_users_departments", {"keyword": keyword, "entity_type": entity_type, "limit": limit}, admin_id)
 
 @tool
 async def mass_enroll_users(user_ids: list[int], course_id: int, admin_id: int):
