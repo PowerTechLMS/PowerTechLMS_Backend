@@ -55,8 +55,10 @@ async def call_model(state: AgentState):
         system_instructions.append("- Báo cáo: Sau khi hoàn thành các tác vụ quan trọng, hãy LUÔN LUÔN gọi `send_email_report` để tóm tắt kết quả gửi cho Admin.")
 
     system_instructions.append("\nQUY TRÌNH PHÊ DUYỆT (BẮT BUỘC):")
-    system_instructions.append("- Đối với yêu cầu trên 2 bước, bạn PHẢI gọi `register_tasks` để lập kế hoạch. Sau đó DỪNG LẠI hỏi ý kiến Admin.")
-    system_instructions.append("- Chỉ thực thi khi Admin đồng ý (ví dụ: 'Làm đi', 'Phê duyệt').")
+    system_instructions.append("- Đối với yêu cầu phức tạp (trên 2 bước), bạn PHẢI gọi `register_tasks` để đăng ký kế hoạch lên UI.")
+    system_instructions.append("- Sau khi gọi `register_tasks`, bạn PHẢI LIỆT KÊ rõ danh sách các bước đó cho Admin thấy rồi mới hỏi: 'Bạn có phê duyệt kế hoạch này không?'.")
+    system_instructions.append("- Tuyệt đối không được hỏi phê duyệt mà không liệt kê nội dung kế hoạch.")
+    system_instructions.append("- Chỉ thực thi các bước tiếp theo khi Admin đồng ý (ví dụ: 'Làm đi', 'Phê duyệt').")
     
     system_instructions.append(f"\nAdmin ID hiện tại: {state.get('admin_id', 1)}")
     system_instructions.append(f"Thread ID hiện tại: {state.get('thread_id', 'unknown')}")
