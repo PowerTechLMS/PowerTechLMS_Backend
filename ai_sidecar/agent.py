@@ -14,7 +14,6 @@ from tools import TOOLS
 
 load_dotenv()
 
-# Cấu hình State của Agent
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], add_messages]
     admin_id: int
@@ -22,7 +21,6 @@ class AgentState(TypedDict):
     available_tools: List[str]
     is_planning: bool
 
-# Khởi tạo model và bind tools
 model = ChatOpenAI(
     model="gemini-3-flash", 
     temperature=0,
@@ -30,17 +28,13 @@ model = ChatOpenAI(
 )
 model_with_tools = model.bind_tools(TOOLS)
 
-# Định nghĩa các Nodes
 async def call_model(state: AgentState):
-    # Lấy danh sách tools khả dụng từ state
     available_tool_names = state.get("available_tools", [])
     
-    # Lọc danh sách TOOLS thực tế dựa trên tên trả về từ Backend
     current_tools = [t for t in TOOLS if t.name in available_tool_names] if available_tool_names else TOOLS
     
     model_with_tools = model.bind_tools(current_tools)
     
-    # Xây dựng System Prompt động dựa trên danh sách tool thực tế
     system_instructions = [
         "Bạn là trợ lý AI quản trị hệ thống LMS PowerTech. Nhiệm vụ của bạn tùy thuộc vào danh sách công cụ (tools) được cấp:"
     ]
@@ -76,15 +70,12 @@ async def call_model(state: AgentState):
     response = await chain.ainvoke(state)
     return {"messages": [response]}
 
-# Cấu hình đồ thị LangGraph
 workflow = StateGraph(AgentState)
 
-# Thêm Nodes
 workflow.add_node("agent", call_model)
 tool_node = ToolNode(TOOLS)
 workflow.add_node("tools", tool_node)
 
-# Thiết lập luồng
 workflow.add_edge(START, "agent")
 
 def route_tools(state: AgentState):
@@ -94,5 +85,3 @@ def route_tools(state: AgentState):
 
 workflow.add_conditional_edges("agent", route_tools, ["tools", END])
 workflow.add_edge("tools", "agent")
-
-# workflow.compile sẽ được gọi ở main.py kèm theo AsyncSqliteSaver

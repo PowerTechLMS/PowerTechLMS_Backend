@@ -18,7 +18,6 @@ import re
 import aiosqlite
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-# Tương thích UTF-8 cho Windows (tránh lỗi UnicodeEncodeError)
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
@@ -26,8 +25,6 @@ LLM_BASE_URL = os.getenv("LLM_BASE_URL")
 
 def repair_json(text: str) -> str:
     """Cố gắng sửa các lỗi JSON phổ biến."""
-    # Xử lý dấu ngoặc kép chưa escape trong chuỗi
-    # Tìm: "key": "value" 
     def fix_quotes(match):
         p1, content, p2 = match.groups()
         fixed = re.sub(r'(?<!\\)"', r'\\"', content)
@@ -38,19 +35,16 @@ def repair_json(text: str) -> str:
 
 def parse_json_robust(text: str, schema_class: Any = None) -> Any:
     """Hàm giải mã JSON siêu bền bỉ."""
-    # 1. Clean markdown
     clean_text = text.strip().strip('`').strip()
     if clean_text.startswith('json\n'): clean_text = clean_text[5:].strip()
     if clean_text.startswith('json'): clean_text = clean_text[4:].strip()
     
-    # 2. Try Standard JSON
     try:
         data = json.loads(clean_text)
         if schema_class: return schema_class.model_validate(data)
         return data
     except: pass
     
-    # 3. Try Repaired JSON
     try:
         repaired = repair_json(clean_text)
         data = json.loads(repaired)
@@ -58,10 +52,8 @@ def parse_json_robust(text: str, schema_class: Any = None) -> Any:
         return data
     except: pass
     
-    # 4. Regex fallback (Trích xuất các trường quan trọng nhất)
     if schema_class:
         obj = {}
-        # Tìm các chuỗi "key": "value" đơn giản
         for field_name in schema_class.model_fields.keys():
             pattern = rf'"{field_name}"\s*:\s*"(.*?)"(?="\s*[,}}])'
             match = re.search(pattern, clean_text, re.DOTALL)
@@ -72,12 +64,9 @@ def parse_json_robust(text: str, schema_class: Any = None) -> Any:
             try: return schema_class.model_validate(obj)
             except: pass
             
-    # Trả về đối tượng trống của schema nếu mọi cách đều thất bại
     if schema_class: return schema_class()
     return {}
 
-# --- 1. PYDANTIC MODELS (STRUCTURED OUTPUT) ---
-# --- 1. PYDANTIC MODELS (STRUCTURED OUTPUT) ---
 class CourseOverviewOut(BaseModel):
     title: str = Field(description="Tiêu đề khóa học ngắn gọn, hấp dẫn", default="")
     description: str = Field(description="Mô tả khóa học chi tiết và mục tiêu", default="")
@@ -85,24 +74,20 @@ class CourseOverviewOut(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def unwrap(cls, data: Any) -> Any:
-        # Xử lý nếu AI trả về chuỗi (có thể bị đóng khung markdown)
         if isinstance(data, str):
             data = data.strip().strip('`').strip()
             if data.startswith('json\n'): data = data[5:].strip()
             try: return json.loads(data)
             except: 
-                # Thử cứu bằng repair_json
                 try: return json.loads(repair_json(data))
                 except: pass
         
         if isinstance(data, dict):
-            # Ánh xạ ngôn ngữ (Vi -> En)
             if "tieu_de" in data: data["title"] = data["tieu_de"]
             if "mo_ta" in data: data["description"] = data["mo_ta"]
             
             if "title" in data and "description" in data: return data
             
-            # Unwrap root keys
             for k in ["course", "overview", "result", "idea", "khoa_hoc", "course_idea"]:
                 if k in data and isinstance(data[k], dict):
                     sub = data[k]
@@ -110,7 +95,6 @@ class CourseOverviewOut(BaseModel):
                     if "mo_ta" in sub: sub["description"] = sub["mo_ta"]
                     return sub
                     
-            # Handle arrays
             for k in ["course_ideas", "ideas", "results", "y_tuong"]:
                 if k in data and isinstance(data[k], list) and len(data[k]) > 0:
                     first = data[k][0]
@@ -135,7 +119,6 @@ class ModuleListOut(BaseModel):
                 except: pass
 
         if isinstance(data, dict):
-            # Nhận diện mảng từ nhiều tên trường khác nhau (kể cả Tiếng Việt)
             potential_keys = ["modules", "curriculum", "chapters", "result", "list", "lessons", 
                               "danh_sach_chuong", "chuong", "bai_hoc", "noi_dung"]
             for k in potential_keys:
@@ -176,11 +159,9 @@ class ModuleLessonsOut(BaseModel):
             potential_keys = ["lessons", "curriculum", "items", "result", "bai_hoc", "danh_sach_bai_hoc", "lectures", "bai_giang"]
             for k in potential_keys:
                 if k in data and isinstance(data[k], list):
-                    # Map nội bộ cho từng item nếu cần (Vi -> En)
                     mapped_items = []
                     for item in data[k]:
                         if isinstance(item, dict):
-                            # Normalizing lesson data
                             if "tieu_de" in item: item["title"] = item["tieu_de"]
                             if "lecture_title" in item: item["title"] = item["lecture_title"]
                             if "loai" in item: item["type"] = item["loai"]
@@ -294,7 +275,6 @@ class QuizOut(BaseModel):
                 except: pass
         return data
 
-# --- 2. GRAPH STATE DEFINITION ---
 class CourseState(TypedDict):
     job_id: str
     topic: str
@@ -304,7 +284,6 @@ class CourseState(TypedDict):
     title: str
     description: str
     
-    # Reducers cho Map-Reduce đa cấp
     modules: Annotated[list, operator.add]
     all_lessons_meta: Annotated[list, operator.add]
     lessons: Annotated[list, operator.add]
@@ -313,14 +292,12 @@ class CourseState(TypedDict):
     progress: int
     status: str
 
-# Message utility
 def report_progress(step_id: str, message: str, status: str = "running"):
     try:
         print(f"PROGRESS:{json.dumps({'id': step_id, 'message': message, 'status': status}, ensure_ascii=False)}", flush=True)
     except:
         pass
 
-# System Message cứng
 SYSTEM_PROMPT = SystemMessage(content="""Bạn là một AI tạo nội dung khóa học chuyên nghiệp, có kiến thức sâu rộng. 
 BẠN PHẢI TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON. 
 KHÔNG ĐƯỢC nhắc đến việc 'truy cập cơ sở dữ liệu', 'vector database', 'retrieval', 'theo dữ liệu đã có' hay bất kỳ thuật ngữ hệ thống nào. 
@@ -340,7 +317,6 @@ def safe_dict(val: Any) -> dict:
         except: return {"A": val, "B": "", "C": "", "D": ""}
     return {"A": str(val), "B": "", "C": "", "D": ""}
 
-# --- 3. GLOBAL NODES ---
 async def generate_overview(state: CourseState):
     report_progress("overview", "Đang phân tích tổng quan khóa học...", "running")
     llm = ChatOpenAI(model="gemini-3-flash", base_url=LLM_BASE_URL)
@@ -425,7 +401,6 @@ async def generate_final_exam(state: CourseState):
 def collate_lessons(state: CourseState):
     return {}
 
-# --- 4. SUBGRAPH CHO LESSON (MAP) ---
 class SubLessonState(TypedDict):
     lesson: Dict[str, Any]
     course_title: str
@@ -441,7 +416,6 @@ def route_to_quiz(state: SubLessonState):
 
 async def video_gen(state: SubLessonState):
     llm = ChatOpenAI(model="gemini-3-flash", base_url=LLM_BASE_URL)
-    # Đồng bộ phong cách 'Chuyên gia biên kịch' từ C#
     system_prompt = SystemMessage(content="Bạn là một chuyên gia biên kịch và quay dựng bài giảng video chuyên nghiệp. BẠN PHẢI TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON.")
     user_prompt = f"Khóa học: {state['course_title']}\nChương: {state['lesson']['module_title']}\nBài (Video): {state['lesson']['title']}\nHãy gợi ý khung sườn video chi tiết (Draft Script) và một nội dung tóm tắt HTML. Trả về RAW JSON: {{'video_script': '...', 'content': '...', 'duration_seconds': 600}}"
     
@@ -551,23 +525,19 @@ lesson_builder.set_conditional_entry_point(
         "Essay": "essay_gen"
     }
 )
-# Cực kì sạch sẽ: Tự động điều tuyến Quiz
 for node in ["video_gen", "text_gen", "roleplay_gen", "essay_gen"]:
     lesson_builder.add_conditional_edges(node, route_to_quiz, {"quiz_gen": "quiz_gen", END: END})
 lesson_builder.add_edge("quiz_gen", END)
 
 lesson_graph = lesson_builder.compile()
 
-# Return to Main Graph Coordinator
 async def process_lesson_coordinator(state: SubLessonState):
     l = state["lesson"]
     report_progress(l["id"], f"Đang soạn nội dung [{l['type']}]: {l['title']}", "running")
-    # Subgraph chạy bên trong Node song song
     res = await lesson_graph.ainvoke(state)
     report_progress(l["id"], f"Hoàn tất soạn: {l['title']}", "completed")
     return {"lessons": [res["lesson"]]}
 
-# --- 5. MAIN GRAPH BINDING ---
 builder = StateGraph(CourseState)
 builder.add_node("generate_overview", generate_overview, retry=retry_policy)
 builder.add_node("generate_modules", generate_modules, retry=retry_policy)
@@ -584,7 +554,6 @@ builder.add_conditional_edges("collate_lessons", route_lessons, ["process_lesson
 builder.add_edge("process_lesson_coordinator", "generate_final_exam")
 builder.add_edge("generate_final_exam", END)
 
-# ENTRY POINT
 async def main():
     if len(sys.argv) < 2:
         print("Usage: python course_gen.py <input_json>")
@@ -604,30 +573,24 @@ async def main():
         "final_exam": {}
     }
 
-    # Time-travel & Recovery Backend
     db_path = os.path.join(os.path.dirname(__file__), "checkpoints.sqlite")
     async with aiosqlite.connect(db_path) as conn:
         checkpointer = AsyncSqliteSaver(conn)
         await checkpointer.setup()
         
-        # Compile với Checkpointer
         graph = builder.compile(checkpointer=checkpointer)
         config = {"configurable": {"thread_id": job_id}}
         
-        # Gọi luồng
         result = await graph.ainvoke(initial_state, config)
         
-    # Mapping kết quả 3 giai đoạn: Gộp lesson vào module dựa trên module_id
     results_map = {r["id"]: r for r in result["lessons"]}
     
-    # Xây dựng cấu trúc module từ state['modules']
     modules_completed = []
     for m in result["modules"]:
         mod_id = m["id"]
         mod_title = m["title"]
         mod_lessons = []
         
-        # Tìm các bài học thuộc module này từ results_map
         for l in result["lessons"]:
             if l.get("module_id") == mod_id:
                 mod_lessons.append(l)

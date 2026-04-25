@@ -4,10 +4,10 @@
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddLastProgressToAiSession : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -17,12 +17,8 @@ namespace LMS.Infrastructure.Migrations
                 nullable: true);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "LastProgressJson",
-                table: "AdminAiSessions");
-        }
+        { migrationBuilder.DropColumn(name: "LastProgressJson", table: "AdminAiSessions"); }
     }
 }

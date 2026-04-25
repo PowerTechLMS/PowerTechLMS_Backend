@@ -4,7 +4,6 @@ import argparse
 import os
 from sentence_transformers import SentenceTransformer
 
-# Thử import qdrant-client (có thể chưa cài đặt ngay lập tức trong venv)
 try:
     from qdrant_client import QdrantClient
     from qdrant_client.http.models import PointStruct
@@ -12,7 +11,6 @@ try:
 except ImportError:
     HAS_QDRANT = False
 
-# Đảm bảo output luôn là utf-8
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 if hasattr(sys.stderr, 'reconfigure'):
@@ -31,12 +29,10 @@ def process_batch(input_data, model_name="all-MiniLM-L6-v2", qdrant_url=None, co
         sys.stderr.write(f"Đang tải model {model_name}...\n")
         model = SentenceTransformer(model_name)
         
-        # Trích xuất danh sách text để nhúng vector hàng loạt
         texts = [item["text"] for item in input_data]
         sys.stderr.write(f"Đang nhúng vector cho {len(texts)} đoạn văn bản...\n")
         embeddings = model.encode(texts)
         
-        # Nếu có thông tin Qdrant, thực hiện Upsert
         if qdrant_url and collection_name:
             if not HAS_QDRANT:
                 raise ImportError("Thư viện qdrant-client chưa được cài đặt trong môi trường Python.")
@@ -59,10 +55,8 @@ def process_batch(input_data, model_name="all-MiniLM-L6-v2", qdrant_url=None, co
             client.upsert(collection_name=collection_name, points=points)
             sys.stderr.write("Hoàn tất đẩy dữ liệu vào Qdrant.\n")
             
-            # Trả về kết quả thành công
             sys.stdout.write(json.dumps({"status": "success", "count": len(points)}))
         else:
-            # Nếu không có Qdrant, trả về danh sách các vector
             results = []
             for i, item in enumerate(input_data):
                 results.append({
@@ -70,7 +64,6 @@ def process_batch(input_data, model_name="all-MiniLM-L6-v2", qdrant_url=None, co
                     "vector": embeddings[i].tolist()
                 })
             
-            # Trả về kết quả: nếu là text đơn lẻ (backward compatibility) thì trả về mảng float trực tiếp
             if len(input_data) == 1 and not qdrant_url:
                 sys.stdout.write(json.dumps(embeddings[0].tolist()))
             else:
@@ -84,7 +77,6 @@ def process_batch(input_data, model_name="all-MiniLM-L6-v2", qdrant_url=None, co
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # Hỗ trợ truyền 1 text đơn lẻ (tương thích ngược) hoặc file JSON/stdin cho batch
     parser.add_argument("--text", help="Văn bản đơn lẻ cần tạo embedding")
     parser.add_argument("--input_json", help="Đường dẫn file JSON chứa mảng data batch")
     parser.add_argument("--model", default="all-MiniLM-L6-v2", help="Tên model sentence-transformer")
@@ -95,14 +87,11 @@ if __name__ == "__main__":
     input_data = []
     
     if args.input_json:
-        # Đọc từ file JSON
         with open(args.input_json, 'r', encoding='utf-8') as f:
             input_data = json.load(f)
     elif args.text:
-        # Chuyển đổi single text thành list 1 phần tử
         input_data = [{"id": "00000000-0000-0000-0000-000000000000", "text": args.text, "payload": {}}]
     else:
-        # Thử đọc từ stdin nếu không có tham số
         try:
             stdin_data = sys.stdin.read()
             if stdin_data:

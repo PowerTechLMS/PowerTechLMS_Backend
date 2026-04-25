@@ -181,22 +181,19 @@ public class UserService : IUserService
         user.IsActive = request.IsActive;
         user.UpdatedAt = DateTime.UtcNow;
 
-        // Cập nhật Role (Xử lý an toàn để tránh lỗi DbContext Tracking Conflict)
-        if (user.Role != request.Role)
+        if(user.Role != request.Role)
         {
             user.Role = request.Role;
             var targetRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == request.Role);
-            if (targetRole is not null)
+            if(targetRole is not null)
             {
-                // 1. Xóa các role hiện tại không khớp với role đích
                 var rolesToRemove = user.UserRoles.Where(ur => ur.RoleId != targetRole.Id).ToList();
-                foreach (var ur in rolesToRemove)
+                foreach(var ur in rolesToRemove)
                 {
                     _db.UserRoles.Remove(ur);
                 }
 
-                // 2. Chỉ thêm vào tập hợp nếu thực sự chưa tồn tại (tránh trùng lặp instance)
-                if (user.UserRoles.All(ur => ur.RoleId != targetRole.Id))
+                if(user.UserRoles.All(ur => ur.RoleId != targetRole.Id))
                 {
                     user.UserRoles.Add(new UserRole { UserId = userId, RoleId = targetRole.Id });
                 }

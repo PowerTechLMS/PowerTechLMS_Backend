@@ -14,6 +14,14 @@ load_dotenv()
 app = FastAPI(title="LMS Admin AI Sidecar")
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:5000/api")
+API_BASE = os.getenv("OPENAI_API_BASE")
+PORT = os.getenv("PORT", "8000")
+
+print(f"--- AI Sidecar Configuration ---")
+print(f"Backend URL: {BACKEND_URL}")
+print(f"API Base (LLM): {API_BASE}")
+print(f"Local Port: {PORT}")
+print(f"-------------------------------")
 
 class ChatRequest(BaseModel):
     message: str
@@ -40,17 +48,14 @@ async def notify_backend_progress(thread_id: str, step: str, status: str, progre
 async def chat(request: ChatRequest):
     config = {"configurable": {"thread_id": request.threadId}}
     
-    # Log cấu hình để gỡ lỗi 404
     print(f"DEBUG: Using API_BASE={os.getenv('OPENAI_API_BASE')}")
     print(f"DEBUG: adminId={request.adminId}, threadId={request.threadId}")
 
-    # Thông báo bắt đầu xử lý
     await notify_backend_progress(request.threadId, "Planning", "Running", 10, "Đang phân tích yêu cầu...")
     
     try:
         db_path = os.path.join(os.path.dirname(__file__), "checkpoints.db")
         async with AsyncSqliteSaver.from_conn_string(db_path) as saver:
-            # 1. Lấy danh sách Tool được lọc từ Backend
             available_tool_names = []
             async with httpx.AsyncClient() as client:
                 try:
@@ -70,7 +75,6 @@ async def chat(request: ChatRequest):
                 except Exception as te:
                     print(f"Error fetching tools: {te}")
 
-            # Biên dịch Agent với saver
             agent_app = workflow.compile(checkpointer=saver)
             
             inputs = {
@@ -80,24 +84,20 @@ async def chat(request: ChatRequest):
                 "available_tools": available_tool_names
             }
             
-            total_tool_calls = {} # tool_call_id -> tool_name_vi
+            total_tool_calls = {}
             
             final_response = ""
-            # Sử dụng stream updates để theo dõi từng bước thay đổi của State
             async for event in agent_app.astream(inputs, config=config, stream_mode="updates"):
                 for node_name, updates in event.items():
-                    # Bỏ qua các node meta
                     if node_name.startswith("__"): continue
                     
                     if "messages" in updates:
                         msgs = updates["messages"]
-                        # Đảm bảo msgs là list
                         if not isinstance(msgs, list): msgs = [msgs]
                         
                         for msg in msgs:
                             from langchain_core.messages import ToolMessage
                             
-                            # 1. Khi AI bắt đầu gọi Tool (AIMessage with tool_calls)
                             if isinstance(msg, AIMessage) and msg.tool_calls:
                                 tool_names_vi = {
                                     "analyze_performance": "Phân tích hiệu suất",
@@ -116,7 +116,6 @@ async def chat(request: ChatRequest):
                                 
                                 for tc in msg.tool_calls:
                                     tool_name_raw = tc['name']
-                                    # Lấy tên hiển thị
                                     t_name = tool_names_vi.get(tool_name_raw, tool_name_raw)
                                     total_tool_calls[tc['id']] = t_name
                                     
@@ -129,20 +128,17 @@ async def chat(request: ChatRequest):
 
                                     await notify_backend_progress(request.threadId, t_name, "running", 50, detail_msg)
                             
-                            # 2. Khi Tool đã chạy xong và trả về kết quả (ToolMessage)
                             elif isinstance(msg, ToolMessage):
                                 t_name = total_tool_calls.get(msg.tool_call_id)
                                 if t_name:
                                     status = "completed"
                                     detail = "Đã hoàn thành"
-                                    # Kiểm tra nếu kết quả có chứa từ 'lỗi' hoặc Exception
                                     if "lỗi" in str(msg.content).lower() or "error" in str(msg.content).lower():
                                         status = "error"
                                         detail = str(msg.content)[:100]
                                     
                                     await notify_backend_progress(request.threadId, t_name, status, 100, detail)
 
-                            # 3. Nếu là tin nhắn kết quả cuối cùng từ AI
                             elif isinstance(msg, AIMessage) and msg.content:
                                 final_response = msg.content
                             

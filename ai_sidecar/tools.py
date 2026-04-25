@@ -151,7 +151,6 @@ async def register_tasks(tasks: list[str], admin_id: int, thread_id: str):
         }, admin_id)
     return "Đã đăng ký danh sách tác vụ lên giao diện."
 
-# Danh sách các tools khả dụng cho Agent
 TOOLS = [
     analyze_performance, 
     get_user_ai_learning_history,

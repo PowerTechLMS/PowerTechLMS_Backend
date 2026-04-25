@@ -1,10 +1,11 @@
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
+using LMS.Infrastructure.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -20,15 +21,15 @@ public class AdminAiController : ControllerBase
     private readonly IAiAgentClient _aiAgentClient;
     private readonly IConfiguration _config;
     private readonly IEmailService _emailService;
-    private readonly IHubContext<LMS.Infrastructure.SignalR.AiHub> _hubContext;
+    private readonly IHubContext<AiHub> _hubContext;
 
     public AdminAiController(
-        AppDbContext db, 
-        IAiToolService toolService, 
-        IAiAgentClient aiAgentClient, 
+        AppDbContext db,
+        IAiToolService toolService,
+        IAiAgentClient aiAgentClient,
         IConfiguration config,
         IEmailService emailService,
-        IHubContext<LMS.Infrastructure.SignalR.AiHub> hubContext)
+        IHubContext<AiHub> hubContext)
     {
         _db = db;
         _toolService = toolService;
@@ -43,7 +44,7 @@ public class AdminAiController : ControllerBase
     {
         var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var session = await _db.AdminAiSessions.FirstOrDefaultAsync(s => s.Id == id && s.CreatedById == adminId);
-        if (session is null)
+        if(session is null)
         {
             return NotFound(new { message = "Không tìm thấy phiên chat." });
         }
@@ -73,8 +74,7 @@ public class AdminAiController : ControllerBase
             await _db.SaveChangesAsync();
 
             return Ok(aiMsg);
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return StatusCode(500, new { message = "Lỗi khi gọi AI Sidecar.", detail = ex.Message });
         }
@@ -100,7 +100,7 @@ public class AdminAiController : ControllerBase
         {
             Title = request.Title,
             CreatedById = userId,
-            ThreadId = Guid.NewGuid().ToString() // Khởi tạo ThreadId mới cho LangGraph
+            ThreadId = Guid.NewGuid().ToString()
         };
         _db.AdminAiSessions.Add(session);
         await _db.SaveChangesAsync();
@@ -112,7 +112,7 @@ public class AdminAiController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var session = await _db.AdminAiSessions.FirstOrDefaultAsync(s => s.Id == id && s.CreatedById == userId);
-        if (session is null)
+        if(session is null)
         {
             return NotFound(new { message = "Không tìm thấy phiên chat." });
         }
@@ -130,8 +130,8 @@ public class AdminAiController : ControllerBase
             .Include(s => s.Messages)
             .Include(s => s.Tasks)
             .FirstOrDefaultAsync(s => s.Id == id && s.CreatedById == userId);
-        
-        if (session is null)
+
+        if(session is null)
         {
             return NotFound(new { message = "Không tìm thấy phiên chat." });
         }
@@ -140,17 +140,14 @@ public class AdminAiController : ControllerBase
         _db.AiTasks.RemoveRange(session.Tasks);
         _db.AdminAiSessions.Remove(session);
         await _db.SaveChangesAsync();
-        
+
         return Ok(new { message = "Đã xóa phiên chat thành công." });
     }
 
     [HttpGet("sessions/{id}/messages")]
     public async Task<IActionResult> GetMessages(int id)
     {
-        var messages = await _db.AdminAiMessages
-            .Where(m => m.SessionId == id)
-            .OrderBy(m => m.CreatedAt)
-            .ToListAsync();
+        var messages = await _db.AdminAiMessages.Where(m => m.SessionId == id).OrderBy(m => m.CreatedAt).ToListAsync();
         return Ok(messages);
     }
 
@@ -161,20 +158,20 @@ public class AdminAiController : ControllerBase
         var secret = Request.Headers["X-Internal-Secret"].ToString();
         var expectedSecret = _config["Jwt:Secret"];
 
-        // Nếu không có secret nội bộ, yêu cầu quyền Admin bình thường
-        if (string.IsNullOrEmpty(secret) || secret != expectedSecret)
+        if(string.IsNullOrEmpty(secret) || secret != expectedSecret)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
+            if(!User.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
             }
         }
 
-        // Nếu là công cụ thông báo tiến trình từ Sidecar
-        if (request.ToolName == "NotifyProgress")
+        if(request.ToolName == "NotifyProgress")
         {
-            var update = JsonSerializer.Deserialize<AiProgressUpdate>(request.ArgumentsJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (update is not null)
+            var update = JsonSerializer.Deserialize<AiProgressUpdate>(
+                request.ArgumentsJson,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if(update is not null)
             {
                 await NotifyProgress(update);
                 return Ok(new AiToolResponse(true, "Progress verified"));
@@ -189,35 +186,35 @@ public class AdminAiController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> NotifyProgress([FromBody] AiProgressUpdate update)
     {
-        // 1. Gửi thông báo real-time qua SignalR
         await _hubContext.Clients.Group($"thread_{update.ThreadId}").SendAsync("OnAiProgress", update);
 
-        // 2. Lưu trạng thái cuối cùng vào Session để Persistence
         var session = await _db.AdminAiSessions.FirstOrDefaultAsync(s => s.ThreadId == update.ThreadId);
-        if (session is not null)
+        if(session is not null)
         {
             session.LastProgressJson = JsonSerializer.Serialize(update);
 
-            // 3. Tự động ghi nhận Nhật ký Tác vụ (AiTask)
-            // Tìm task hiện tại trong session này dựa trên tên bước (Step)
-            var task = await _db.AiTasks.FirstOrDefaultAsync(t => t.SessionId == session.Id && t.Topic == update.Step && t.JobId == update.ThreadId);
-            
-            if (task is null && update.Status != "planned")
+            var task = await _db.AiTasks
+                .FirstOrDefaultAsync(
+                    t => t.SessionId == session.Id && t.Topic == update.Step && t.JobId == update.ThreadId);
+
+            if(task is null && update.Status != "planned")
             {
-                // THỬ TÌM TASK ĐANG Ở TRẠNG THÁI "PLANNED" ĐỂ CẬP NHẬT (Tránh trùng lặp)
-                // Ưu tiên task có tên gần giống hoặc task planned đầu tiên chưa chạy
                 task = await _db.AiTasks
-                    .Where(t => t.SessionId == session.Id && (t.Status == "planned" || t.Status == "Đang chờ phê duyệt") && !t.IsCompleted)
+                    .Where(
+                        t => t.SessionId == session.Id &&
+                            (t.Status == "planned" || t.Status == "Đang chờ phê duyệt") &&
+                            !t.IsCompleted)
                     .OrderBy(t => t.CreatedAt)
                     .FirstOrDefaultAsync();
-                
-                if (task is not null)
+
+                if(task is not null)
                 {
-                    task.Topic = update.Step; // Cập nhật lại tên thực tế
+                    task.Topic = update.Step;
                 }
             }
 
-            if (task is null && (update.Status == "running" || update.Status == "completed" || update.Status == "planned"))
+            if(task is null &&
+                (update.Status == "running" || update.Status == "completed" || update.Status == "planned"))
             {
                 task = new AiTask
                 {
@@ -231,14 +228,15 @@ public class AdminAiController : ControllerBase
                 };
                 _db.AiTasks.Add(task);
             }
-            
-            if (task is not null)
+
+            if(task is not null)
             {
                 task.Progress = update.Progress;
                 task.Status = update.Detail ?? update.Status;
                 task.IsCompleted = update.Status == "completed";
                 task.IsFailed = update.Status == "error";
-                if (task.IsFailed) task.ErrorMessage = update.Detail;
+                if(task.IsFailed)
+                    task.ErrorMessage = update.Detail;
             }
 
             await _db.SaveChangesAsync();
@@ -251,24 +249,16 @@ public class AdminAiController : ControllerBase
     public async Task<IActionResult> GetTasks(int id)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        // Kiểm tra quyền sở hữu session
         var session = await _db.AdminAiSessions.AnyAsync(s => s.Id == id && s.CreatedById == userId);
-        if (!session) return NotFound();
+        if(!session)
+            return NotFound();
 
         var tasks = await _db.AiTasks
             .Where(t => t.SessionId == id)
             .OrderBy(t => t.CreatedAt)
-            .Select(t => new {
-                t.Id,
-                t.Topic,
-                t.Progress,
-                t.Status,
-                t.IsCompleted,
-                t.IsFailed,
-                t.CreatedAt
-            })
+            .Select(t => new { t.Id, t.Topic, t.Progress, t.Status, t.IsCompleted, t.IsFailed, t.CreatedAt })
             .ToListAsync();
-            
+
         return Ok(tasks);
     }
 
@@ -278,16 +268,17 @@ public class AdminAiController : ControllerBase
     {
         var secret = Request.Headers["X-Internal-Secret"].ToString();
         var expectedSecret = _config["Jwt:Secret"];
-        
+
         int targetAdminId = 0;
-        if (!string.IsNullOrEmpty(secret) && secret == expectedSecret)
+        if(!string.IsNullOrEmpty(secret) && secret == expectedSecret)
         {
-            if (!adminId.HasValue) return BadRequest("Internal call requires adminId.");
+            if(!adminId.HasValue)
+                return BadRequest("Internal call requires adminId.");
             targetAdminId = adminId.Value;
-        }
-        else
+        } else
         {
-            if (!User.Identity?.IsAuthenticated ?? true) return Unauthorized();
+            if(!User.Identity?.IsAuthenticated ?? true)
+                return Unauthorized();
             targetAdminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         }
 
@@ -299,10 +290,14 @@ public class AdminAiController : ControllerBase
     public async Task<IActionResult> DeleteTask(int taskId)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var task = await _db.AiTasks.Include(t => t.Session).FirstOrDefaultAsync(t => t.Id == taskId && t.CreatedById == userId);
-        
-        if (task is null) return NotFound();
-        if (task.IsCompleted) return BadRequest(new { message = "Không thể xóa tác vụ đã hoàn thành." });
+        var task = await _db.AiTasks
+            .Include(t => t.Session)
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.CreatedById == userId);
+
+        if(task is null)
+            return NotFound();
+        if(task.IsCompleted)
+            return BadRequest(new { message = "Không thể xóa tác vụ đã hoàn thành." });
 
         _db.AiTasks.Remove(task);
         await _db.SaveChangesAsync();
@@ -315,29 +310,29 @@ public class AdminAiController : ControllerBase
     {
         var secret = Request.Headers["X-Internal-Secret"].ToString();
         var expectedSecret = _config["Jwt:Secret"];
-        if (string.IsNullOrEmpty(secret) || secret != expectedSecret)
+        if(string.IsNullOrEmpty(secret) || secret != expectedSecret)
         {
             return Unauthorized();
         }
 
         string targetEmail = string.Empty;
 
-        // Nếu có chỉ định email người nhận
-        if (!string.IsNullOrWhiteSpace(request.ToEmail))
+        if(!string.IsNullOrWhiteSpace(request.ToEmail))
         {
-            // Kiểm tra xem email có tồn tại trong hệ thống không
             var exists = await _db.Users.AnyAsync(u => u.Email == request.ToEmail);
-            if (!exists)
+            if(!exists)
             {
-                return BadRequest(new { message = $"Email '{request.ToEmail}' không tồn tại trong hệ thống. Chỉ được phép gửi báo cáo cho người dùng trong hệ thống." });
+                return BadRequest(
+                    new
+                    {
+                        message = $"Email '{request.ToEmail}' không tồn tại trong hệ thống. Chỉ được phép gửi báo cáo cho người dùng trong hệ thống."
+                    });
             }
             targetEmail = request.ToEmail;
-        }
-        else
+        } else
         {
-            // Mặc định gửi cho Admin hiện tại
             var admin = await _db.Users.FindAsync(request.AdminId);
-            if (admin is null || string.IsNullOrEmpty(admin.Email))
+            if(admin is null || string.IsNullOrEmpty(admin.Email))
             {
                 return BadRequest(new { message = "Không tìm thấy thông tin Admin người gửi." });
             }
@@ -350,8 +345,13 @@ public class AdminAiController : ControllerBase
 }
 
 public record CreateAiSessionRequest(string Title);
+
 public record UpdateAiSessionRequest(string Title);
+
 public record ExecuteToolRequest(string ToolName, string ArgumentsJson, int AdminId);
+
 public record AdminAiChatRequest(string Message);
+
 public record AiProgressUpdate(string ThreadId, string Step, string Status, int Progress, string? Detail = null);
+
 public record SendEmailReportRequest(int AdminId, string Subject, string Body, string? ToEmail = null);

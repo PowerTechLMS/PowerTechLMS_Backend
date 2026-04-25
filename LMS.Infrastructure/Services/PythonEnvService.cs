@@ -49,7 +49,7 @@ public class PythonEnvService : IPythonEnvService
         }
 
         string markerFile = Path.Combine(_venvPath, "requirements_v8.marker");
-        if (!File.Exists(markerFile))
+        if(!File.Exists(markerFile))
         {
             _logger.LogInformation(
                 "[PythonEnv] Đang cài đặt/cập nhật các thư viện phụ thuộc (LangChain, LangGraph, MCP)...");
@@ -104,7 +104,7 @@ public class PythonEnvService : IPythonEnvService
             ? "install torch --index-url https://download.pytorch.org/whl/cu124"
             : "install torch --index-url https://download.pytorch.org/whl/cpu";
         await RunCommandAsync(pipExecutable, torchArgs);
-        
+
         await RunCommandAsync(pipExecutable, "cache purge");
     }
 

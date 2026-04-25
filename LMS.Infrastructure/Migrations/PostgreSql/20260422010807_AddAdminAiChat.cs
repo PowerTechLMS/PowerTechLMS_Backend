@@ -1,29 +1,27 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddAdminAiChat : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "SessionId",
-                table: "AiTasks",
-                type: "integer",
-                nullable: true);
+            migrationBuilder.AddColumn<int>(name: "SessionId", table: "AiTasks", type: "integer", nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "AdminAiSessions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     ThreadId = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     CreatedById = table.Column<int>(type: "integer", nullable: false),
@@ -48,7 +46,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SessionId = table.Column<int>(type: "integer", nullable: false),
                     Role = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
@@ -70,10 +70,7 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateIndex(
-                name: "IX_AiTasks_SessionId",
-                table: "AiTasks",
-                column: "SessionId");
+            migrationBuilder.CreateIndex(name: "IX_AiTasks_SessionId", table: "AiTasks", column: "SessionId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AdminAiMessages_SessionId",
@@ -93,26 +90,18 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 principalColumn: "Id");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_AiTasks_AdminAiSessions_SessionId",
-                table: "AiTasks");
+            migrationBuilder.DropForeignKey(name: "FK_AiTasks_AdminAiSessions_SessionId", table: "AiTasks");
 
-            migrationBuilder.DropTable(
-                name: "AdminAiMessages");
+            migrationBuilder.DropTable(name: "AdminAiMessages");
 
-            migrationBuilder.DropTable(
-                name: "AdminAiSessions");
+            migrationBuilder.DropTable(name: "AdminAiSessions");
 
-            migrationBuilder.DropIndex(
-                name: "IX_AiTasks_SessionId",
-                table: "AiTasks");
+            migrationBuilder.DropIndex(name: "IX_AiTasks_SessionId", table: "AiTasks");
 
-            migrationBuilder.DropColumn(
-                name: "SessionId",
-                table: "AiTasks");
+            migrationBuilder.DropColumn(name: "SessionId", table: "AiTasks");
         }
     }
 }

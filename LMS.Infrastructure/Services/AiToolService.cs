@@ -1,10 +1,10 @@
-using System.Text.Json;
 using LMS.Core.DTOs;
 using LMS.Core.Entities;
 using LMS.Core.Interfaces;
 using LMS.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace LMS.Infrastructure.Services;
@@ -36,15 +36,36 @@ public class AiToolService : IAiToolService
 
     private static readonly List<AiToolInfo> _allTools = new()
     {
-        new AiToolInfo("analyze_performance", "Phân tích hiệu suất học tập của người dùng. Dùng khi hỏi về kết quả, điểm số.", new[] { "report.view" }),
-        new AiToolInfo("get_user_ai_learning_history", "Lấy lịch sử học tập AI (Role-play, Essay) của người dùng.", new[] { "user.view" }),
+        new AiToolInfo(
+        "analyze_performance",
+        "Phân tích hiệu suất học tập của người dùng. Dùng khi hỏi về kết quả, điểm số.",
+        new[] { "report.view" }),
+        new AiToolInfo(
+        "get_user_ai_learning_history",
+        "Lấy lịch sử học tập AI (Role-play, Essay) của người dùng.",
+        new[] { "user.view" }),
         new AiToolInfo("search_courses", "Tìm kiếm các khóa học theo từ khóa.", new[] { "course.view" }),
-        new AiToolInfo("search_users_departments", "Tìm kiếm thành viên hoặc phòng ban.", new[] { "user.view", "enrollment.assign" }),
-        new AiToolInfo("search_vector_content", "Tìm kiếm nội dung ngữ nghĩa trong Vector DB (Bài giảng, Tài liệu).", new[] { "course.view" }),
-        new AiToolInfo("get_course_students", "Lấy danh sách tất cả học viên đã đăng ký một khóa học.", new[] { "course.view" }),
-        new AiToolInfo("get_course_details", "Lấy chi tiết khóa học, module và danh sách bài học.", new[] { "course.view" }),
+        new AiToolInfo(
+        "search_users_departments",
+        "Tìm kiếm thành viên hoặc phòng ban.",
+        new[] { "user.view", "enrollment.assign" }),
+        new AiToolInfo(
+        "search_vector_content",
+        "Tìm kiếm nội dung ngữ nghĩa trong Vector DB (Bài giảng, Tài liệu).",
+        new[] { "course.view" }),
+        new AiToolInfo(
+        "get_course_students",
+        "Lấy danh sách tất cả học viên đã đăng ký một khóa học.",
+        new[] { "course.view" }),
+        new AiToolInfo(
+        "get_course_details",
+        "Lấy chi tiết khóa học, module và danh sách bài học.",
+        new[] { "course.view" }),
         new AiToolInfo("update_course", "Cập nhật tiêu đề hoặc mô tả khóa học.", new[] { "course.edit" }),
-        new AiToolInfo("generate_lesson_content", "Sinh nội dung bài giảng mới dựa trên chủ đề.", new[] { "course.edit" }),
+        new AiToolInfo(
+        "generate_lesson_content",
+        "Sinh nội dung bài giảng mới dựa trên chủ đề.",
+        new[] { "course.edit" }),
         new AiToolInfo("create_new_course", "Tạo một khóa học mới dưới dạng bản nháp.", new[] { "course.create" }),
         new AiToolInfo("mass_enroll_users", "Ghi danh hàng loạt học viên vào khóa học.", new[] { "enrollment.assign" }),
         new AiToolInfo("send_email_report", "Gửi email báo cáo kết quả thực hiện cho Admin.", new string[] { }),
@@ -54,29 +75,25 @@ public class AiToolService : IAiToolService
 
     public async Task<List<AiToolInfo>> GetAvailableToolsAsync(int adminId, string? query = null)
     {
-        // 1. Lấy danh sách quyền của User
         var user = await _db.Users
             .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-                    .ThenInclude(r => r.RolePermissions)
-                        .ThenInclude(rp => rp.Permission)
+            .ThenInclude(ur => ur.Role)
+            .ThenInclude(r => r.RolePermissions)
+            .ThenInclude(rp => rp.Permission)
             .FirstOrDefaultAsync(u => u.Id == adminId);
-        
-        if (user is null) return new List<AiToolInfo>();
+
+        if(user is null)
+            return new List<AiToolInfo>();
 
         var userPermissions = user.UserRoles
             .SelectMany(ur => ur.Role.RolePermissions.Select(rp => rp.Permission.Code))
             .ToHashSet();
 
-        // Admin có mọi quyền
         bool isAdmin = user.UserRoles.Any(ur => ur.Role.Name == "Admin");
 
-        // 2. Lớp lọc RBAC: Trả ra tất cả tool đúng theo vai trò của người dùng
-        return _allTools.Where(t => 
-            isAdmin || 
-            t.Permissions.Length == 0 || 
-            t.Permissions.Any(p => userPermissions.Contains(p))
-        ).ToList();
+        return _allTools.Where(
+            t => isAdmin || t.Permissions.Length == 0 || t.Permissions.Any(p => userPermissions.Contains(p)))
+            .ToList();
     }
 
     public async Task<AiToolResponse> ExecuteToolAsync(string toolName, string argumentsJson, int adminId)
@@ -86,13 +103,16 @@ public class AiToolService : IAiToolService
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             var doc = JsonSerializer.Deserialize<JsonElement>(argumentsJson);
-            
+
             return toolName switch
             {
-                "analyze_performance" => new AiToolResponse(true, "Success", await AnalyzePerformanceAsync(
-                    (doc.TryGetProperty("query", out var q) ? q.GetString() : null) ?? 
-                    (doc.TryGetProperty("topic", out var t) ? t.GetString() : "") ?? ""
-                )),
+                "analyze_performance" => new AiToolResponse(
+                    true,
+                    "Success",
+                    await AnalyzePerformanceAsync(
+                        (doc.TryGetProperty("query", out var q) ? q.GetString() : null) ??
+                            (doc.TryGetProperty("topic", out var t) ? t.GetString() : string.Empty) ??
+                            string.Empty)),
                 "get_user_ai_learning_history" => await GetUserHistoryInternalAsync(argumentsJson),
                 "search_courses" => await SearchEntitiesInternalAsync(argumentsJson, "course"),
                 "search_users_departments" => await SearchUsersInternalAsync(argumentsJson),
@@ -108,8 +128,7 @@ public class AiToolService : IAiToolService
                 "notify_progress" => await NotifyProgressInternalAsync(argumentsJson),
                 _ => new AiToolResponse(false, $"Tool '{toolName}' không tồn tại.")
             };
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             return new AiToolResponse(false, $"Lỗi thực thi tool: {ex.Message}");
         }
@@ -117,13 +136,15 @@ public class AiToolService : IAiToolService
 
     private int? GetIntSafe(JsonElement doc, string prop)
     {
-        if (doc.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.Number) return el.GetInt32();
+        if(doc.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.Number)
+            return el.GetInt32();
         return null;
     }
 
     private string? GetStringSafe(JsonElement doc, string prop)
     {
-        if (doc.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.String) return el.GetString();
+        if(doc.TryGetProperty(prop, out var el) && el.ValueKind == JsonValueKind.String)
+            return el.GetString();
         return null;
     }
 
@@ -206,21 +227,14 @@ public class AiToolService : IAiToolService
             .Select(c => c.Id)
             .ToListAsync();
 
-        if (!courses.Any()) return new { Message = "Không tìm thấy khóa học nào liên quan đến chủ đề này." };
+        if(!courses.Any())
+            return new { Message = "Không tìm thấy khóa học nào liên quan đến chủ đề này." };
 
         var topPerformers = await _db.Enrollments
             .Include(e => e.User)
-            .Where(e => courses.Contains(e.CourseId) && !e.IsDeleted) // Lấy tất cả người đã đăng ký
+            .Where(e => courses.Contains(e.CourseId) && !e.IsDeleted)
             .GroupBy(e => new { e.UserId, e.User.FullName, e.User.Email })
-            .Select(g => new
-            {
-                g.Key.UserId,
-                g.Key.FullName,
-                g.Key.Email,
-                CourseCount = g.Count(),
-                // Giả định có logic tính điểm trung bình hoặc tương tự
-                Score = 100 // Mockup cho logic phức tạp hơn
-            })
+            .Select(g => new { g.Key.UserId, g.Key.FullName, g.Key.Email, CourseCount = g.Count(), Score = 100 })
             .OrderByDescending(x => x.CourseCount)
             .Take(10)
             .ToListAsync();
@@ -235,15 +249,18 @@ public class AiToolService : IAiToolService
             "course" => await _db.Courses
                 .Where(c => c.Title.Contains(query))
                 .Select(c => new { c.Id, c.Title, c.Level })
-                .Take(10).ToListAsync(),
+                .Take(10)
+                .ToListAsync(),
             "user" => await _db.Users
                 .Where(u => u.FullName.Contains(query) || u.Email.Contains(query))
                 .Select(u => new { u.Id, u.FullName, u.Email, u.Position })
-                .Take(10).ToListAsync(),
+                .Take(10)
+                .ToListAsync(),
             "group" => await _db.UserGroups
                 .Where(g => g.Name.Contains(query))
                 .Select(g => new { g.Id, g.Name })
-                .Take(10).ToListAsync(),
+                .Take(10)
+                .ToListAsync(),
             _ => new List<object>()
         };
     }
@@ -255,15 +272,16 @@ public class AiToolService : IAiToolService
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
-            .Select(s => new
-            {
-                s.Id,
-                s.LessonId,
-                s.Status,
-                s.Score,
-                s.Feedback,
-                Messages = s.Messages.OrderBy(m => m.CreatedAt).Select(m => new { m.Role, m.Content })
-            })
+            .Select(
+                s => new
+                {
+                    s.Id,
+                    s.LessonId,
+                    s.Status,
+                    s.Score,
+                    s.Feedback,
+                    Messages = s.Messages.OrderBy(m => m.CreatedAt).Select(m => new { m.Role, m.Content })
+                })
             .ToListAsync();
 
         var essayAttempts = await _db.EssayAttempts
@@ -271,15 +289,16 @@ public class AiToolService : IAiToolService
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
-            .Select(a => new
-            {
-                a.Id,
-                a.LessonId,
-                a.Status,
-                a.TotalScore,
-                a.AiFeedback,
-                Answers = a.Answers.Select(ans => new { ans.QuestionId, ans.Content, ans.AiScore, ans.AiFeedback })
-            })
+            .Select(
+                a => new
+                {
+                    a.Id,
+                    a.LessonId,
+                    a.Status,
+                    a.TotalScore,
+                    a.AiFeedback,
+                    Answers = a.Answers.Select(ans => new { ans.QuestionId, ans.Content, ans.AiScore, ans.AiFeedback })
+                })
             .ToListAsync();
 
         return new { RolePlay = rolePlaySessions, Essays = essayAttempts };
@@ -287,9 +306,10 @@ public class AiToolService : IAiToolService
 
     public async Task<object> SearchVectorContentAsync(string query, int topK = 5)
     {
-        // Giả sử chúng ta gọi một Python script hoặc một service để truy vấn Qdrant
-        // Ở đây tôi sẽ giả lập kết quả hoặc gọi logic nhúng nếu có
-        return new AiToolResponse(true, "Tính năng tìm kiếm ngữ nghĩa đang được tích hợp qua Qdrant.", new { Query = query, Results = new List<string>() });
+        return new AiToolResponse(
+            true,
+            "Tính năng tìm kiếm ngữ nghĩa đang được tích hợp qua Qdrant.",
+            new { Query = query, Results = new List<string>() });
     }
 
     public async Task<AiToolResponse> GetCourseDetailsAsync(int courseId)
@@ -299,7 +319,8 @@ public class AiToolService : IAiToolService
             .ThenInclude(m => m.Lessons)
             .FirstOrDefaultAsync(c => c.Id == courseId);
 
-        if (course is null) return new AiToolResponse(false, "Không tìm thấy khóa học.");
+        if(course is null)
+            return new AiToolResponse(false, "Không tìm thấy khóa học.");
 
         return new AiToolResponse(true, "Thành công", course);
     }
@@ -307,10 +328,13 @@ public class AiToolService : IAiToolService
     public async Task<AiToolResponse> UpdateCourseContentAsync(int courseId, string? title, string? description)
     {
         var course = await _db.Courses.FindAsync(courseId);
-        if (course is null) return new AiToolResponse(false, "Không tìm thấy khóa học.");
+        if(course is null)
+            return new AiToolResponse(false, "Không tìm thấy khóa học.");
 
-        if (!string.IsNullOrWhiteSpace(title)) course.Title = title;
-        if (!string.IsNullOrWhiteSpace(description)) course.Description = description;
+        if(!string.IsNullOrWhiteSpace(title))
+            course.Title = title;
+        if(!string.IsNullOrWhiteSpace(description))
+            course.Description = description;
 
         await _db.SaveChangesAsync();
         return new AiToolResponse(true, "Cập nhật khóa học thành công.");
@@ -318,9 +342,10 @@ public class AiToolService : IAiToolService
 
     public async Task<AiToolResponse> GenerateLessonContentAsync(int moduleId, string topic, string type)
     {
-        // Logic sinh nội dung bài giảng tương tự course_gen.py
-        // Có thể gọi trực tiếp ILlmService để tạo nội dung
-        return new AiToolResponse(true, $"Đang khởi tạo tiến trình sinh nội dung [{type}] cho chủ đề: {topic}", new { ModuleId = moduleId });
+        return new AiToolResponse(
+            true,
+            $"Đang khởi tạo tiến trình sinh nội dung [{type}] cho chủ đề: {topic}",
+            new { ModuleId = moduleId });
     }
 
     public async Task<AiToolResponse> CreateCourseAsync(string title, int? categoryId, int level, int adminId)
@@ -331,8 +356,7 @@ public class AiToolService : IAiToolService
             PassScore: 8,
             IsPublished: false,
             CategoryId: categoryId,
-            Level: level
-        );
+            Level: level);
 
         var result = await _courseService.CreateCourseAsync(request, adminId);
         return new AiToolResponse(true, "Khóa học đã được tạo dưới dạng bản nháp.", result);
@@ -351,8 +375,7 @@ public class AiToolService : IAiToolService
             PassScore: 8,
             IsPublished: false,
             CategoryId: catId,
-            Level: level
-        );
+            Level: level);
 
         var res = await _courseService.CreateCourseAsync(request, adminId);
         return new AiToolResponse(true, "Thành công", res);
@@ -361,15 +384,16 @@ public class AiToolService : IAiToolService
     public async Task<AiToolResponse> MassEnrollAsync(List<int> userIds, int courseId, int adminId)
     {
         int success = 0;
-        foreach (var uid in userIds)
+        foreach(var uid in userIds)
         {
             try
             {
                 var request = new AdminEnrollRequest(uid, courseId, null, true);
                 await _enrollmentService.AdminEnrollAsync(request, adminId);
                 success++;
+            } catch
+            {
             }
-            catch { /* Chấp nhận lỗi lẻ tẻ */ }
         }
         return new AiToolResponse(true, $"Đã ghi danh thành công {success}/{userIds.Count} học viên.");
     }
@@ -379,24 +403,26 @@ public class AiToolService : IAiToolService
         var doc = JsonSerializer.Deserialize<JsonElement>(json);
         var userIds = doc.GetProperty("userIds").EnumerateArray().Select(x => x.GetInt32()).ToList();
         var courseId = GetIntSafe(doc, "courseId") ?? 0;
-        var adminId = GetIntSafe(doc, "adminId") ?? 0; 
+        var adminId = GetIntSafe(doc, "adminId") ?? 0;
         return await MassEnrollAsync(userIds, courseId, adminId > 0 ? adminId : 2);
     }
 
     public async Task<AiToolResponse> AssignGroupAsync(List<int> userIds, int groupId)
     {
         int success = 0;
-        foreach (var uid in userIds)
+        foreach(var uid in userIds)
         {
-            try 
+            try
             {
                 var existing = await _db.UserGroupMembers.AnyAsync(ug => ug.UserId == uid && ug.GroupId == groupId);
-                if (!existing)
+                if(!existing)
                 {
                     _db.UserGroupMembers.Add(new UserGroupMember { UserId = uid, GroupId = groupId });
                     success++;
                 }
-            } catch { }
+            } catch
+            {
+            }
         }
         await _db.SaveChangesAsync();
         return new AiToolResponse(true, $"Đã gán {success}/{userIds.Count} học viên vào nhóm.");
@@ -418,16 +444,17 @@ public class AiToolService : IAiToolService
         var toEmail = doc.TryGetProperty("toEmail", out var te) ? te.GetString() : null;
 
         string targetEmail = string.Empty;
-        if (!string.IsNullOrWhiteSpace(toEmail))
+        if(!string.IsNullOrWhiteSpace(toEmail))
         {
             var exists = await _db.Users.AnyAsync(u => u.Email == toEmail);
-            if (!exists) return new AiToolResponse(false, $"Email '{toEmail}' không tồn tại trong hệ thống.");
+            if(!exists)
+                return new AiToolResponse(false, $"Email '{toEmail}' không tồn tại trong hệ thống.");
             targetEmail = toEmail;
-        }
-        else
+        } else
         {
             var admin = await _db.Users.FindAsync(adminId);
-            if (admin is null || string.IsNullOrEmpty(admin.Email)) return new AiToolResponse(false, "Không tìm thấy email của Admin.");
+            if(admin is null || string.IsNullOrEmpty(admin.Email))
+                return new AiToolResponse(false, "Không tìm thấy email của Admin.");
             targetEmail = admin.Email;
         }
 
@@ -438,27 +465,29 @@ public class AiToolService : IAiToolService
 
     private string BuildPremiumHtmlEmail(string title, string content)
     {
-        // Tự động chuyển đổi các dòng bắt đầu bằng số hoặc dấu sao thành list HTML
         var formattedContent = content
             .Replace("\r\n", "\n")
             .Split('\n')
-            .Select(line => {
-                line = line.Trim();
-                if (string.IsNullOrEmpty(line)) return "<br/>";
-                // Phát hiện danh sách 1. 2. hoặc - *
-                if (System.Text.RegularExpressions.Regex.IsMatch(line, @"^(\d+\.|[\*\-])"))
+            .Select(
+                line =>
                 {
-                    return $"<li style='margin-bottom: 8px;'>{line}</li>";
-                }
-                return $"<p style='margin-bottom: 15px; color: #4b5563; line-height: 1.6;'>{line}</p>";
-            })
+                    line = line.Trim();
+                    if(string.IsNullOrEmpty(line))
+                        return "<br/>";
+                    if(Regex.IsMatch(line, @"^(\d+\.|[\*\-])"))
+                    {
+                        return $"<li style='margin-bottom: 8px;'>{line}</li>";
+                    }
+                    return $"<p style='margin-bottom: 15px; color: #4b5563; line-height: 1.6;'>{line}</p>";
+                })
             .Aggregate((a, b) => a + b);
 
-        // Bọc các li vào ul nếu có
-        if (formattedContent.Contains("<li"))
+        if(formattedContent.Contains("<li"))
         {
-            // Thay thế tất cả các nhóm li liên tiếp bằng ul
-            formattedContent = Regex.Replace(formattedContent, @"(<li.*?>.*?</li>)+", match => $"<ul style='margin-bottom: 20px; padding-left: 20px; color: #4b5563;'>{match.Value}</ul>");
+            formattedContent = Regex.Replace(
+                formattedContent,
+                @"(<li.*?>.*?</li>)+",
+                match => $"<ul style='margin-bottom: 20px; padding-left: 20px; color: #4b5563;'>{match.Value}</ul>");
         }
 
         return $@"
@@ -503,9 +532,5 @@ public class AiToolService : IAiToolService
     }
 
     private async Task<AiToolResponse> NotifyProgressInternalAsync(string json)
-    {
-        // Lưu ý: Hub notification sẽ được xử lý ở Controller 
-        // để tránh layer dependency (Infrastructure -> SignalR Hub)
-        return new AiToolResponse(true, "OK");
-    }
+    { return new AiToolResponse(true, "OK"); }
 }

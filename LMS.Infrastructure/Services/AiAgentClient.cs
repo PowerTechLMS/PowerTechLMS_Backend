@@ -1,5 +1,4 @@
 using LMS.Core.Interfaces;
-using Microsoft.Extensions.Configuration;
 using System.Net.Http.Json;
 
 namespace LMS.Infrastructure.Services;
@@ -18,15 +17,10 @@ public class AiAgentClient : IAiAgentClient
     public async Task<AiAgentResponse> ChatAsync(string message, int adminId, string threadId)
     {
         var sidecarUrl = _sidecarManager.SidecarUrl;
-        var response = await _httpClient.PostAsJsonAsync($"{sidecarUrl}/chat", new
-        {
-            message,
-            adminId,
-            threadId
-        });
+        var response = await _httpClient.PostAsJsonAsync($"{sidecarUrl}/chat", new { message, adminId, threadId });
 
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<AiAgentResponse>() 
-               ?? throw new Exception("Không nhận được phản hồi từ AI Sidecar.");
+        return await response.Content.ReadFromJsonAsync<AiAgentResponse>() ??
+            throw new Exception("Không nhận được phản hồi từ AI Sidecar.");
     }
 }
