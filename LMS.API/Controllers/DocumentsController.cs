@@ -71,7 +71,7 @@ public class DocumentsController : ControllerBase
         return Ok(doc);
     }
 
-    [HttpPut("{id}")]
+    [HttpPut("{id:int}")]
     [Authorize(Policy = "DocUpload")]
     public async Task<ActionResult> Update(int id, [FromBody] UpdateDocumentRequest request)
     {
@@ -87,7 +87,7 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:int}")]
     [Authorize(Policy = "DocDelete")]
     public async Task<ActionResult> Delete(int id)
     {
@@ -104,7 +104,7 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpPost("{id}/versions")]
+    [HttpPost("{id:int}/versions")]
     [Authorize(Policy = "DocUpload")]
     public async Task<ActionResult> AddVersion(int id, [FromForm] AddDocumentVersionRequest request, IFormFile file)
     {
@@ -135,7 +135,7 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpGet("{id}/versions")]
+    [HttpGet("{id:int}/versions")]
     public async Task<ActionResult> GetVersions(int id) { return Ok(await _docService.GetVersionsAsync(id)); }
 
     [HttpGet("versions/{versionId}/download")]
@@ -157,7 +157,7 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpGet("{id}/download")]
+    [HttpGet("{id:int}/download")]
     [AllowAnonymous]
     public async Task<IActionResult> Download(int id, [FromQuery] bool preview = false)
     {
@@ -179,18 +179,18 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     public async Task<ActionResult> GetById(int id)
     {
         var doc = await _docService.GetDocumentConfigAsync(id);
         return doc == null ? NotFound() : Ok(doc);
     }
 
-    [HttpGet("{id}/permissions")]
+    [HttpGet("{id:int}/permissions")]
     public async Task<ActionResult> GetPermissions(int id)
     { return Ok(await _docService.GetDocumentPermissionsAsync(id)); }
 
-    [HttpPut("{id}/permissions")]
+    [HttpPut("{id:int}/permissions")]
     [Authorize(Policy = "DocUpload")]
     public async Task<ActionResult> UpdatePermissions(int id, [FromBody] UpdatePermissionRequest req)
     {
@@ -198,7 +198,7 @@ public class DocumentsController : ControllerBase
         return Ok(new { message = "Đã cập nhật quyền" });
     }
 
-    [HttpDelete("{id}/permissions")]
+    [HttpDelete("{id:int}/permissions")]
     [Authorize(Policy = "DocUpload")]
     public async Task<ActionResult> ClearPermissions(int id)
     {
@@ -206,6 +206,7 @@ public class DocumentsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("trigger-outdated-scan")]
     [HttpPost("trigger-outdated-scan")]
     [AllowAnonymous]
     public async Task<ActionResult> TriggerOutdatedScan()
