@@ -23,6 +23,14 @@ public class Document : BaseEntity
 
     public string? AiSummary { get; set; }
 
+    public bool IsOutdated { get; set; } = false;
+
+    public DateTime? OutdatedAt { get; set; }
+
+    public DateTime? LastOutdatedNotifiedAt { get; set; }
+
+    public string? OutdatedReason { get; set; }
+
     public User UploadedBy { get; set; } = null!;
 
     public DocumentVersion? CurrentVersion { get; set; }
@@ -31,4 +39,3 @@ public class Document : BaseEntity
 
     public ICollection<DocumentPermission> Permissions { get; set; } = new List<DocumentPermission>();
 }
-

@@ -203,6 +203,8 @@ builder.Services.AddSingleton<IPythonEmbeddingService, PythonEmbeddingService>()
 builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 builder.Services.AddScoped<IAiCourseGenerationService, AiCourseGenerationService>();
+builder.Services.AddScoped<IOutdatedDocumentScannerService, OutdatedDocumentScannerService>();
+builder.Services.AddScoped<DocumentOutdatedJob>();
 
 builder.Services
     .AddHangfire(
@@ -363,5 +365,14 @@ app.MapControllers();
 app.MapHub<VideoHub>("/hubs/video");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AiHub>("/hubs/ai");
+
+using (var scope = app.Services.CreateScope())
+{
+    var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+    recurringJobManager.AddOrUpdate<DocumentOutdatedJob>(
+        "OutdatedDocumentScanner",
+        job => job.RunAsync(),
+        "0 1 * * *");
+}
 
 app.Run();

@@ -14,11 +14,16 @@ public class DocumentsController : ControllerBase
 {
     private readonly IDocumentService _docService;
     private readonly IAiProcessingService _aiService;
+    private readonly IOutdatedDocumentScannerService _outdatedScanner;
 
-    public DocumentsController(IDocumentService docService, IAiProcessingService aiService)
+    public DocumentsController(
+        IDocumentService docService,
+        IAiProcessingService aiService,
+        IOutdatedDocumentScannerService outdatedScanner)
     {
         _docService = docService;
         _aiService = aiService;
+        _outdatedScanner = outdatedScanner;
     }
 
     private int UserId
@@ -199,5 +204,13 @@ public class DocumentsController : ControllerBase
     {
         await _docService.ClearDocumentPermissionsAsync(id);
         return NoContent();
+    }
+
+    [HttpPost("trigger-outdated-scan")]
+    [AllowAnonymous]
+    public async Task<ActionResult> TriggerOutdatedScan()
+    {
+        BackgroundJob.Enqueue<IOutdatedDocumentScannerService>(x => x.ScanAllDocumentsAsync());
+        return Ok(new { message = "Đã kích hoạt quét tài liệu lỗi thời trong nền." });
     }
 }
