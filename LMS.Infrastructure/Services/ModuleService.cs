@@ -507,6 +507,32 @@ public class LessonService : ILessonService
 
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
 
+        // Find infographics that include this lesson
+        var relatedInfographics = await _db.LessonInfographics
+            .Include(li => li.Lessons)
+            .Where(li => li.Lessons.Any(l => l.Id == lessonId))
+            .ToListAsync();
+
+        foreach (var info in relatedInfographics)
+        {
+            // Delete physical file
+            try
+            {
+                var storageRoot = _config["Storage:RootPath"];
+                var rootPath = string.IsNullOrEmpty(storageRoot)
+                    ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                    : storageRoot;
+
+                var filePath = Path.Combine(rootPath, info.ImageUrl.TrimStart('/'));
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+            }
+            catch { }
+            _db.LessonInfographics.Remove(info);
+        }
+
         lesson.IsDeleted = true;
         lesson.DeletedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();

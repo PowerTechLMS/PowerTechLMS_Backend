@@ -111,7 +111,8 @@ async def chat(request: ChatRequest):
                                     "create_new_course": "Tạo khóa học mới",
                                     "assign_users_to_group": "Phân nhóm học viên",
                                     "send_email_report": "Gửi báo cáo qua Email",
-                                    "register_tasks": "Đăng ký lộ trình"
+                                    "register_tasks": "Đăng ký lộ trình",
+                                    "generate_infographic": "Tạo Infographic"
                                 }
                                 
                                 for tc in msg.tool_calls:

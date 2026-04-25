@@ -1,4 +1,3 @@
-
 namespace LMS.Core.Interfaces;
 
 public record AiToolResponse(bool Success, string? Message, object? Data = null);

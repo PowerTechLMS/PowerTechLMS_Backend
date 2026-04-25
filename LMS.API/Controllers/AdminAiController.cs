@@ -342,6 +342,57 @@ public class AdminAiController : ControllerBase
         await _emailService.SendEmailAsync(targetEmail, request.Subject, request.Body);
         return Ok(new { message = $"Đã gửi báo cáo thành công tới {targetEmail}." });
     }
+
+    [HttpGet("infographics")]
+    public async Task<IActionResult> GetInfographics([FromQuery] int page = 1, [FromQuery] int pageSize = 12)
+    {
+        var query = _db.LessonInfographics
+            .Include(li => li.Lessons)
+            .OrderByDescending(li => li.CreatedAt);
+
+        var total = await query.CountAsync();
+        var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return Ok(new
+        {
+            total,
+            items = items.Select(li => new
+            {
+                li.Id,
+                li.ImageUrl,
+                li.Summary,
+                li.CreatedAt,
+                Lessons = li.Lessons.Select(l => new { l.Id, l.Title, l.Type })
+            })
+        });
+    }
+
+    [HttpDelete("infographics/{id}")]
+    public async Task<IActionResult> DeleteInfographic(int id)
+    {
+        var infographic = await _db.LessonInfographics.FindAsync(id);
+        if(infographic is null)
+            return NotFound();
+
+        _db.LessonInfographics.Remove(infographic);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var storageRoot = _config["Storage:RootPath"];
+            var rootPath = string.IsNullOrEmpty(storageRoot)
+                ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                : storageRoot;
+
+            var filePath = Path.Combine(rootPath, infographic.ImageUrl.TrimStart('/'));
+            if(System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+        } catch { }
+
+        return Ok(new { message = "Đã xóa Infographic thành công." });
+    }
 }
 
 public record CreateAiSessionRequest(string Title);

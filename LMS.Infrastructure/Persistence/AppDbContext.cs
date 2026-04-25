@@ -102,6 +102,8 @@ public class AppDbContext : DbContext
 
     public DbSet<AdminAiMessage> AdminAiMessages => Set<AdminAiMessage>();
 
+    public DbSet<LessonInfographic> LessonInfographics => Set<LessonInfographic>();
+
     protected override void OnModelCreating(ModelBuilder m)
     {
         base.OnModelCreating(m);
@@ -149,6 +151,7 @@ public class AppDbContext : DbContext
         m.Entity<AiTask>().HasQueryFilter(e => !e.CreatedBy.IsDeleted);
         m.Entity<AdminAiSession>().HasQueryFilter(e => !e.IsDeleted);
         m.Entity<AdminAiMessage>().HasQueryFilter(e => !e.IsDeleted);
+        m.Entity<LessonInfographic>().HasQueryFilter(e => !e.IsDeleted);
 
         m.Entity<DepartmentCourseGroup>(
             e =>
@@ -550,6 +553,22 @@ public class AppDbContext : DbContext
                     .HasForeignKey(cgc => cgc.CourseId)
                     .OnDelete(DeleteBehavior.Cascade);
                 e.HasIndex(cgc => new { cgc.GroupId, cgc.CourseId }).IsUnique();
+            });
+
+        m.Entity<LessonInfographic>(
+            e =>
+            {
+                e.HasOne(li => li.CreatedBy)
+                    .WithMany()
+                    .HasForeignKey(li => li.CreatedById)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasMany(li => li.Lessons)
+                    .WithMany()
+                    .UsingEntity<Dictionary<string, object>>(
+                        "LessonInfographicMapping",
+                        j => j.HasOne<Lesson>().WithMany().HasForeignKey("LessonId").OnDelete(DeleteBehavior.Cascade),
+                        j => j.HasOne<LessonInfographic>().WithMany().HasForeignKey("InfographicId").OnDelete(DeleteBehavior.Cascade));
             });
 
         m.Entity<AiTask>(

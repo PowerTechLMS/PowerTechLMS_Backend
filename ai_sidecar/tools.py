@@ -154,6 +154,14 @@ async def register_tasks(tasks: list[str], admin_id: int, thread_id: str):
         }, admin_id)
     return "Đã đăng ký danh sách tác vụ lên giao diện."
 
+@tool
+async def generate_infographic(lesson_id: int, admin_id: int):
+    """
+    Tạo hình ảnh infographic tóm tắt nội dung của một bài học dựa trên dữ liệu vector.
+    Chỉ áp dụng cho các bài học loại 'Video' hoặc 'Text' (Reading).
+    """
+    return await call_backend_tool("generate_infographic", {"lessonId": lesson_id}, admin_id)
+
 TOOLS = [
     analyze_performance, 
     get_user_ai_learning_history,
@@ -168,5 +176,6 @@ TOOLS = [
     create_new_course, 
     assign_users_to_group,
     send_email_report,
-    register_tasks
+    register_tasks,
+    generate_infographic
 ]

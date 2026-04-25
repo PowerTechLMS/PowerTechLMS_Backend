@@ -201,6 +201,8 @@ builder.Services
 builder.Services.AddSingleton<IPythonEnvService, PythonEnvService>();
 builder.Services.AddSingleton<IPythonEmbeddingService, PythonEmbeddingService>();
 builder.Services.AddSingleton<ITranscriptionService, FasterWhisperService>();
+builder.Services.AddHttpClient<ILlmService, LlmService>();
+builder.Services.AddHttpClient<IImageGenerationService, ImageGenerationService>();
 builder.Services.AddScoped<IAiProcessingService, AiProcessingService>();
 builder.Services.AddScoped<IAiCourseGenerationService, AiCourseGenerationService>();
 builder.Services.AddScoped<IOutdatedDocumentScannerService, OutdatedDocumentScannerService>();

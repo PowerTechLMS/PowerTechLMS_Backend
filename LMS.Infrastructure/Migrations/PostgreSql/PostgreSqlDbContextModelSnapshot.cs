@@ -1324,6 +1324,43 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.ToTable("LessonChats");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.LessonInfographic", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.ToTable("LessonInfographics");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.LessonProgress", b =>
                 {
                     b.Property<int>("Id")
@@ -2827,6 +2864,21 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                         });
                 });
 
+            modelBuilder.Entity("LessonInfographicMapping", b =>
+                {
+                    b.Property<int>("InfographicId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LessonId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("InfographicId", "LessonId");
+
+                    b.HasIndex("LessonId");
+
+                    b.ToTable("LessonInfographicMapping");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.AdminAiMessage", b =>
                 {
                     b.HasOne("LMS.Core.Entities.AdminAiSession", "Session")
@@ -3214,6 +3266,17 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("LMS.Core.Entities.LessonInfographic", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.User", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+                });
+
             modelBuilder.Entity("LMS.Core.Entities.LessonProgress", b =>
                 {
                     b.HasOne("LMS.Core.Entities.Lesson", "Lesson")
@@ -3492,6 +3555,21 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LessonInfographicMapping", b =>
+                {
+                    b.HasOne("LMS.Core.Entities.LessonInfographic", null)
+                        .WithMany()
+                        .HasForeignKey("InfographicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("LMS.Core.Entities.Lesson", null)
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LMS.Core.Entities.AdminAiSession", b =>

@@ -17,6 +17,9 @@ public class AiToolService : IAiToolService
     private readonly IEnrollmentService _enrollmentService;
     private readonly IGroupService _groupService;
     private readonly IEmailService _emailService;
+    private readonly ILlmService _llmService;
+    private readonly VectorDbService _vectorDb;
+    private readonly IImageGenerationService _imageService;
 
     public AiToolService(
         AppDbContext db,
@@ -24,7 +27,10 @@ public class AiToolService : IAiToolService
         IUserService userService,
         IEnrollmentService enrollmentService,
         IGroupService groupService,
-        IEmailService emailService)
+        IEmailService emailService,
+        ILlmService llmService,
+        VectorDbService vectorDb,
+        IImageGenerationService imageService)
     {
         _db = db;
         _courseService = courseService;
@@ -32,6 +38,9 @@ public class AiToolService : IAiToolService
         _enrollmentService = enrollmentService;
         _groupService = groupService;
         _emailService = emailService;
+        _llmService = llmService;
+        _vectorDb = vectorDb;
+        _imageService = imageService;
     }
 
     private static readonly List<AiToolInfo> _allTools = new()
@@ -68,6 +77,7 @@ public class AiToolService : IAiToolService
         new[] { "course.edit" }),
         new AiToolInfo("create_new_course", "Tạo một khóa học mới dưới dạng bản nháp.", new[] { "course.create" }),
         new AiToolInfo("mass_enroll_users", "Ghi danh hàng loạt học viên vào khóa học.", new[] { "enrollment.assign" }),
+        new AiToolInfo("generate_infographic", "Tạo hình ảnh infographic tóm tắt nội dung bài học từ Vector DB.", new[] { "course.view" }),
         new AiToolInfo("send_email_report", "Gửi email báo cáo kết quả thực hiện cho Admin.", new string[] { }),
         new AiToolInfo("notify_progress", "Thông báo tiến độ thực hiện tác vụ (System).", new string[] { }),
         new AiToolInfo("register_tasks", "Đăng ký lộ trình thực hiện kế hoạch (System).", new string[] { })
@@ -124,6 +134,7 @@ public class AiToolService : IAiToolService
                 "generate_lesson_content" => await GenerateLessonInternalAsync(argumentsJson),
                 "create_new_course" => await CreateCourseInternalAsync(argumentsJson, adminId),
                 "mass_enroll_users" => await MassEnrollInternalAsync(argumentsJson),
+                "generate_infographic" => await GenerateInfographicInternalAsync(argumentsJson, adminId),
                 "assign_users_to_group" => await AssignGroupInternalAsync(argumentsJson),
                 "send_email_report" => await SendReportInternalAsync(argumentsJson, adminId),
                 "notify_progress" => await NotifyProgressInternalAsync(argumentsJson),
@@ -532,6 +543,91 @@ public class AiToolService : IAiToolService
             </table>
         </body>
         </html>";
+    }
+
+    private async Task<AiToolResponse> GenerateInfographicInternalAsync(string json, int adminId)
+    {
+        var doc = JsonSerializer.Deserialize<JsonElement>(json);
+        var lessonIds = new List<int>();
+        
+        if (doc.TryGetProperty("lessonIds", out var idsProp) && idsProp.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var id in idsProp.EnumerateArray())
+            {
+                lessonIds.Add(id.GetInt32());
+            }
+        }
+        else if (doc.TryGetProperty("lessonId", out var idProp))
+        {
+            lessonIds.Add(idProp.GetInt32());
+        }
+
+        if (!lessonIds.Any())
+        {
+            return new AiToolResponse(false, "Vui lòng chọn ít nhất một bài học.");
+        }
+
+        return await GenerateInfographicAsync(lessonIds, adminId);
+    }
+
+    public async Task<AiToolResponse> GenerateInfographicAsync(IEnumerable<int> lessonIds, int adminId)
+    {
+        var lessons = await _db.Lessons
+            .Where(l => lessonIds.Contains(l.Id))
+            .ToListAsync();
+
+        if (!lessons.Any())
+            return new AiToolResponse(false, "Không tìm thấy bất kỳ bài học nào hợp lệ.");
+
+        var allSegments = new List<(string Content, string Metadata)>();
+        foreach (var lessonId in lessonIds)
+        {
+            var segments = await _vectorDb.GetAllSegmentsAsync(lessonId);
+            allSegments.AddRange(segments);
+        }
+
+        if (!allSegments.Any())
+            return new AiToolResponse(false, "Các bài học được chọn chưa có dữ liệu ngữ nghĩa (Vector Data) để tạo Infographic.");
+
+        var combinedContent = string.Join("\n\n", allSegments.Select(s => s.Content));
+        
+        var summaryPrompt = @"Bạn là một chuyên gia thiết kế Infographic. 
+Hãy tóm tắt nội dung các bài học sau đây thành một bản phác thảo chi tiết để sinh ảnh Infographic tổng hợp.
+Bản phác thảo cần:
+1. Tiêu đề chính thu hút bao quát toàn bộ nội dung.
+2. 4-6 ý chính quan trọng nhất từ tất cả các bài học.
+3. Mô tả ngắn gọn về phong cách thiết kế (gợi ý: hiện đại, màu sắc hài hòa, bố cục chuyên nghiệp).
+4. Chỉ trả về bản tóm tắt tóm gọn nhất trong khoảng 250 từ để làm prompt sinh ảnh.";
+
+        var summary = await _llmService.GenerateResponseAsync(summaryPrompt, combinedContent);
+        
+        try 
+        {
+            var imageUrl = await _imageService.GenerateImageAsync(summary);
+            
+            // Save to DB
+            var infographic = new LessonInfographic
+            {
+                ImageUrl = imageUrl,
+                Summary = summary,
+                CreatedById = adminId,
+                Lessons = lessons
+            };
+            
+            _db.LessonInfographics.Add(infographic);
+            await _db.SaveChangesAsync();
+
+            return new AiToolResponse(true, "Đã tạo Infographic thành công.", new { 
+                Id = infographic.Id,
+                ImageUrl = imageUrl, 
+                Summary = summary,
+                LessonIds = lessonIds
+            });
+        }
+        catch (Exception ex)
+        {
+            return new AiToolResponse(false, $"Lỗi khi sinh ảnh: {ex.Message}");
+        }
     }
 
     private async Task<AiToolResponse> NotifyProgressInternalAsync(string json)
