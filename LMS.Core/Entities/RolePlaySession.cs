@@ -22,5 +22,7 @@ public class RolePlaySession : BaseEntity
     [ForeignKey("LessonId")]
     public virtual Lesson Lesson { get; set; } = null!;
 
+    public int ViolationCount { get; set; } = 0;
+
     public virtual ICollection<RolePlayMessage> Messages { get; set; } = new List<RolePlayMessage>();
 }

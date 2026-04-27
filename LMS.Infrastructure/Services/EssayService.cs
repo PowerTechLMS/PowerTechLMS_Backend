@@ -231,6 +231,7 @@ public class EssayService : IEssayService
                 attempt.TotalScore ?? 0,
                 attempt.IsPassed,
                 attempt.Lesson.EssayConfig?.PassScore ?? 50,
+                attempt.Status,
                 attempt.AiFeedback,
                 attempt.Answers
                     .Select(
@@ -242,7 +243,8 @@ public class EssayService : IEssayService
                                 a.Question.Weight,
                                 a.AiFeedback,
                                 a.Question.ScoringCriteria))
-                    .ToList());
+                    .ToList(),
+                attempt.ViolationCount);
         } catch(Exception ex)
         {
             attempt.AiFeedback = "Lỗi trong quá trình chấm điểm tự động: " + ex.Message;
@@ -263,7 +265,15 @@ public class EssayService : IEssayService
 
         var count = 1;
         return attempts.Select(
-            a => new EssayAttemptSummary(a.Id, count++, a.TotalScore, a.IsPassed, a.Status, a.StartedAt, a.SubmittedAt))
+            a => new EssayAttemptSummary(
+                a.Id,
+                count++,
+                a.TotalScore,
+                a.IsPassed,
+                a.Status,
+                a.StartedAt,
+                a.SubmittedAt,
+                a.ViolationCount))
             .OrderByDescending(a => a.StartedAt)
             .ToList();
     }
@@ -306,8 +316,10 @@ public class EssayService : IEssayService
             attempt.TotalScore ?? 0,
             attempt.IsPassed,
             attempt.Lesson.EssayConfig?.PassScore ?? 50,
+            attempt.Status,
             attempt.AiFeedback ?? string.Empty,
-            responseAnswers);
+            responseAnswers,
+            attempt.ViolationCount);
     }
 
     public async Task<EssayAttempt?> GetActiveAttemptAsync(int userId, int lessonId)
@@ -369,7 +381,8 @@ public class EssayService : IEssayService
                 a.IsPassed,
                 a.AiFeedback,
                 a.CreatedAt,
-                new List<EssayAnswerResultItem>()))
+                new List<EssayAnswerResultItem>(),
+                a.ViolationCount))
             .ToList();
     }
 
@@ -524,5 +537,24 @@ LƯU Ý: Tổng ""weight"" của tất cả các câu hỏi phải luôn bằng 
                     1);
             }
         }
+    }
+
+    public async Task IncrementViolationCountAsync(int attemptId)
+    {
+        var attempt = await _db.EssayAttempts.FindAsync(attemptId);
+        if(attempt is not null)
+        {
+            attempt.ViolationCount++;
+            await _db.SaveChangesAsync();
+        }
+    }
+
+    public async Task DeleteEssayQuestionAsync(int questionId)
+    {
+        var question = await _db.EssayQuestions.FindAsync(questionId) ??
+            throw new KeyNotFoundException("Không tìm thấy câu hỏi tự luận.");
+        question.IsDeleted = true;
+        question.DeletedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
     }
 }

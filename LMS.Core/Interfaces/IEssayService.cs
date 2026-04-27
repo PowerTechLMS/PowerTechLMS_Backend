@@ -24,4 +24,8 @@ public interface IEssayService
     Task<List<EssayQuestionDto>> GenerateQuestionsFromLessonsAsync(List<int> lessonIds);
 
     Task<int> GetAttemptNumberAsync(int userId, int lessonId, DateTime startedAt);
+
+    Task IncrementViolationCountAsync(int attemptId);
+
+    Task DeleteEssayQuestionAsync(int questionId);
 }

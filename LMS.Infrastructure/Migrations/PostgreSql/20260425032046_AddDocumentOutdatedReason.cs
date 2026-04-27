@@ -4,25 +4,17 @@
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddDocumentOutdatedReason : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "OutdatedReason",
-                table: "Documents",
-                type: "text",
-                nullable: true);
+            migrationBuilder.AddColumn<string>(name: "OutdatedReason", table: "Documents", type: "text", nullable: true);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "OutdatedReason",
-                table: "Documents");
-        }
+        { migrationBuilder.DropColumn(name: "OutdatedReason", table: "Documents"); }
     }
 }

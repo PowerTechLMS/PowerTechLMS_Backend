@@ -1,15 +1,15 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations.PostgreSql
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddLessonInfographic : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -17,7 +17,9 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                        .Annotation(
+                            "Npgsql:ValueGenerationStrategy",
+                            NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ImageUrl = table.Column<string>(type: "text", nullable: false),
                     Summary = table.Column<string>(type: "text", nullable: true),
                     CreatedById = table.Column<int>(type: "integer", nullable: false),
@@ -72,14 +74,12 @@ namespace LMS.Infrastructure.Migrations.PostgreSql
                 column: "CreatedById");
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "LessonInfographicMapping");
+            migrationBuilder.DropTable(name: "LessonInfographicMapping");
 
-            migrationBuilder.DropTable(
-                name: "LessonInfographics");
+            migrationBuilder.DropTable(name: "LessonInfographics");
         }
     }
 }

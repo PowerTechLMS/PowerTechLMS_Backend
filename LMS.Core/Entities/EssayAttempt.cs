@@ -28,5 +28,7 @@ public class EssayAttempt : BaseEntity
     [ForeignKey("LessonId")]
     public virtual Lesson Lesson { get; set; } = null!;
 
+    public int ViolationCount { get; set; } = 0;
+
     public virtual ICollection<EssayAnswer> Answers { get; set; } = new List<EssayAnswer>();
 }

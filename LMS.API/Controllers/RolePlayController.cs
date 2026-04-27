@@ -118,7 +118,8 @@ public class RolePlayController : ControllerBase
                     null,
                     session.Feedback,
                     session.CreatedAt,
-                    new List<RolePlayMessageResponse>()))
+                    new List<RolePlayMessageResponse>(),
+                    session.ViolationCount))
                 .ToList());
     }
 
@@ -149,5 +150,12 @@ public class RolePlayController : ControllerBase
     {
         var scenario = await _rolePlayService.GenerateScenarioFromLessonsAsync(lessonIds);
         return Ok(new { scenario });
+    }
+
+    [HttpPost("sessions/{sessionId}/increment-violation")]
+    public async Task<ActionResult> IncrementViolation(int sessionId)
+    {
+        await _rolePlayService.IncrementViolationCountAsync(sessionId);
+        return Ok();
     }
 }

@@ -26,6 +26,8 @@ public interface IRolePlayService
     Task UpdateSessionStatusAsync(int sessionId, string status, int? score, string? feedback);
 
     Task<RolePlaySuggestionResponse> GenerateScenarioFromLessonsAsync(List<int> lessonIds);
+
+    Task IncrementViolationCountAsync(int sessionId);
 }
 
 public record RolePlaySuggestionResponse(string Scenario, string ScoringCriteria, string AdditionalRequirements);

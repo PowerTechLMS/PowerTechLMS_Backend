@@ -568,7 +568,10 @@ public class AppDbContext : DbContext
                     .UsingEntity<Dictionary<string, object>>(
                         "LessonInfographicMapping",
                         j => j.HasOne<Lesson>().WithMany().HasForeignKey("LessonId").OnDelete(DeleteBehavior.Cascade),
-                        j => j.HasOne<LessonInfographic>().WithMany().HasForeignKey("InfographicId").OnDelete(DeleteBehavior.Cascade));
+                        j => j.HasOne<LessonInfographic>()
+                                .WithMany()
+                                .HasForeignKey("InfographicId")
+                                .OnDelete(DeleteBehavior.Cascade));
             });
 
         m.Entity<AiTask>(

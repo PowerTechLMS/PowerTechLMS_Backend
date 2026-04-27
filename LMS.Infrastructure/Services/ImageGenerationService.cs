@@ -1,8 +1,8 @@
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 
 namespace LMS.Infrastructure.Services;
 
@@ -20,31 +20,29 @@ public class ImageGenerationService : IImageGenerationService
     private readonly string _apiKey;
     private const string ImageModel = "gemini-3.1-flash-image";
 
-    public ImageGenerationService(HttpClient httpClient, IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
+    public ImageGenerationService(
+        HttpClient httpClient,
+        IConfiguration configuration,
+        IWebHostEnvironment webHostEnvironment)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _webHostEnvironment = webHostEnvironment;
-        _apiBaseUrl = configuration["LlmSettings:ApiUrl"] ?? throw new ArgumentNullException("LlmSettings:ApiUrl is not configured.");
+        _apiBaseUrl = configuration["LlmSettings:ApiUrl"] ??
+            throw new ArgumentNullException("LlmSettings:ApiUrl is not configured.");
         _apiKey = configuration["LlmSettings:ApiKey"] ?? string.Empty;
     }
 
     public async Task<string> GenerateImageAsync(string prompt)
     {
-        if (string.IsNullOrEmpty(_apiKey))
+        if(string.IsNullOrEmpty(_apiKey))
         {
             throw new Exception("API Key chưa được cấu hình.");
         }
 
         try
         {
-            var requestBody = new
-            {
-                model = ImageModel,
-                prompt = prompt,
-                n = 1,
-                size = "1024x1024"
-            };
+            var requestBody = new { model = ImageModel, prompt = prompt, n = 1, size = "1024x1024" };
 
             var endpoint = _apiBaseUrl.Contains("generativelanguage.googleapis.com")
                 ? $"{_apiBaseUrl.TrimEnd('/')}/v1beta/openai/v1/images/generations"
@@ -60,7 +58,7 @@ public class ImageGenerationService : IImageGenerationService
 
             var response = await _httpClient.SendAsync(request);
 
-            if (!response.IsSuccessStatusCode)
+            if(!response.IsSuccessStatusCode)
             {
                 var errorMsg = await response.Content.ReadAsStringAsync();
                 throw new Exception($"Lỗi tạo ảnh (Status {response.StatusCode}): {errorMsg}");
@@ -71,29 +69,26 @@ public class ImageGenerationService : IImageGenerationService
             var dataElement = doc.RootElement.GetProperty("data")[0];
 
             string base64Data = string.Empty;
-            if (dataElement.TryGetProperty("b64_json", out var b64Prop))
+            if(dataElement.TryGetProperty("b64_json", out var b64Prop))
             {
                 base64Data = b64Prop.GetString() ?? string.Empty;
-            }
-            else if (dataElement.TryGetProperty("url", out var urlProp))
+            } else if(dataElement.TryGetProperty("url", out var urlProp))
             {
-                // Fallback for models that still return URL
                 return urlProp.GetString() ?? throw new Exception("Không nhận được URL ảnh từ AI.");
             }
 
-            if (string.IsNullOrEmpty(base64Data))
+            if(string.IsNullOrEmpty(base64Data))
             {
                 throw new Exception("Không nhận được dữ liệu ảnh từ AI (Base64).");
             }
 
-            // Save to local storage
             var storageRoot = _configuration["Storage:RootPath"];
             var rootPath = string.IsNullOrEmpty(storageRoot)
                 ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
                 : storageRoot;
 
             var uploadsFolder = Path.Combine(rootPath, "uploads", "infographics");
-            if (!Directory.Exists(uploadsFolder))
+            if(!Directory.Exists(uploadsFolder))
             {
                 Directory.CreateDirectory(uploadsFolder);
             }
@@ -104,8 +99,7 @@ public class ImageGenerationService : IImageGenerationService
             await File.WriteAllBytesAsync(filePath, imageBytes);
 
             return $"/uploads/infographics/{fileName}";
-        }
-        catch (Exception ex)
+        } catch(Exception ex)
         {
             throw new Exception($"Lỗi xử lý sinh ảnh: {ex.Message}");
         }

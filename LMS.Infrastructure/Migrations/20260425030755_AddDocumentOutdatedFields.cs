@@ -1,14 +1,14 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+using System;
 
 #nullable disable
 
 namespace LMS.Infrastructure.Migrations
 {
-    /// <inheritdoc />
+    /// <inheritdoc/>
     public partial class AddDocumentOutdatedFields : Migration
     {
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
@@ -31,20 +31,14 @@ namespace LMS.Infrastructure.Migrations
                 nullable: true);
         }
 
-        /// <inheritdoc />
+        /// <inheritdoc/>
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "IsOutdated",
-                table: "Documents");
+            migrationBuilder.DropColumn(name: "IsOutdated", table: "Documents");
 
-            migrationBuilder.DropColumn(
-                name: "LastOutdatedNotifiedAt",
-                table: "Documents");
+            migrationBuilder.DropColumn(name: "LastOutdatedNotifiedAt", table: "Documents");
 
-            migrationBuilder.DropColumn(
-                name: "OutdatedAt",
-                table: "Documents");
+            migrationBuilder.DropColumn(name: "OutdatedAt", table: "Documents");
         }
     }
 }

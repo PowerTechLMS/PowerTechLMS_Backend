@@ -726,7 +726,8 @@ public record RolePlaySessionResponse(
     int? PassScore,
     string? Feedback,
     DateTime CreatedAt,
-    List<RolePlayMessageResponse> Messages);
+    List<RolePlayMessageResponse> Messages,
+    int ViolationCount = 0);
 
 public record RolePlayMessageResponse(int Id, string Role, string Content, DateTime CreatedAt);
 
@@ -766,8 +767,10 @@ public record EssayResultResponse(
     [property: JsonPropertyName("totalScore")] int TotalScore,
     [property: JsonPropertyName("isPassed")] bool IsPassed,
     [property: JsonPropertyName("passScore")] int PassScore,
+    [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("aiFeedback")] string? AiFeedback,
-    [property: JsonPropertyName("answers")] List<EssayAnswerResultItem> Answers);
+    [property: JsonPropertyName("answers")] List<EssayAnswerResultItem> Answers,
+    [property: JsonPropertyName("violationCount")] int ViolationCount = 0);
 
 public record EssayAnswerResultItem(
     int QuestionId,
@@ -785,7 +788,8 @@ public record EssayAttemptSummary(
     [property: JsonPropertyName("isPassed")] bool IsPassed,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("startedAt")] DateTime StartedAt,
-    [property: JsonPropertyName("submittedAt")] DateTime? SubmittedAt);
+    [property: JsonPropertyName("submittedAt")] DateTime? SubmittedAt,
+    [property: JsonPropertyName("violationCount")] int ViolationCount = 0);
 
 public record AdminEssayAttemptResponse(
     int Id,
@@ -799,7 +803,8 @@ public record AdminEssayAttemptResponse(
     bool IsPassed,
     string? AiFeedback,
     DateTime CreatedAt,
-    List<EssayAnswerResultItem> Answers);
+    List<EssayAnswerResultItem> Answers,
+    int ViolationCount = 0);
 
 public record AdminUpdateEssayAttemptRequest(string? AiFeedback, List<EssayAnswerUpdateDto> Answers);
 

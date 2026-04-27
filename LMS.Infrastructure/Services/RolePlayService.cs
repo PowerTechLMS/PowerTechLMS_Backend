@@ -296,7 +296,8 @@ LƯU Ý:
                 configs.ContainsKey(s.LessonId) ? configs[s.LessonId] : 50,
                 s.Feedback,
                 s.CreatedAt,
-                s.Messages.Select(m => new RolePlayMessageResponse(m.Id, m.Role, m.Content, m.CreatedAt)).ToList()))
+                s.Messages.Select(m => new RolePlayMessageResponse(m.Id, m.Role, m.Content, m.CreatedAt)).ToList(),
+                s.ViolationCount))
             .ToList();
     }
 
@@ -324,13 +325,17 @@ LƯU Ý:
         var config = await _db.RolePlayConfigs.FirstOrDefaultAsync(c => c.LessonId == session.LessonId);
         int passScore = config?.PassScore ?? 50;
 
-        if(status == "Completed" || (status == "Scored" && score >= passScore))
-        {
-            await MarkLessonAsCompletedAsync(session.UserId, session.LessonId, true);
-        } else if(oldStatus == "Completed" || oldStatus == "Scored")
-        {
-            await MarkLessonAsCompletedAsync(session.UserId, session.LessonId, false);
-        }
+        bool isAnyPassed = await _db.RolePlaySessions
+                .AnyAsync(
+                    s => s.UserId == session.UserId &&
+                            s.LessonId == session.LessonId &&
+                            s.Status == "Scored" &&
+                            s.Score >= passScore &&
+                            s.Id != session.Id) ||
+            (status == "Scored" && score >= passScore) ||
+            status == "Completed";
+
+        await MarkLessonAsCompletedAsync(session.UserId, session.LessonId, isAnyPassed);
     }
 
     private async Task MarkLessonAsCompletedAsync(int userId, int lessonId, bool isCompleted)
@@ -365,6 +370,16 @@ LƯU Ý:
         if(isCompleted)
         {
             await _certificateService.IssueCertificateAsync(userId, lesson.Module.CourseId);
+        }
+    }
+
+    public async Task IncrementViolationCountAsync(int sessionId)
+    {
+        var session = await _db.RolePlaySessions.FindAsync(sessionId);
+        if(session is not null)
+        {
+            session.ViolationCount++;
+            await _db.SaveChangesAsync();
         }
     }
 }

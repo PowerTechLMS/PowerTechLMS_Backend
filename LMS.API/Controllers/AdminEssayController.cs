@@ -34,4 +34,11 @@ public class AdminEssayController : ControllerBase
         await _essayService.UpdateAttemptAsync(id, request);
         return Ok();
     }
+
+    [HttpDelete("questions/{id}")]
+    public async Task<ActionResult> DeleteQuestion(int id)
+    {
+        await _essayService.DeleteEssayQuestionAsync(id);
+        return Ok();
+    }
 }

@@ -346,25 +346,25 @@ public class AdminAiController : ControllerBase
     [HttpGet("infographics")]
     public async Task<IActionResult> GetInfographics([FromQuery] int page = 1, [FromQuery] int pageSize = 12)
     {
-        var query = _db.LessonInfographics
-            .Include(li => li.Lessons)
-            .OrderByDescending(li => li.CreatedAt);
+        var query = _db.LessonInfographics.Include(li => li.Lessons).OrderByDescending(li => li.CreatedAt);
 
         var total = await query.CountAsync();
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-        return Ok(new
-        {
-            total,
-            items = items.Select(li => new
+        return Ok(
+            new
             {
-                li.Id,
-                li.ImageUrl,
-                li.Summary,
-                li.CreatedAt,
-                Lessons = li.Lessons.Select(l => new { l.Id, l.Title, l.Type })
-            })
-        });
+                total,
+                items = items.Select(
+                    li => new
+                        {
+                            li.Id,
+                            li.ImageUrl,
+                            li.Summary,
+                            li.CreatedAt,
+                            Lessons = li.Lessons.Select(l => new { l.Id, l.Title, l.Type })
+                        })
+            });
     }
 
     [HttpDelete("infographics/{id}")]
@@ -389,7 +389,9 @@ public class AdminAiController : ControllerBase
             {
                 System.IO.File.Delete(filePath);
             }
-        } catch { }
+        } catch
+        {
+        }
 
         return Ok(new { message = "Đã xóa Infographic thành công." });
     }

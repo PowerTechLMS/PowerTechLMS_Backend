@@ -66,14 +66,14 @@ public class EssayController : ControllerBase
     [HttpGet("lessons/{lessonId}/history")]
     public async Task<ActionResult<List<EssayAttemptSummary>>> GetHistory(int lessonId)
     {
-        var history = await _essayService.GetAttemptsByLessonAsync(UserId, lessonId, IsAdmin);
+        var history = await _essayService.GetAttemptsByLessonAsync(UserId, lessonId, false);
         return Ok(history);
     }
 
     [HttpGet("attempts/{attemptId}")]
     public async Task<ActionResult<EssayResultResponse>> GetAttemptDetail(int attemptId)
     {
-        var detail = await _essayService.GetAttemptDetailAsync(UserId, attemptId, IsAdmin);
+        var detail = await _essayService.GetAttemptDetailAsync(UserId, attemptId, false);
         return Ok(detail);
     }
 
@@ -113,5 +113,12 @@ public class EssayController : ControllerBase
     {
         var questions = await _essayService.GenerateQuestionsFromLessonsAsync(lessonIds);
         return Ok(questions);
+    }
+
+    [HttpPost("attempts/{attemptId}/increment-violation")]
+    public async Task<ActionResult> IncrementViolation(int attemptId)
+    {
+        await _essayService.IncrementViolationCountAsync(attemptId);
+        return Ok();
     }
 }

@@ -507,15 +507,13 @@ public class LessonService : ILessonService
 
         await _vectorDb.DeleteVectorsByFilterAsync("LessonId", lessonId);
 
-        // Find infographics that include this lesson
         var relatedInfographics = await _db.LessonInfographics
             .Include(li => li.Lessons)
             .Where(li => li.Lessons.Any(l => l.Id == lessonId))
             .ToListAsync();
 
-        foreach (var info in relatedInfographics)
+        foreach(var info in relatedInfographics)
         {
-            // Delete physical file
             try
             {
                 var storageRoot = _config["Storage:RootPath"];
@@ -524,12 +522,13 @@ public class LessonService : ILessonService
                     : storageRoot;
 
                 var filePath = Path.Combine(rootPath, info.ImageUrl.TrimStart('/'));
-                if (System.IO.File.Exists(filePath))
+                if(File.Exists(filePath))
                 {
-                    System.IO.File.Delete(filePath);
+                    File.Delete(filePath);
                 }
+            } catch
+            {
             }
-            catch { }
             _db.LessonInfographics.Remove(info);
         }
 

@@ -235,6 +235,7 @@ public class CourseService : ICourseService
                                                             l.EssayConfig.AttemptWindowHours,
                                                             l.EssayConfig.PassScore,
                                                             l.EssayConfig.Questions
+                                                                .Where(q => !q.IsDeleted)
                                                                 .Select(
                                                                     q => new EssayQuestionDto(
                                                                                                     q.Id,
@@ -337,6 +338,7 @@ public class CourseService : ICourseService
                                                             l.EssayConfig.AttemptWindowHours,
                                                             l.EssayConfig.PassScore,
                                                             l.EssayConfig.Questions
+                                                                .Where(q => !q.IsDeleted)
                                                                 .Select(
                                                                     q => new EssayQuestionDto(
                                                                                                     q.Id,
