@@ -374,6 +374,7 @@ public class EssayService : IEssayService
                 a.Id,
                 a.UserId,
                 a.User?.FullName,
+                a.User?.Email,
                 a.LessonId,
                 a.Lesson?.Title,
                 a.Status,

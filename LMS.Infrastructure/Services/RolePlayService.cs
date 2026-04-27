@@ -290,6 +290,7 @@ LƯU Ý:
                 s.Id,
                 s.UserId,
                 s.User?.FullName,
+                s.User?.Email,
                 s.LessonId,
                 s.Lesson?.Title,
                 s.Status,

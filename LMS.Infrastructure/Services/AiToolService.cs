@@ -287,6 +287,7 @@ public class AiToolService : IAiToolService
         var rolePlaySessions = await _db.RolePlaySessions
             .Include(s => s.Messages)
             .Include(s => s.Lesson)
+            .Include(s => s.User)
             .Where(s => s.UserId == userId && s.Lesson != null)
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
@@ -294,18 +295,23 @@ public class AiToolService : IAiToolService
                 s => new
                 {
                     s.Id,
+                    s.UserId,
+                    UserFullName = s.User.FullName,
+                    UserEmail = s.User.Email,
                     s.LessonId,
                     LessonTitle = s.Lesson.Title,
                     s.Status,
                     s.Score,
                     s.Feedback,
-                    Messages = s.Messages.OrderBy(m => m.CreatedAt).Select(m => new { m.Role, m.Content })
+                    Messages = s.Messages.OrderBy(m => m.CreatedAt).Select(m => new { m.Role, m.Content }),
+                    s.CreatedAt
                 })
             .ToListAsync();
 
         var essayAttempts = await _db.EssayAttempts
             .Include(a => a.Answers)
             .Include(a => a.Lesson)
+            .Include(a => a.User)
             .Where(a => a.UserId == userId && a.Lesson != null)
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
@@ -313,12 +319,16 @@ public class AiToolService : IAiToolService
                 a => new
                 {
                     a.Id,
+                    a.UserId,
+                    UserFullName = a.User.FullName,
+                    UserEmail = a.User.Email,
                     a.LessonId,
                     LessonTitle = a.Lesson.Title,
                     a.Status,
                     a.TotalScore,
                     a.AiFeedback,
-                    Answers = a.Answers.Select(ans => new { ans.QuestionId, ans.Content, ans.AiScore, ans.AiFeedback })
+                    Answers = a.Answers.Select(ans => new { ans.QuestionId, ans.Content, ans.AiScore, ans.AiFeedback }),
+                    a.CreatedAt
                 })
             .ToListAsync();
 
