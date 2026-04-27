@@ -276,6 +276,7 @@ LƯU Ý:
             .Include(s => s.User)
             .Include(s => s.Lesson)
             .Include(s => s.Messages)
+            .Where(s => s.Lesson != null)
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 

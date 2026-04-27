@@ -365,6 +365,7 @@ public class EssayService : IEssayService
             .Include(a => a.User)
             .Include(a => a.Lesson)
             .ThenInclude(l => l.EssayConfig)
+            .Where(a => a.Lesson != null)
             .OrderByDescending(a => a.CreatedAt)
             .ToListAsync();
 
@@ -372,12 +373,12 @@ public class EssayService : IEssayService
             a => new AdminEssayAttemptResponse(
                 a.Id,
                 a.UserId,
-                a.User.FullName,
+                a.User?.FullName,
                 a.LessonId,
-                a.Lesson.Title,
+                a.Lesson?.Title,
                 a.Status,
                 a.TotalScore,
-                a.Lesson.EssayConfig?.PassScore ?? 50,
+                a.Lesson?.EssayConfig?.PassScore ?? 50,
                 a.IsPassed,
                 a.AiFeedback,
                 a.CreatedAt,

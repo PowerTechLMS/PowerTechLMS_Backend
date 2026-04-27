@@ -286,7 +286,8 @@ public class AiToolService : IAiToolService
     {
         var rolePlaySessions = await _db.RolePlaySessions
             .Include(s => s.Messages)
-            .Where(s => s.UserId == userId)
+            .Include(s => s.Lesson)
+            .Where(s => s.UserId == userId && s.Lesson != null)
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
             .Select(
@@ -294,6 +295,7 @@ public class AiToolService : IAiToolService
                 {
                     s.Id,
                     s.LessonId,
+                    LessonTitle = s.Lesson.Title,
                     s.Status,
                     s.Score,
                     s.Feedback,
@@ -303,7 +305,8 @@ public class AiToolService : IAiToolService
 
         var essayAttempts = await _db.EssayAttempts
             .Include(a => a.Answers)
-            .Where(a => a.UserId == userId)
+            .Include(a => a.Lesson)
+            .Where(a => a.UserId == userId && a.Lesson != null)
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
             .Select(
@@ -311,6 +314,7 @@ public class AiToolService : IAiToolService
                 {
                     a.Id,
                     a.LessonId,
+                    LessonTitle = a.Lesson.Title,
                     a.Status,
                     a.TotalScore,
                     a.AiFeedback,
