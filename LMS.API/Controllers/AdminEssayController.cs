@@ -41,4 +41,11 @@ public class AdminEssayController : ControllerBase
         await _essayService.DeleteEssayQuestionAsync(id);
         return Ok();
     }
+
+    [HttpGet("lessons/{lessonId}/questions")]
+    public async Task<ActionResult<List<EssayQuestionDto>>> GetQuestionsByLesson(int lessonId)
+    {
+        var questions = await _essayService.GetQuestionsByLessonAsync(lessonId);
+        return Ok(questions);
+    }
 }

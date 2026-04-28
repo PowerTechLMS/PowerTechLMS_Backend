@@ -179,6 +179,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IRbacService, RbacService>();
 builder.Services.AddScoped<IRolePlayService, RolePlayService>();
 builder.Services.AddScoped<IEssayService, EssayService>();
+builder.Services.AddScoped<IPlagiarismService, PlagiarismService>();
 builder.Services.AddScoped<RolePlayScoringJob>();
 builder.Services.AddHttpClient<ILlmService, LlmService>();
 builder.Services.AddSingleton<AiSidecarManager>();

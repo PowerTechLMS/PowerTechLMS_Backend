@@ -493,6 +493,25 @@ LƯU Ý: Tổng ""weight"" của tất cả các câu hỏi phải luôn bằng 
             .CountAsync(a => a.UserId == userId && a.LessonId == lessonId && a.StartedAt <= startedAt);
     }
 
+    public async Task<List<EssayQuestionDto>> GetQuestionsByLessonAsync(int lessonId)
+    {
+        var config = await _db.EssayConfigs
+            .Include(c => c.Questions.Where(q => !q.IsDeleted))
+            .FirstOrDefaultAsync(c => c.LessonId == lessonId);
+
+        if(config is null)
+            return new List<EssayQuestionDto>();
+
+        return config.Questions.OrderBy(q => q.SortOrder).Select(
+            q => new EssayQuestionDto(
+                q.Id,
+                q.Content,
+                q.SortOrder,
+                q.Weight,
+                q.ScoringCriteria))
+            .ToList();
+    }
+
     private async Task MarkLessonAsCompletedAsync(int userId, int lessonId, bool isCompleted)
     {
         var lesson = await _db.Lessons.Include(l => l.Module).FirstOrDefaultAsync(l => l.Id == lessonId);

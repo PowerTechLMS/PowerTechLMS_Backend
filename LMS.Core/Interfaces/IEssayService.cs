@@ -25,6 +25,8 @@ public interface IEssayService
 
     Task<int> GetAttemptNumberAsync(int userId, int lessonId, DateTime startedAt);
 
+    Task<List<EssayQuestionDto>> GetQuestionsByLessonAsync(int lessonId);
+
     Task IncrementViolationCountAsync(int attemptId);
 
     Task DeleteEssayQuestionAsync(int questionId);
