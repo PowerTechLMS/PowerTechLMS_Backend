@@ -282,7 +282,7 @@ public class PlagiarismService : IPlagiarismService
             highlightedSegments.AppendLine($"- \"{seg.Text}\"");
         }
 
-        var systemPrompt = @"Bạn là Hội đồng Kỷ luật Học thuật (Academic Disciplinary Board) của một tổ chức đào tạo uy tín.
+        var systemPrompt = @"Bạn là Hội đồng Kỷ luật Học thuật (Academic Disciplinary Board) của tổ chức Powertech.
 Nhiệm vụ của bạn là xem xét bằng chứng sao chép bài và lập 'Biên bản Ghi nhận Bất thường' một cách chính thức, khách quan và nghiêm túc.";
 
         var userPrompt = $@"**YÊU CẦU LẬP BIÊN BẢN:**
