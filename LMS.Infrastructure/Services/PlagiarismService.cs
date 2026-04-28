@@ -52,8 +52,9 @@ public class PlagiarismService : IPlagiarismService
         var studentNameA = attemptA.User?.FullName ?? "Học viên A";
         var studentNameB = attemptB.User?.FullName ?? "Học viên B";
 
-        var aiReport = await GenerateAiReportAsync(
-            studentNameA, studentNameB, questionContent, textA, textB, similarityPercent, matchedSegments);
+        var aiReport = similarityPercent >= 75
+            ? await GenerateAiReportAsync(studentNameA, studentNameB, questionContent, textA, textB, similarityPercent, matchedSegments)
+            : $"Độ tương đồng ({similarityPercent:F1}%) chưa vượt quá ngưỡng quy định (75%) để lập Biên bản Ghi nhận Bất thường.";
 
         return new PlagiarismCompareResponse(
             request.AttemptIdA,
