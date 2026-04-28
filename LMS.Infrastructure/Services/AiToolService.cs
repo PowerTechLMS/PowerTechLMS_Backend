@@ -115,6 +115,37 @@ public class AiToolService : IAiToolService
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
+            // 1. Kiểm tra quyền của adminId
+            var user = await _db.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions)
+                .ThenInclude(rp => rp.Permission)
+                .FirstOrDefaultAsync(u => u.Id == adminId);
+
+            if(user is null)
+                return new AiToolResponse(false, "Người dùng không tồn tại.");
+
+            var userPermissions = user.UserRoles
+                .SelectMany(ur => ur.Role.RolePermissions.Select(rp => rp.Permission.Code))
+                .ToHashSet();
+
+            bool isAdmin = user.UserRoles.Any(ur => ur.Role.Name == "Admin");
+
+            // 2. Tìm công cụ và xác thực quyền
+            var toolInfo = _allTools.FirstOrDefault(t => t.Name == toolName);
+            if(toolInfo is null)
+                return new AiToolResponse(false, $"Tool '{toolName}' không tồn tại.");
+
+            bool hasPermission = isAdmin || toolInfo.Permissions.Length == 0 ||
+                                 toolInfo.Permissions.Any(p => userPermissions.Contains(p));
+
+            if(!hasPermission)
+            {
+                return new AiToolResponse(false, $"Bạn không có quyền thực thi công cụ '{toolName}'.");
+            }
+
+            // 3. Thực thi tool
             var doc = JsonSerializer.Deserialize<JsonElement>(argumentsJson);
 
             return toolName switch
