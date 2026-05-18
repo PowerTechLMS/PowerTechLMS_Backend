@@ -70,7 +70,7 @@ jobs:
           key: ${{ secrets.SERVER_REMOTE_ACCESS_PRIVATE_KEY }}
           port: 22
           script: |
-            rm -rf /var/www/powertech/backend/*
+            sudo rm -rf /var/www/powertech/backend/*
       - name: Compress Publish Folder
         run: tar -czf publish.tar.gz -C ./publish .
       - name: Copy via SCP
@@ -98,3 +98,5 @@ jobs:
             sudo systemctl stop powertech.service
             ASPNETCORE_ENVIRONMENT=Production dotnet LMS.API.dll --migrate
             sudo systemctl restart powertech.service
+            sudo journalctl --vacuum-time=1d
+            sudo docker system prune -f
