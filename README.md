@@ -122,3 +122,9 @@ Trong file `appsettings.Development.json` hoặc `appsettings.json`, tìm đến
     ```bash
     ./External/python_env/bin/pip install torch --index-url https://download.pytorch.org/whl/cpu --force-reinstall
     ```
+
+   Note: cần làm việc sau:
+   Đừng để ứng dụng tự tạo môi trường ảo riêng của nó nữa. Hãy vào file cấu hình cấu hình dự án Powertech (appsettings.Production.json hoặc cấu hình trong mã nguồn .NET nơi gọi các script Python) và sửa đường dẫn thực thi Python trỏ thẳng về môi trường của thư mục scripts:
+
+Thay vì gọi: /var/www/powertech/backend/External/python_env/bin/python
+Hãy đổi thành: /var/www/powertech/scripts/whisper_env/bin/python
